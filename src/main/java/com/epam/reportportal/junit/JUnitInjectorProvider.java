@@ -32,7 +32,7 @@ import com.google.common.base.Suppliers;
  * @author Ilya_Koshaleu
  * 
  */
-public class JUnitIjectorProvider {
+public class JUnitInjectorProvider {
 
 	private static Supplier<Injector> instance = Suppliers.memoize(new Supplier<Injector>() {
 		@Override

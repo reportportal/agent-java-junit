@@ -39,7 +39,7 @@ import com.epam.reportportal.listeners.Statuses;
 
 public class ReportPortalListener extends RunListener {
 
-	private IListenerHandler handler = JUnitIjectorProvider.getInstance().getBean(IListenerHandler.class);
+	private IListenerHandler handler = JUnitInjectorProvider.getInstance().getBean(IListenerHandler.class);
 
 	/**
 	 * {@inheritDoc}
