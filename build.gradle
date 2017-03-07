@@ -15,5 +15,5 @@ repositories {
 
 dependencies {
     compile 'junit:junit:4.12'
-    compile 'com.epam.reportportal:client-java-core:2.5.1'
+    compile 'com.epam.reportportal:client-java-core:2.7.0'
 }
