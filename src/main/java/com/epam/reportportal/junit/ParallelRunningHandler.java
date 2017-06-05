@@ -165,8 +165,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	@Override
 	public void initSuiteProcessor(Description description) {
-		for (Description test : description.getChildren()) {
-			processor.addToSuiteKeeper(test);
+		if (null != description && null != description.getChildren()){
+			for (Description test : description.getChildren()) {
+				processor.addToSuiteKeeper(test);
+			}
 		}
 	}
 
