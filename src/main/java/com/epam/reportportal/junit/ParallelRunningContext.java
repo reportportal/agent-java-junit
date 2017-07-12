@@ -60,7 +60,7 @@ public class ParallelRunningContext {
 	}
 
 	public String getRunningSuiteId(String suiteName) {
-		return runningSuites.get(suiteName);
+		return null == suiteName ? null : runningSuites.get(suiteName);
 	}
 
 	public String getRunningTestId(Class<?> test) {
