@@ -8,11 +8,11 @@
 [![UserVoice](https://img.shields.io/badge/uservoice-vote%20ideas-orange.svg?style=flat)](https://rpp.uservoice.com/forums/247117-report-portal)
 [![Build with Love](https://img.shields.io/badge/build%20with-❤%EF%B8%8F%E2%80%8D-lightgrey.svg)](http://reportportal.io?style=flat)
 ---
-- [Installation]()
-- [ReportPortal Listener]()
-- [ReportPortal Runner]()
-  - [Via \@RunWith annotation]()
-  - [Via Suite class extension]()
+- [Installation](https://github.com/reportportal/agent-java-junit#installation)
+- [ReportPortal Listener](https://github.com/reportportal/agent-java-junit#reportportal-listener)
+- [ReportPortal Runner](https://github.com/reportportal/agent-java-junit#reportportal-runner)
+  - [Via \@RunWith annotation](https://github.com/reportportal/agent-java-junit#via-runwith-annotation)
+  - [Via Suite class extension](https://github.com/reportportal/agent-java-junit#via-suite-class-extension)
 ---
 
 ## Installation
@@ -28,9 +28,7 @@ of [JUnit](<http://junit.org/>) script events:
 The Listener provides information for RP in an appropriate form and updates the launch
 structure in accordance with developed template.
 
-The Runner was created for `\@BeforeClass`, `\@Before`, `\@After` and
-`\@AfterClass` methods notifications rising. These notifications are not
-top-level events for native [JUnit](<http://junit.org/>) runners\\listeners.
+The Runner was created for `@BeforeClass`, `@Before`, `@After` and `@AfterClass` methods notifications rising. These notifications are not top-level events for native [JUnit](<http://junit.org/>) runners\\listeners.
 
 
 ## ReportPortal Listener
