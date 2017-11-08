@@ -20,20 +20,6 @@
  */
 package com.epam.reportportal.junit;
 
-import static com.epam.reportportal.listeners.ListenersUtils.handleException;
-
-import java.lang.reflect.Method;
-import java.util.*;
-
-import javax.annotation.Nullable;
-import javax.validation.constraints.NotNull;
-
-import org.junit.Test;
-import org.junit.runner.Description;
-import org.junit.runner.notification.Failure;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.ReportPortalListenerContext;
 import com.epam.reportportal.listeners.Statuses;
@@ -49,13 +35,25 @@ import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.inject.Inject;
+import org.junit.Test;
+import org.junit.runner.Description;
+import org.junit.runner.notification.Failure;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
+import javax.validation.constraints.NotNull;
+import java.lang.reflect.Method;
+import java.util.*;
+
+import static com.epam.reportportal.listeners.ListenersUtils.handleException;
 
 /**
  * MultyThread realization of IListenerHandler. This realization support
  * parallel running of tests and test methods. Main constraint: All test classes
  * in current launch should be unique. (User shouldn't run the same classes
  * twice/or more times in the one launch)
- * 
+ *
  * @author Aliaksey_Makayed (modified by Andrei_Ramanchuk)
  */
 public class ParallelRunningHandler implements IListenerHandler {
@@ -165,7 +163,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	@Override
 	public void initSuiteProcessor(Description description) {
-		if (null != description && null != description.getChildren()){
+		if (null != description && null != description.getChildren()) {
 			for (Description test : description.getChildren()) {
 				processor.addToSuiteKeeper(test);
 			}
@@ -302,11 +300,13 @@ public class ParallelRunningHandler implements IListenerHandler {
 			return;
 		}
 		SaveLogRQ saveLogRQ = new SaveLogRQ();
-		if (result.getException() != null)
-			saveLogRQ.setMessage("Exception: " + result.getException().getMessage() + System.getProperty("line.separator")
-					+ this.getStackTraceString(result.getException()));
-		else
+		if (result.getException() != null) {
+			saveLogRQ.setMessage(
+					"Exception: " + result.getException().getMessage() + System.getProperty("line.separator") + this.getStackTraceString(
+							result.getException()));
+		} else {
 			saveLogRQ.setMessage("Just exception (contact dev team)");
+		}
 		saveLogRQ.setLogTime(Calendar.getInstance().getTime());
 		saveLogRQ.setTestItemId(context.getRunningMethodId(runningMethodName(method)));
 		saveLogRQ.setLevel("ERROR");
@@ -328,12 +328,16 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	/**
 	 * get all methods annotated as test
-	 * 
+	 *
 	 * @param methods
 	 * @return
 	 */
 	private Set<Method> getTests(Method[] methods) {
 		Set<Method> tests = new HashSet<Method>();
+		if (null == methods) {
+			return tests;
+		}
+
 		for (Method method : methods) {
 			if (method.isAnnotationPresent(Test.class)) {
 				tests.add(method);
@@ -368,8 +372,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 		for (int i = supers.size() - 1; i >= 0; i--) {
 			lstMethods = supers.get(i).getDeclaredMethods();
 			for (int j = 0; j < lstMethods.length; j++) {
-				if (lstMethods[j].getName().equalsIgnoreCase(method))
+				if (lstMethods[j].getName().equalsIgnoreCase(method)) {
 					return lstMethods[j];
+				}
 			}
 		}
 		return null;
@@ -377,20 +382,25 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	/**
 	 * Close all TEST-items and SUITE-items before LAUNCH-item finish
-	 * 
-	 * @throws RestEndpointIOException
 	 */
 	private void stopOverAll() {
 		// TESTS
 		for (Class<?> cl : tests) {
-			Collection<String> passedMethods = Collections2.transform(context.getFinishedMethods(cl), new Function<String, String>() {
-				@Nullable
-				@Override
-				public String apply(String input) {
-					String[] split = input.split("#");
-					return split.length == 2 ? split[0] : input;
-				}
-			});
+			Set<String> finishedMethods = context.getFinishedMethods(cl);
+			Collection<String> passedMethods;
+			if (null != finishedMethods) {
+				passedMethods = Collections2.transform(finishedMethods, new Function<String, String>() {
+					@Nullable
+					@Override
+					public String apply(String input) {
+						String[] split = input.split("#");
+						return split.length == 2 ? split[0] : input;
+					}
+				});
+			} else {
+				passedMethods = Collections.emptyList();
+			}
+
 			Collection<String> allTests = Collections2.transform(getTests(cl.getMethods()), new Function<Method, String>() {
 				@Nullable
 				@Override
