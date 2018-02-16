@@ -10,10 +10,12 @@ targetCompatibility = 1.6
 description = 'JUnit client'
 repositories {
     jcenter()
+    maven { url 'https://jitpack.io' }
     maven { url "http://dl.bintray.com/epam/reportportal" }
 }
 
 dependencies {
     compile 'junit:junit:4.12'
-    compile 'com.epam.reportportal:client-java-core:2.7.0'
+    compile 'com.github.reportportal:client-java-core:626a7632d9'
+
 }
