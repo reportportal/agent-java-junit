@@ -57,9 +57,7 @@ public class ReportPortalListener extends RunListener {
 	public void testStarted(Description description) throws Exception {
 		handler.startSuiteIfRequired(description);
 		handler.starTestIfRequired(description);
-		if (null == description.getAnnotation(Test.class) && description.getMethodName().contains("#")) {
-			handler.startTestMethod(description);
-		}
+		handler.startTestMethod(description);
 	}
 
 	/**
@@ -67,9 +65,7 @@ public class ReportPortalListener extends RunListener {
 	 */
 	@Override
 	public void testFinished(Description description) throws Exception {
-		if (description.getMethodName().contains("#")) {
-			handler.stopTestMethod(description);
-		}
+		handler.stopTestMethod(description);
 	}
 
 	/**
