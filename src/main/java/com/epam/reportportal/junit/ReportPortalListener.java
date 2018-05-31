@@ -20,20 +20,18 @@
  */
 package com.epam.reportportal.junit;
 
-import org.junit.Test;
+import com.epam.reportportal.listeners.Statuses;
 import org.junit.runner.Description;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
-
-import com.epam.reportportal.listeners.Statuses;
 
 /**
  * Report portal custom event listener. This listener support parallel running
  * of tests and test methods. Main constraint: All test classes in current
  * launch should be unique. (User shouldn't run the same classes twice/or more
  * times in the one launch)
- * 
+ *
  * @author Aliaksei_Makayed (modified by Andrei_Ramanchuk)
  */
 
