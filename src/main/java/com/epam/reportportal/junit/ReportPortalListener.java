@@ -56,7 +56,6 @@ public class ReportPortalListener extends RunListener {
 		handler.startSuiteIfRequired(description);
 		handler.starTestIfRequired(description);
 		handler.startTestMethod(description);
-
 	}
 
 	/**
@@ -64,15 +63,7 @@ public class ReportPortalListener extends RunListener {
 	 */
 	@Override
 	public void testFinished(Description description) throws Exception {
-		// <Andrei Varabyeu>: it isn't completely why validation for # symbol presence has been added here:
-		// possibly to avoid finishing level upper than test method.
-		// to avoid possible side effects, this validation is remained commented to be able to revert it easily in case of
-		// negative feedback
-		// reportportal/agent-java-junit#4
-
-		//		if (description.getMethodName().contains("#")) {
 		handler.stopTestMethod(description);
-		//		}
 	}
 
 	/**

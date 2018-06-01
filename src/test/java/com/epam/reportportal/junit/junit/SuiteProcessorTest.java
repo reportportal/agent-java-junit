@@ -26,7 +26,9 @@ import com.epam.reportportal.junit.SuitesKeeper;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.Description;
+import org.junit.runner.RunWith;
 
+@RunWith(UnitTestRunner.class)
 public class SuiteProcessorTest {
 
 	@Test
