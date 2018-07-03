@@ -17,4 +17,5 @@ repositories {
 dependencies {
     compile 'junit:junit:4.12'
     compile 'com.epam.reportportal:client-java-core:2.7.1'
+    compile 'com.nordstrom.tools:junit-foundation:3.2.1'
 }
