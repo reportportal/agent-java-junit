@@ -57,7 +57,7 @@ import static com.epam.reportportal.listeners.ListenersUtils.handleException;
  * @author Aliaksey_Makayed (modified by Andrei_Ramanchuk)
  */
 public class ParallelRunningHandler implements IListenerHandler {
-	public final static String API_BASE = "/reportportal-ws/api/v1";
+	public static final String API_BASE = "/reportportal-ws/api/v1";
 
 	private final Logger logger = LoggerFactory.getLogger(ParallelRunningHandler.class);
 
