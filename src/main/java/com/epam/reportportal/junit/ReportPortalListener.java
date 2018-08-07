@@ -29,8 +29,6 @@ import com.nordstrom.automation.junit.TestClassWatcher;
 import com.nordstrom.automation.junit.TestObjectWatcher;
 import com.nordstrom.common.base.UncheckedThrow;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.runner.Description;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
@@ -119,12 +117,12 @@ public class ReportPortalListener extends RunListener implements ShutdownListene
 
 	@Override
 	public void testObjectCreated(Object testObj, TestClass testClass) {
-		System.out.println("Test object created " + testObj);
+		System.out.println("Test object [" + testObj + "] of test class [" + testClass.getName() + "] created");
 	}
 
 	@Override
 	public void testClassCreated(TestClass testClass, Object runner) {
-		System.out.println("Test class created " + testClass);
+		System.out.println("Test class [" + testClass.getName() + "] of runner [" + runner + "] created");
 		attachRunnerScheduler(runner);
 	}
 
