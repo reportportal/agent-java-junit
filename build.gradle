@@ -32,15 +32,16 @@ byteBuddy {
     }
 }
 test.doFirst {
-    String jvmArgsAgent = "-javaagent:${configurations.junitAgent.files.iterator().next()}"
-    jvmArgs jvmArgsAgent
+    jvmArgs "-javaagent:${configurations.junitAgent.files.iterator().next()}"
 }
 test {
-    // debug true
+    debug true
+    testLogging.showStandardStreams = true
 }
 dependencies {
     compile 'junit:junit:4.12'
     compile 'com.epam.reportportal:client-java-core:2.7.1'
-    compile 'com.nordstrom.tools:junit-foundation:4.0.0'
-    junitAgent 'com.nordstrom.tools:junit-foundation:4.0.0'
+    compile 'com.nordstrom.tools:junit-foundation:5.0.0-SNAPSHOT'
+    compile 'net.bytebuddy:byte-buddy:1.8.13'
+    junitAgent 'com.nordstrom.tools:junit-foundation:5.0.0-SNAPSHOT'
 }

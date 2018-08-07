@@ -43,7 +43,7 @@ public class SuitesKeeper {
 	private ConcurrentMap<String, Set<Class<?>>> suites;
 
 	public SuitesKeeper() {
-		suites = new ConcurrentHashMap<String, Set<Class<?>>>();
+		suites = new ConcurrentHashMap<>();
 	}
 
 	public String getSuiteName(Class<?> test) {
@@ -102,7 +102,7 @@ public class SuitesKeeper {
 		if (suites.containsKey(suiteName)) {
 			suiteContent = suites.get(suiteName);
 		} else {
-			suiteContent = new HashSet<Class<?>>();
+			suiteContent = new HashSet<>();
 		}
 		suiteContent.add(description.getTestClass());
 		suites.put(suiteName, suiteContent);

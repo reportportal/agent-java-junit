@@ -35,6 +35,11 @@ import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.inject.Inject;
+
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.Description;
 import org.junit.runner.notification.Failure;
@@ -43,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
+
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -57,9 +63,9 @@ import static com.epam.reportportal.listeners.ListenersUtils.handleException;
  * @author Aliaksey_Makayed (modified by Andrei_Ramanchuk)
  */
 public class ParallelRunningHandler implements IListenerHandler {
+	
 	public static final String API_BASE = "/reportportal-ws/api/v1";
-
-	private final Logger logger = LoggerFactory.getLogger(ParallelRunningHandler.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ParallelRunningHandler.class);
 
 	private SuitesKeeper processor;
 
@@ -97,7 +103,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 			rs = reportPortalService.startLaunch(startLaunchRQ);
 			context.setLaunchId(rs.getId());
 		} catch (Exception e) {
-			handleException(e, logger, "Unable start the launch: '" + launchName + "'");
+			handleException(e, LOGGER, "Unable start the launch: '" + launchName + "'");
 		}
 	}
 
@@ -110,7 +116,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 			try {
 				reportPortalService.finishLaunch(context.getLaunchId(), finishExecutionRQ);
 			} catch (Exception e) {
-				handleException(e, logger, "Unable finish the launch: '" + launchName + "'");
+				handleException(e, LOGGER, "Unable finish the launch: '" + launchName + "'");
 			}
 		}
 	}
@@ -118,10 +124,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void startTestMethod(Description description) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		String methodName = description.getMethodName();
-		rq.setName(methodName.replaceAll("\\#.*\\#", ""));
+		rq.setName(description.getMethodName());
 		rq.setStartTime(Calendar.getInstance().getTime());
-		rq.setType(detectMethodType(methodName));
+		rq.setType(detectMethodType(description));
 		rq.setLaunchId(context.getLaunchId());
 		String testId = context.getRunningTestId(description.getTestClass());
 		EntryCreatedRS rs = null;
@@ -131,7 +136,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 			context.addRunningMethod(method, rs.getId());
 			ReportPortalListenerContext.setRunningNowItemId(rs.getId());
 		} catch (Exception e) {
-			handleException(e, logger, "Unable start test method: '" + description.getMethodName() + "'");
+			handleException(e, LOGGER, "Unable start test method: '" + description.getMethodName() + "'");
 		}
 	}
 
@@ -146,10 +151,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 		try {
 			String methodName = runningMethodName(method);
 			reportPortalService.finishTestItem(context.getRunningMethodId(methodName), rq);
-
 			context.addFinishedMethod(description.getTestClass(), methodName);
 		} catch (Exception e) {
-			handleException(e, logger, "Unable finish test method: '" + context.getRunningMethodId(method.getName()) + "'");
+			handleException(e, LOGGER, "Unable finish test method: '" + context.getRunningMethodId(method.getName()) + "'");
 		}
 	}
 
@@ -186,7 +190,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 				rs = reportPortalService.startRootTestItem(rq);
 				context.setRunningSuiteId(suiteName, rs.getId());
 			} catch (Exception e) {
-				handleException(e, logger, "Unable start test suite: '" + suiteName + "'");
+				handleException(e, LOGGER, "Unable start test suite: '" + suiteName + "'");
 			}
 		}
 	}
@@ -203,7 +207,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 			try {
 				reportPortalService.finishTestItem(suiteId, rq);
 			} catch (Exception e) {
-				handleException(e, logger, "Unable finish test suite: '" + suiteId + "'");
+				handleException(e, LOGGER, "Unable finish test suite: '" + suiteId + "'");
 			}
 		}
 	}
@@ -227,7 +231,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 					reportPortalService.finishTestItem(context.getRunningTestId(test), rq);
 					context.addFinishedTest(processor.getSuiteName(description.getTestClass()), description.getTestClass());
 				} catch (Exception e) {
-					handleException(e, logger, "Unable finish test: '" + context.getRunningTestId(test) + "'");
+					handleException(e, LOGGER, "Unable finish test: '" + context.getRunningTestId(test) + "'");
 				}
 			}
 		}
@@ -248,7 +252,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 				rs = reportPortalService.startTestItem(context.getRunningSuiteId(suiteName), rq);
 				context.setRunningTestId(currentTest.getTestClass(), rs.getId());
 			} catch (Exception e) {
-				handleException(e, logger, "Unable start test: '" + currentTest.getClassName() + "'");
+				handleException(e, LOGGER, "Unable start test: '" + currentTest.getClassName() + "'");
 			}
 		}
 	}
@@ -274,7 +278,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 			context.addFinishedTest(suiteName, description.getTestClass());
 			stopSuiteIfRequired(description);
 		} catch (Exception e) {
-			handleException(e, logger, "Unable skip test: '" + description.getClassName() + "'");
+			handleException(e, LOGGER, "Unable skip test: '" + description.getClassName() + "'");
 		}
 	}
 
@@ -313,7 +317,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		try {
 			reportPortalService.log(saveLogRQ);
 		} catch (Exception e1) {
-			handleException(e1, logger, "Unnable to send message to Report Portal");
+			handleException(e1, LOGGER, "Unnable to send message to Report Portal");
 		}
 	}
 
@@ -352,7 +356,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 			List<Class<?>> listParent = this.getSuperClasses(description.getTestClass());
 			method = this.getMethodFromClass(listParent, description.getMethodName().replaceAll("\\#.*\\#", ""));
 		} catch (Exception e) {
-			logger.error("Internal listener exception: ", e);
+			LOGGER.error("Internal listener exception: ", e);
 		}
 		return method;
 	}
@@ -415,7 +419,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 					reportPortalService.finishTestItem(context.getRunningTestId(cl), rq);
 					context.addFinishedTest(processor.getSuiteName(cl), cl);
 				} catch (Exception e) {
-					handleException(e, logger, "Unable finish test: '" + context.getRunningTestId(cl) + "'");
+					handleException(e, LOGGER, "Unable finish test: '" + context.getRunningTestId(cl) + "'");
 				}
 			}
 		}
@@ -428,20 +432,24 @@ public class ParallelRunningHandler implements IListenerHandler {
 			try {
 				reportPortalService.finishTestItem(suiteId, rq);
 			} catch (Exception e) {
-				handleException(e, logger, "Unable finish test suite: '" + suiteId + "'");
+				handleException(e, LOGGER, "Unable finish test suite: '" + suiteId + "'");
 			}
 		}
 	}
 
-	private String detectMethodType(String methodName) {
-		MethodType[] values = MethodType.values();
-		MethodType methodType = null;
-		for (MethodType value : values) {
-			if (methodName.contains(value.getPrefix())) {
-				methodType = value;
-			}
+	private String detectMethodType(Description description) {
+		if (null != description.getAnnotation(Test.class)) {
+			return "TEST";
+		} else if (null != description.getAnnotation(Before.class)) {
+			return "BEFORE_METHOD";
+		} else if (null != description.getAnnotation(After.class)) {
+			return "AFTER_METHOD";
+		} else if (null != description.getAnnotation(BeforeClass.class)) {
+			return "BEFORE_CLASS";
+		} else if (null != description.getAnnotation(AfterClass.class)) {
+			return "AFTER_CLASS";
 		}
-		return null == methodType ? "STEP" : methodType.name();
+		return "STEP";
 	}
 
 	private String runningMethodName(Method method) {

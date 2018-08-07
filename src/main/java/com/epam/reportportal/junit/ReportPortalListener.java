@@ -21,10 +21,24 @@
 package com.epam.reportportal.junit;
 
 import com.epam.reportportal.listeners.Statuses;
+import com.epam.reportportal.restclient.endpoint.exception.RestEndpointIOException;
+import com.nordstrom.automation.junit.LifecycleHooks;
+import com.nordstrom.automation.junit.MethodWatcher2;
+import com.nordstrom.automation.junit.ShutdownListener;
+import com.nordstrom.automation.junit.TestClassWatcher;
+import com.nordstrom.automation.junit.TestObjectWatcher;
+import com.nordstrom.common.base.UncheckedThrow;
+
+import org.junit.After;
+import org.junit.Before;
 import org.junit.runner.Description;
-import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
+import org.junit.runners.ParentRunner;
+import org.junit.runners.Suite;
+import org.junit.runners.model.FrameworkMethod;
+import org.junit.runners.model.RunnerScheduler;
+import org.junit.runners.model.TestClass;
 
 /**
  * Report portal custom event listener. This listener support parallel running
@@ -35,42 +49,38 @@ import org.junit.runner.notification.RunListener;
  * @author Aliaksei_Makayed (modified by Andrei_Ramanchuk)
  */
 
-public class ReportPortalListener extends RunListener {
+public class ReportPortalListener extends RunListener implements ShutdownListener, MethodWatcher2, TestClassWatcher, TestObjectWatcher {
 
-	private IListenerHandler handler = JUnitInjectorProvider.getInstance().getBean(IListenerHandler.class);
+	private static volatile IListenerHandler handler = JUnitInjectorProvider.getInstance().getBean(IListenerHandler.class);
+
+	static {
+		handler = JUnitInjectorProvider.getInstance().getBean(IListenerHandler.class);
+		try {
+			handler.startLaunch();
+		} catch (RestEndpointIOException e) {
+			UncheckedThrow.throwUnchecked(e);
+		}
+	}
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
 	public void testRunStarted(Description description) throws Exception {
-		handler.startLaunch();
 		handler.initSuiteProcessor(description);
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void testStarted(Description description) throws Exception {
+	public void reportTestStarted(Description description) throws Exception {
 		handler.startSuiteIfRequired(description);
 		handler.starTestIfRequired(description);
 		handler.startTestMethod(description);
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void testFinished(Description description) throws Exception {
+	public void reportTestFinished(Description description) throws Exception {
 		handler.stopTestMethod(description);
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void testFailure(Failure failure) throws Exception {
+	public void reportTestFailure(Failure failure) throws Exception {
 		handler.clearRunningItemId();
 		handler.sendReportPortalMsg(failure);
 		handler.markCurrentTestMethod(failure.getDescription(), Statuses.FAILED);
@@ -85,11 +95,101 @@ public class ReportPortalListener extends RunListener {
 		handler.addToFinishedMethods(description);
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
-	public void testRunFinished(Result result) throws Exception {
-		handler.stopLaunch();
+	public void beforeInvocation(Object obj, FrameworkMethod method) {
+		try {
+			reportTestStarted(LifecycleHooks.describeChild(obj, method));
+		} catch (Exception e) {
+			
+		}
+	}
+
+	@Override
+	public void afterInvocation(Object obj, FrameworkMethod method, Throwable thrown) {
+		Description description = LifecycleHooks.describeChild(obj, method);
+		try {
+			if (thrown != null) {
+				reportTestFailure(new Failure(description, thrown));
+			}
+			reportTestFinished(description);
+		} catch (Exception e) {
+			
+		}
+	}
+
+	@Override
+	public void testObjectCreated(Object testObj, TestClass testClass) {
+		System.out.println("Test object created " + testObj);
+	}
+
+	@Override
+	public void testClassCreated(TestClass testClass, Object runner) {
+		System.out.println("Test class created " + testClass);
+		attachRunnerScheduler(runner);
+	}
+
+	@Override
+	public void beforeInvocation(FrameworkMethod method) {
+		try {
+			reportTestStarted(createTestDescription(method));
+		} catch (Exception e) {
+
+		}
+	}
+
+	@Override
+	public void afterInvocation(FrameworkMethod method, Throwable thrown) {
+    	Description description = createTestDescription(method);
+    	try {
+        	if (thrown != null) {
+        		reportTestFailure(new Failure(description, thrown));
+        	}
+			reportTestFinished(description);
+		} catch (Exception e) {
+			
+		}
+	}
+	
+	private static Description createTestDescription(FrameworkMethod method) {
+		return Description.createTestDescription(method.getDeclaringClass(),
+                method.getName(), method.getAnnotations());
+	}
+
+	@Override
+	public void onShutdown() {
+		try {
+			handler.stopLaunch();
+		} catch (RestEndpointIOException e) {
+			UncheckedThrow.throwUnchecked(e);
+		}
+	}
+	
+	private static void attachRunnerScheduler(final Object runner) {
+		if (runner instanceof ParentRunner) {
+			final ParentRunner<?> parentRunner = (ParentRunner<?>) runner;
+			RunnerScheduler scheduler = new RunnerScheduler() {
+		        public void schedule(Runnable childStatement) {
+		        	if (parentRunner instanceof Suite) {
+		        		Description description = Description.createSuiteDescription(runner.getClass());
+		        		System.out.println("Running child of suite " + parentRunner);
+		        	} else {
+		        		System.out.println("Running child of runner " + parentRunner);
+		        	}
+		        	
+		            childStatement.run();
+		        }
+
+		        public void finished() {
+		        	if (parentRunner instanceof Suite) {
+		        		Description description = Description.createSuiteDescription(runner.getClass());
+		        		System.out.println("Run finished for suite " + parentRunner);
+		        	} else {
+		        		System.out.println("Run finished for runner " + parentRunner);
+		        	}
+		        }
+			};
+			
+			parentRunner.setScheduler(scheduler);
+		}
 	}
 }

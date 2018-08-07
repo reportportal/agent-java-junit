@@ -51,12 +51,12 @@ public class ParallelRunningContext {
 	private ConcurrentMap<Method, String> methodStatuses;
 
 	public ParallelRunningContext() {
-		runningTests = new ConcurrentHashMap<Class<?>, String>();
-		runningSuites = new ConcurrentHashMap<String, String>();
-		finishedMethods = new ConcurrentHashMap<Class<?>, Set<String>>();
-		runningMethods = new ConcurrentHashMap<String, String>();
-		finishedTests = new ConcurrentHashMap<String, Set<Class<?>>>();
-		methodStatuses = new ConcurrentHashMap<Method, String>();
+		runningTests = new ConcurrentHashMap<>();
+		runningSuites = new ConcurrentHashMap<>();
+		finishedMethods = new ConcurrentHashMap<>();
+		runningMethods = new ConcurrentHashMap<>();
+		finishedTests = new ConcurrentHashMap<>();
+		methodStatuses = new ConcurrentHashMap<>();
 	}
 
 	public String getRunningSuiteId(String suiteName) {
@@ -78,7 +78,7 @@ public class ParallelRunningContext {
 	public synchronized void addFinishedMethod(Class<?> test, String currentMethod) {
 		Set<String> methods = finishedMethods.get(test);
 		if (methods == null) {
-			methods = new HashSet<String>();
+			methods = new HashSet<>();
 		}
 		methods.add(currentMethod);
 		finishedMethods.put(test, methods);
@@ -107,7 +107,7 @@ public class ParallelRunningContext {
 	public synchronized void addFinishedTest(String suite, Class<?> test) {
 		Set<Class<?>> tests = finishedTests.get(suite);
 		if (tests == null) {
-			tests = new HashSet<Class<?>>();
+			tests = new HashSet<>();
 		}
 		tests.add(test);
 		finishedTests.put(suite, tests);

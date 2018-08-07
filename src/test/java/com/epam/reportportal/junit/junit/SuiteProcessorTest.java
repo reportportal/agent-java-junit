@@ -16,6 +16,10 @@
  */
 package com.epam.reportportal.junit.junit;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashSet;
@@ -23,21 +27,21 @@ import java.util.Set;
 
 import com.epam.reportportal.junit.ReportPortalListener;
 import com.epam.reportportal.junit.SuitesKeeper;
-import org.junit.Assert;
+import com.nordstrom.automation.junit.MethodWatchers;
+
 import org.junit.Test;
 import org.junit.runner.Description;
-import org.junit.runner.RunWith;
 
-//@RunWith(UnitTestRunner.class)
+@MethodWatchers(ReportPortalListener.class)
 public class SuiteProcessorTest {
 
 	@Test
 	public void testPassedSuites() {
 		SuitesKeeper suiteProcessor = new SuitesKeeper();
 		suiteProcessor.addToSuiteKeeper(Description.createSuiteDescription(getClass()));
-		Set<Class<?>> passedTests = new HashSet<Class<?>>();
+		Set<Class<?>> passedTests = new HashSet<>();
 		passedTests.add(this.getClass());
-		Assert.assertTrue(suiteProcessor.isSuitePassed(this.getClass().getName(), passedTests));
+		assertTrue(suiteProcessor.isSuitePassed(this.getClass().getName(), passedTests));
 	}
 
 	@Test
@@ -52,7 +56,7 @@ public class SuiteProcessorTest {
 	public void testAddToKeeper() {
 		SuitesKeeper suiteProcessor = new SuitesKeeper();
 		suiteProcessor.addToSuiteKeeper(Description.createSuiteDescription(getClass()));
-		Assert.assertEquals(getClass().getName(), suiteProcessor.getSuiteName(getClass()));
+		assertEquals(getClass().getName(), suiteProcessor.getSuiteName(getClass()));
 	}
 
 	@Test
@@ -61,7 +65,7 @@ public class SuiteProcessorTest {
 			@SuppressWarnings("unused")
             ReportPortalListener listener = new ReportPortalListener();
 		} catch (Exception e) {
-			Assert.fail(e.getLocalizedMessage());
+			fail(e.getLocalizedMessage());
 		}
 
 	}
