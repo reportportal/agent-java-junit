@@ -38,9 +38,6 @@ public class JUnitProvider implements Provider<IListenerHandler> {
 	private ListenerParameters listenerParameters;
 
 	@Inject
-	private SuitesKeeper suitesKeeper;
-
-	@Inject
 	private ParallelRunningContext parallelRunningContext;
 
 	@Inject
@@ -50,7 +47,7 @@ public class JUnitProvider implements Provider<IListenerHandler> {
 	public IListenerHandler get() {
 
 		if (listenerParameters.getEnable()) {
-			return new ParallelRunningHandler(listenerParameters, suitesKeeper, parallelRunningContext, reportPortalService);
+			return new ParallelRunningHandler(listenerParameters, parallelRunningContext, reportPortalService);
 		}
 
 		return (IListenerHandler) Proxy.newProxyInstance(this.getClass().getClassLoader(),

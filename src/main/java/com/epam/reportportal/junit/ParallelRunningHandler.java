@@ -31,25 +31,20 @@ import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import com.epam.ta.reportportal.ws.model.launch.Mode;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
-import com.google.common.base.Function;
 import com.google.common.base.Strings;
-import com.google.common.collect.Collections2;
 import com.google.inject.Inject;
+import com.nordstrom.automation.junit.LifecycleHooks;
 
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.Description;
-import org.junit.runner.notification.Failure;
+import org.junit.runners.model.FrameworkMethod;
+import org.junit.runners.model.TestClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
-import javax.validation.constraints.NotNull;
-
-import java.lang.reflect.Method;
 import java.util.*;
 
 import static com.epam.reportportal.listeners.ListenersUtils.handleException;
@@ -67,30 +62,34 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public static final String API_BASE = "/reportportal-ws/api/v1";
 	private static final Logger LOGGER = LoggerFactory.getLogger(ParallelRunningHandler.class);
 
-	private SuitesKeeper processor;
-
 	private ParallelRunningContext context;
-
 	private BatchedReportPortalService reportPortalService;
 
 	private String launchName = "test_launch";
 	private Set<String> tags;
 	private Mode launchRunningMode;
 
-	private List<Class<?>> suites = new ArrayList<Class<?>>();
-	private List<Class<?>> tests = new ArrayList<Class<?>>();
-
+	/**
+	 * Constructor: Instantiate a parallel running handler
+	 * 
+	 * @param parameters listener parameters
+	 * @param suitesKeeper test collection hierarchy processor
+	 * @param parallelRunningContext test execution context manager
+	 * @param reportPortalService Report Portal web service client
+	 */
 	@Inject
-	public ParallelRunningHandler(ListenerParameters parameters, SuitesKeeper suitesKeeper, ParallelRunningContext parallelRunningContext,
+	public ParallelRunningHandler(ListenerParameters parameters, ParallelRunningContext parallelRunningContext,
 			BatchedReportPortalService reportPortalService) {
 		this.launchName = parameters.getLaunchName();
 		this.tags = parameters.getTags();
 		this.launchRunningMode = parameters.getMode();
-		this.processor = suitesKeeper;
 		this.context = parallelRunningContext;
 		this.reportPortalService = reportPortalService;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void startLaunch() {
 		StartLaunchRQ startLaunchRQ = new StartLaunchRQ();
@@ -107,9 +106,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void stopLaunch() {
-		this.stopOverAll();
 		if (!Strings.isNullOrEmpty(context.getLaunchId())) {
 			FinishExecutionRQ finishExecutionRQ = new FinishExecutionRQ();
 			finishExecutionRQ.setEndTime(Calendar.getInstance().getTime());
@@ -121,206 +122,173 @@ public class ParallelRunningHandler implements IListenerHandler {
 		}
 	}
 
+	/**
+	 * 
+	 */
 	@Override
-	public void startTestMethod(Description description) {
+	public void startTestClass(TestClass testClass, boolean isSuite) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(description.getMethodName());
 		rq.setStartTime(Calendar.getInstance().getTime());
-		rq.setType(detectMethodType(description));
+		rq.setName(testClass.getName());
+		rq.setType(isSuite ? "SUITE" : "TEST");
 		rq.setLaunchId(context.getLaunchId());
-		String testId = context.getRunningTestId(description.getTestClass());
-		EntryCreatedRS rs = null;
+		String containerId = getContainerId(testClass);
+		EntryCreatedRS rs;
 		try {
-			rs = reportPortalService.startTestItem(testId, rq);
-			String method = runningMethodName(getMethod(description));
-			context.addRunningMethod(method, rs.getId());
-			ReportPortalListenerContext.setRunningNowItemId(rs.getId());
+			if (containerId == null) {
+				rs = reportPortalService.startRootTestItem(rq);
+			} else {
+				rs = reportPortalService.startTestItem(containerId, rq);
+			}
+			context.setTestIdOfTestClass(testClass, rs.getId());
 		} catch (Exception e) {
-			handleException(e, LOGGER, "Unable start test method: '" + description.getMethodName() + "'");
+			handleException(e, LOGGER, "Unable start test class: '" + testClass.getName() + "'");
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public void stopTestMethod(Description description) {
+	public void stopTestClass(TestClass testClass) {
+		FinishTestItemRQ rq = new FinishTestItemRQ();
+		rq.setEndTime(Calendar.getInstance().getTime());
+		try {
+			reportPortalService.finishTestItem(context.getItemIdOfTestClass(testClass), rq);
+		} catch (Exception e) {
+			handleException(e, LOGGER, "Unable finish test class: '" + testClass.getName() + "'");
+		}
+	}
+	
+	@Override
+	public void startAtomicTest(FrameworkMethod method, TestClass testClass) {
+		StartTestItemRQ rq = new StartTestItemRQ();
+		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setName(method.getName());
+		rq.setType("SCENARIO");
+		rq.setLaunchId(context.getLaunchId());
+		EntryCreatedRS rs;
+		try {
+			rs = reportPortalService.startTestItem(context.getItemIdOfTestClass(testClass), rq);
+			context.setItemIdOfAtomicTest(testClass, rs.getId());
+		} catch (Exception e) {
+			handleException(e, LOGGER, "Unable start atomic test: '" + method.getName() + "'");
+		}
+	}
+	
+	@Override
+	public void stopAtomicTest(FrameworkMethod method, TestClass testClass) {
+		FinishTestItemRQ rq = new FinishTestItemRQ();
+		rq.setEndTime(Calendar.getInstance().getTime());
+		try {
+			reportPortalService.finishTestItem(context.getItemIdOfAtomicTest(testClass), rq);
+		} catch (Exception e) {
+			handleException(e, LOGGER, "Unable finish atomic test: '" + method.getName() + "'");
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void startTestMethod(FrameworkMethod method, TestClass testClass) {
+		StartTestItemRQ rq = new StartTestItemRQ();
+		rq.setName(method.getName());
+		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setType(detectMethodType(method));
+		rq.setLaunchId(context.getLaunchId());
+		EntryCreatedRS rs = null;
+		try {
+			rs = reportPortalService.startTestItem(context.getItemIdOfAtomicTest(testClass), rq);
+			context.setItemIdOfTestMethod(method, rs.getId());
+			ReportPortalListenerContext.setRunningNowItemId(rs.getId());
+		} catch (Exception e) {
+			handleException(e, LOGGER, "Unable start test method: '" + method.getName() + "'");
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void stopTestMethod(FrameworkMethod method) {
 		ReportPortalListenerContext.setRunningNowItemId(null);
 		FinishTestItemRQ rq = new FinishTestItemRQ();
 		rq.setEndTime(Calendar.getInstance().getTime());
-		Method method = getMethod(description);
-		String status = context.getStatus(method);
+		String status = context.getStatusOfTestMethod(method);
 		rq.setStatus((status == null || status.equals("")) ? Statuses.PASSED : status);
 		try {
-			String methodName = runningMethodName(method);
-			reportPortalService.finishTestItem(context.getRunningMethodId(methodName), rq);
-			context.addFinishedMethod(description.getTestClass(), methodName);
+			reportPortalService.finishTestItem(context.getItemIdOfTestMethod(method), rq);
 		} catch (Exception e) {
-			handleException(e, LOGGER, "Unable finish test method: '" + context.getRunningMethodId(method.getName()) + "'");
+			handleException(e, LOGGER, "Unable finish test method: '" + method.getName() + "'");
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public void markCurrentTestMethod(Description description, String status) {
-		if (description.isSuite()) {
-			return;
-		}
-		context.addStatus(getMethod(description), status);
+	public void markCurrentTestMethod(FrameworkMethod method, String status) {
+		context.setStatusOfTestMethod(method, status);
 	}
 
+	/**
+	 * 
+	 */
 	@Override
-	public void initSuiteProcessor(Description description) {
-		if (null != description && null != description.getChildren()) {
-			for (Description test : description.getChildren()) {
-				processor.addToSuiteKeeper(test);
-			}
-		}
-	}
-
-	@Override
-	public void startSuiteIfRequired(Description description) {
-		String suiteName = processor.getSuiteName(description.getTestClass());
-		String suiteId = context.getRunningSuiteId(suiteName);
-		if (suiteId == null) {
-			StartTestItemRQ rq = new StartTestItemRQ();
-			rq.setLaunchId(context.getLaunchId());
-			rq.setName(suiteName);
-			rq.setType("SUITE");
-			rq.setStartTime(Calendar.getInstance().getTime());
-			EntryCreatedRS rs = null;
-			try {
-				suites.add(description.getTestClass());
-				rs = reportPortalService.startRootTestItem(rq);
-				context.setRunningSuiteId(suiteName, rs.getId());
-			} catch (Exception e) {
-				handleException(e, LOGGER, "Unable start test suite: '" + suiteName + "'");
-			}
-		}
-	}
-
-	@Override
-	public void stopSuiteIfRequired(Description description) {
-		final String suiteName = processor.getSuiteName(description.getTestClass());
-		final Class<?> test = description.getTestClass();
-		final String runningId = context.getRunningTestId(test);
-		if (runningId == null) {
-			final String suiteId = context.getRunningSuiteId(suiteName);
-			final FinishTestItemRQ rq = new FinishTestItemRQ();
-			rq.setEndTime(Calendar.getInstance().getTime());
-			try {
-				reportPortalService.finishTestItem(suiteId, rq);
-			} catch (Exception e) {
-				handleException(e, LOGGER, "Unable finish test suite: '" + suiteId + "'");
-			}
-		}
-	}
-
-	@Override
-	public void stopTestIfRequired(Description description) {
-		Class<?> test = description.getTestClass();
-		Set<String> passedMethods = context.getFinishedMethods(test);
-		String runningId = context.getRunningTestId(test);
-		Set<Method> allTests = getTests(test.getMethods());
-		Iterator<Method> iterator = allTests.iterator();
-		Set<String> methodNames = new HashSet<String>();
-		while (iterator.hasNext()) {
-			methodNames.add(iterator.next().getName());
-		}
-		if (passedMethods.containsAll(methodNames)) {
-			if (runningId == null) {
-				FinishTestItemRQ rq = new FinishTestItemRQ();
-				rq.setEndTime(Calendar.getInstance().getTime());
-				try {
-					reportPortalService.finishTestItem(context.getRunningTestId(test), rq);
-					context.addFinishedTest(processor.getSuiteName(description.getTestClass()), description.getTestClass());
-				} catch (Exception e) {
-					handleException(e, LOGGER, "Unable finish test: '" + context.getRunningTestId(test) + "'");
-				}
-			}
-		}
-	}
-
-	@Override
-	public void starTestIfRequired(Description currentTest) {
-		if (context.getRunningTestId(currentTest.getTestClass()) == null) {
-			StartTestItemRQ rq = new StartTestItemRQ();
-			rq.setStartTime(Calendar.getInstance().getTime());
-			rq.setName(currentTest.getClassName());
-			rq.setType("TEST");
-			rq.setLaunchId(context.getLaunchId());
-			String suiteName = processor.getSuiteName(currentTest.getTestClass());
-			EntryCreatedRS rs;
-			try {
-				tests.add(currentTest.getTestClass());
-				rs = reportPortalService.startTestItem(context.getRunningSuiteId(suiteName), rq);
-				context.setRunningTestId(currentTest.getTestClass(), rs.getId());
-			} catch (Exception e) {
-				handleException(e, LOGGER, "Unable start test: '" + currentTest.getClassName() + "'");
-			}
-		}
-	}
-
-	@Override
-	public void handleTestSkip(Description description) {
-		if (description.isTest()) {
-			return;
-		}
-		startSuiteIfRequired(description);
+	public void handleTestSkip(FrameworkMethod method, TestClass testClass) {
 		StartTestItemRQ startRQ = new StartTestItemRQ();
 		startRQ.setStartTime(Calendar.getInstance().getTime());
-		startRQ.setName(description.getClassName());
+		startRQ.setName(method.getName());
 		startRQ.setType("TEST");
 		startRQ.setLaunchId(context.getLaunchId());
-		String suiteName = processor.getSuiteName(description.getTestClass());
 		try {
-			EntryCreatedRS rs = reportPortalService.startTestItem(context.getRunningSuiteId(suiteName), startRQ);
+			EntryCreatedRS rs = reportPortalService.startTestItem(context.getItemIdOfAtomicTest(testClass), startRQ);
 			FinishTestItemRQ finishRQ = new FinishTestItemRQ();
 			finishRQ.setStatus(Statuses.FAILED);
 			finishRQ.setEndTime(Calendar.getInstance().getTime());
 			reportPortalService.finishTestItem(rs.getId(), finishRQ);
-			context.addFinishedTest(suiteName, description.getTestClass());
-			stopSuiteIfRequired(description);
 		} catch (Exception e) {
-			handleException(e, LOGGER, "Unable skip test: '" + description.getClassName() + "'");
+			handleException(e, LOGGER, "Unable skip test: '" + method.getName() + "'");
 		}
 	}
 
-	@Override
-	public void addToFinishedMethods(Description description) {
-		Method method = getMethod(description);
-		if (method != null) {
-			String currentMethod = runningMethodName(method);
-			context.addFinishedMethod(description.getTestClass(), currentMethod);
-		}
-	}
-
+	/**
+	 * 
+	 */
 	@Override
 	public void clearRunningItemId() {
 		ReportPortalListenerContext.setRunningNowItemId(null);
 	}
 
+	/**
+	 * 
+	 * @param method describes the test that failed and the exception that was thrown
+	 */
 	@Override
-	public void sendReportPortalMsg(Failure result) {
-		Method method = null;
-		method = getMethod(result.getDescription());
-		if (method == null) {
-			return;
-		}
+	public void sendReportPortalMsg(FrameworkMethod method, Throwable thrown) {
 		SaveLogRQ saveLogRQ = new SaveLogRQ();
-		if (result.getException() != null) {
-			saveLogRQ.setMessage(
-					"Exception: " + result.getException().getMessage() + System.getProperty("line.separator") + this.getStackTraceString(
-							result.getException()));
+		if (thrown != null) {
+			saveLogRQ.setMessage("Exception: " + thrown.getMessage() + System.getProperty("line.separator")
+					+ this.getStackTraceString(thrown));
 		} else {
 			saveLogRQ.setMessage("Just exception (contact dev team)");
 		}
 		saveLogRQ.setLogTime(Calendar.getInstance().getTime());
-		saveLogRQ.setTestItemId(context.getRunningMethodId(runningMethodName(method)));
+		saveLogRQ.setTestItemId(context.getItemIdOfTestMethod(method));
 		saveLogRQ.setLevel("ERROR");
 		try {
 			reportPortalService.log(saveLogRQ);
-		} catch (Exception e1) {
-			handleException(e1, LOGGER, "Unnable to send message to Report Portal");
+		} catch (Exception e) {
+			handleException(e, LOGGER, "Unable to send message to Report Portal");
 		}
 	}
 
+	/**
+	 * 
+	 * @param e
+	 * @return
+	 */
 	private String getStackTraceString(Throwable e) {
 		StringBuilder result = new StringBuilder();
 		for (int i = 0; i < e.getStackTrace().length; i++) {
@@ -331,128 +299,33 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	/**
-	 * get all methods annotated as test
-	 *
-	 * @param methods
+	 * 
+	 * @param method
 	 * @return
 	 */
-	private Set<Method> getTests(Method[] methods) {
-		Set<Method> tests = new HashSet<Method>();
-		if (null == methods) {
-			return tests;
-		}
-
-		for (Method method : methods) {
-			if (method.isAnnotationPresent(Test.class)) {
-				tests.add(method);
-			}
-		}
-		return tests;
-	}
-
-	private Method getMethod(Description description) {
-		Method method = null;
-		try {
-			List<Class<?>> listParent = this.getSuperClasses(description.getTestClass());
-			method = this.getMethodFromClass(listParent, description.getMethodName().replaceAll("\\#.*\\#", ""));
-		} catch (Exception e) {
-			LOGGER.error("Internal listener exception: ", e);
-		}
-		return method;
-	}
-
-	private List<Class<?>> getSuperClasses(Class<?> testClass) {
-		ArrayList<Class<?>> results = new ArrayList<Class<?>>();
-		Class<?> current = testClass;
-		while (current != null) {
-			results.add(current);
-			current = current.getSuperclass();
-		}
-		return results;
-	}
-
-	private Method getMethodFromClass(List<Class<?>> supers, String method) {
-		Method[] lstMethods;
-		for (int i = supers.size() - 1; i >= 0; i--) {
-			lstMethods = supers.get(i).getDeclaredMethods();
-			for (int j = 0; j < lstMethods.length; j++) {
-				if (lstMethods[j].getName().equalsIgnoreCase(method)) {
-					return lstMethods[j];
-				}
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * Close all TEST-items and SUITE-items before LAUNCH-item finish
-	 */
-	private void stopOverAll() {
-		// TESTS
-		for (Class<?> cl : tests) {
-			Set<String> finishedMethods = context.getFinishedMethods(cl);
-			Collection<String> passedMethods;
-			if (null != finishedMethods) {
-				passedMethods = Collections2.transform(finishedMethods, new Function<String, String>() {
-					@Nullable
-					@Override
-					public String apply(String input) {
-						String[] split = input.split("#");
-						return split.length == 2 ? split[0] : input;
-					}
-				});
-			} else {
-				passedMethods = Collections.emptyList();
-			}
-
-			Collection<String> allTests = Collections2.transform(getTests(cl.getMethods()), new Function<Method, String>() {
-				@Nullable
-				@Override
-				public String apply(@NotNull Method input) {
-					return input.getName();
-				}
-			});
-			if (passedMethods.containsAll(allTests)) {
-				FinishTestItemRQ rq = new FinishTestItemRQ();
-				rq.setEndTime(Calendar.getInstance().getTime());
-				try {
-					reportPortalService.finishTestItem(context.getRunningTestId(cl), rq);
-					context.addFinishedTest(processor.getSuiteName(cl), cl);
-				} catch (Exception e) {
-					handleException(e, LOGGER, "Unable finish test: '" + context.getRunningTestId(cl) + "'");
-				}
-			}
-		}
-		// SUITES
-		for (Class<?> s : suites) {
-			String suiteName = processor.getSuiteName(s);
-			String suiteId = context.getRunningSuiteId(suiteName);
-			FinishTestItemRQ rq = new FinishTestItemRQ();
-			rq.setEndTime(Calendar.getInstance().getTime());
-			try {
-				reportPortalService.finishTestItem(suiteId, rq);
-			} catch (Exception e) {
-				handleException(e, LOGGER, "Unable finish test suite: '" + suiteId + "'");
-			}
-		}
-	}
-
-	private String detectMethodType(Description description) {
-		if (null != description.getAnnotation(Test.class)) {
-			return "TEST";
-		} else if (null != description.getAnnotation(Before.class)) {
+	private String detectMethodType(FrameworkMethod method) {
+		if (null != method.getAnnotation(Test.class)) {
+			return "STEP";
+		} else if (null != method.getAnnotation(Before.class)) {
 			return "BEFORE_METHOD";
-		} else if (null != description.getAnnotation(After.class)) {
+		} else if (null != method.getAnnotation(After.class)) {
 			return "AFTER_METHOD";
-		} else if (null != description.getAnnotation(BeforeClass.class)) {
+		} else if (null != method.getAnnotation(BeforeClass.class)) {
 			return "BEFORE_CLASS";
-		} else if (null != description.getAnnotation(AfterClass.class)) {
+		} else if (null != method.getAnnotation(AfterClass.class)) {
 			return "AFTER_CLASS";
 		}
-		return "STEP";
+		return "";
 	}
 
-	private String runningMethodName(Method method) {
-		return method.getName() + "#" + Thread.currentThread().getName();
+	private String getContainerId(TestClass testClass) {
+		Object child = LifecycleHooks.getRunnerFor(testClass);
+		Object parent = LifecycleHooks.getParentOf(child);
+		// if not root object
+		if (parent != null) {
+			TestClass parentTestClass = LifecycleHooks.getTestClassOf(parent);
+			return context.getItemIdOfTestClass(parentTestClass);
+		}
+		return null;
 	}
 }

@@ -23,19 +23,18 @@ package com.epam.reportportal.junit;
 import com.epam.reportportal.listeners.Statuses;
 import com.epam.reportportal.restclient.endpoint.exception.RestEndpointIOException;
 import com.nordstrom.automation.junit.LifecycleHooks;
-import com.nordstrom.automation.junit.MethodWatcher2;
+import com.nordstrom.automation.junit.MethodWatcher;
+import com.nordstrom.automation.junit.RunWatcher;
 import com.nordstrom.automation.junit.ShutdownListener;
 import com.nordstrom.automation.junit.TestClassWatcher;
-import com.nordstrom.automation.junit.TestObjectWatcher;
 import com.nordstrom.common.base.UncheckedThrow;
 
-import org.junit.runner.Description;
-import org.junit.runner.notification.Failure;
-import org.junit.runner.notification.RunListener;
-import org.junit.runners.ParentRunner;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.junit.internal.AssumptionViolatedException;
 import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
-import org.junit.runners.model.RunnerScheduler;
 import org.junit.runners.model.TestClass;
 
 /**
@@ -46,10 +45,10 @@ import org.junit.runners.model.TestClass;
  *
  * @author Aliaksei_Makayed (modified by Andrei_Ramanchuk)
  */
-
-public class ReportPortalListener extends RunListener implements ShutdownListener, MethodWatcher2, TestClassWatcher, TestObjectWatcher {
+public class ReportPortalListener implements ShutdownListener, TestClassWatcher, RunWatcher, MethodWatcher {
 
 	private static volatile IListenerHandler handler = JUnitInjectorProvider.getInstance().getBean(IListenerHandler.class);
+	private static final Map<TestClass, Object> TESTCLASS_TO_RUNNER = new ConcurrentHashMap<>();
 
 	static {
 		handler = JUnitInjectorProvider.getInstance().getBean(IListenerHandler.class);
@@ -59,100 +58,10 @@ public class ReportPortalListener extends RunListener implements ShutdownListene
 			UncheckedThrow.throwUnchecked(e);
 		}
 	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void testRunStarted(Description description) throws Exception {
-		handler.initSuiteProcessor(description);
-	}
-
-	public void reportTestStarted(Description description) throws Exception {
-		handler.startSuiteIfRequired(description);
-		handler.starTestIfRequired(description);
-		handler.startTestMethod(description);
-	}
-
-	public void reportTestFinished(Description description) throws Exception {
-		handler.stopTestMethod(description);
-	}
-
-	public void reportTestFailure(Failure failure) throws Exception {
-		handler.clearRunningItemId();
-		handler.sendReportPortalMsg(failure);
-		handler.markCurrentTestMethod(failure.getDescription(), Statuses.FAILED);
-		handler.handleTestSkip(failure.getDescription());
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void testIgnored(Description description) throws Exception {
-		handler.addToFinishedMethods(description);
-	}
-
-	@Override
-	public void beforeInvocation(Object obj, FrameworkMethod method) {
-		try {
-			reportTestStarted(LifecycleHooks.describeChild(obj, method));
-		} catch (Exception e) {
-			
-		}
-	}
-
-	@Override
-	public void afterInvocation(Object obj, FrameworkMethod method, Throwable thrown) {
-		Description description = LifecycleHooks.describeChild(obj, method);
-		try {
-			if (thrown != null) {
-				reportTestFailure(new Failure(description, thrown));
-			}
-			reportTestFinished(description);
-		} catch (Exception e) {
-			
-		}
-	}
-
-	@Override
-	public void testObjectCreated(Object testObj, TestClass testClass) {
-		System.out.println("Test object [" + testObj + "] of test class [" + testClass.getName() + "] created");
-	}
-
-	@Override
-	public void testClassCreated(TestClass testClass, Object runner) {
-		System.out.println("Test class [" + testClass.getName() + "] of runner [" + runner + "] created");
-		attachRunnerScheduler(runner);
-	}
-
-	@Override
-	public void beforeInvocation(FrameworkMethod method) {
-		try {
-			reportTestStarted(createTestDescription(method));
-		} catch (Exception e) {
-
-		}
-	}
-
-	@Override
-	public void afterInvocation(FrameworkMethod method, Throwable thrown) {
-    	Description description = createTestDescription(method);
-    	try {
-        	if (thrown != null) {
-        		reportTestFailure(new Failure(description, thrown));
-        	}
-			reportTestFinished(description);
-		} catch (Exception e) {
-			
-		}
-	}
 	
-	private static Description createTestDescription(FrameworkMethod method) {
-		return Description.createTestDescription(method.getDeclaringClass(),
-                method.getName(), method.getAnnotations());
-	}
-
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void onShutdown() {
 		try {
@@ -161,33 +70,131 @@ public class ReportPortalListener extends RunListener implements ShutdownListene
 			UncheckedThrow.throwUnchecked(e);
 		}
 	}
-	
-	private static void attachRunnerScheduler(final Object runner) {
-		if (runner instanceof ParentRunner) {
-			final ParentRunner<?> parentRunner = (ParentRunner<?>) runner;
-			RunnerScheduler scheduler = new RunnerScheduler() {
-		        public void schedule(Runnable childStatement) {
-		        	if (parentRunner instanceof Suite) {
-		        		Description description = Description.createSuiteDescription(runner.getClass());
-		        		System.out.println("Running child of suite " + parentRunner);
-		        	} else {
-		        		System.out.println("Running child of runner " + parentRunner);
-		        	}
-		        	
-		            childStatement.run();
-		        }
 
-		        public void finished() {
-		        	if (parentRunner instanceof Suite) {
-		        		Description description = Description.createSuiteDescription(runner.getClass());
-		        		System.out.println("Run finished for suite " + parentRunner);
-		        	} else {
-		        		System.out.println("Run finished for runner " + parentRunner);
-		        	}
-		        }
-			};
-			
-			parentRunner.setScheduler(scheduler);
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void testClassCreated(TestClass testClass, Object runner) {
+		TESTCLASS_TO_RUNNER.put(testClass, runner);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void testClassStarted(TestClass testClass) {
+		Object runner = TESTCLASS_TO_RUNNER.get(testClass);
+		boolean isSuite = (runner instanceof Suite);
+		
+		try {
+			handler.startTestClass(testClass, isSuite);
+		} catch (RestEndpointIOException e) {
+			UncheckedThrow.throwUnchecked(e);
 		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void testClassFinished(TestClass testClass) {
+		try {
+			handler.stopTestClass(testClass);
+		} catch (RestEndpointIOException e) {
+			UncheckedThrow.throwUnchecked(e);
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void testStarted(FrameworkMethod method, TestClass testClass) {
+		try {
+			handler.startAtomicTest(method, testClass);
+		} catch (RestEndpointIOException e) {
+			UncheckedThrow.throwUnchecked(e);
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void testFinished(FrameworkMethod method, TestClass testClass) {
+		try {
+			handler.stopAtomicTest(method, testClass);
+		} catch (RestEndpointIOException e) {
+			UncheckedThrow.throwUnchecked(e);
+		}
+	}
+
+	@Override
+	public void testFailure(FrameworkMethod method, TestClass testClass, Throwable thrown) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void testAssumptionFailure(FrameworkMethod method, TestClass testClass, AssumptionViolatedException thrown) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void testIgnored(FrameworkMethod method, TestClass testClass) {
+		try {
+			handler.handleTestSkip(method, testClass);
+		} catch (RestEndpointIOException e) {
+			UncheckedThrow.throwUnchecked(e);
+		}
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void beforeInvocation(Object target, FrameworkMethod method, Object... params) {
+		TestClass testClass = LifecycleHooks.getTestClassFor(target);
+		try {
+			handler.startTestMethod(method, testClass);
+		} catch (RestEndpointIOException e) {
+			UncheckedThrow.throwUnchecked(e);
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void afterInvocation(Object target, FrameworkMethod method, Throwable thrown) {
+		TestClass testClass = LifecycleHooks.getTestClassFor(target);
+		try {
+			if (thrown != null) {
+				reportTestFailure(method, testClass, thrown);
+			}
+			handler.stopTestMethod(method);
+		} catch (RestEndpointIOException e) {
+			UncheckedThrow.throwUnchecked(e);
+		}
+	}
+
+	/**
+	 * 
+	 * @param method TODO
+	 * @param testClass TODO
+	 * @param thrown the exception that was thrown
+	 * @throws RestEndpointIOException if something goes wrong
+	 */
+	public void reportTestFailure(FrameworkMethod method, TestClass testClass, Throwable thrown)
+			throws RestEndpointIOException {
+		handler.clearRunningItemId();
+		handler.sendReportPortalMsg(method, thrown);
+		handler.markCurrentTestMethod(method, Statuses.FAILED);
+		handler.handleTestSkip(method, testClass);
 	}
 }

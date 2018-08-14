@@ -11,24 +11,22 @@ import org.junit.Test;
  */
 public class DummyTest {
     
-    static {
-        System.out.println("<init> AppTest");
-    }
-    
     @Before
     public void before() throws InterruptedException {
-    	Thread.sleep(1000);
     }
     
     @Test
-    public void test() throws InterruptedException {
-    	Thread.sleep(1000);
+    public void test1() throws InterruptedException {
+        assertTrue(true);
+    }
+    
+    @Test
+    public void test2() throws InterruptedException {
         assertTrue(true);
     }
     
     @After
     public void after() throws InterruptedException {
-    	Thread.sleep(1000);
     }
     
 }

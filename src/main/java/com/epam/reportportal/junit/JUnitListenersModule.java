@@ -32,7 +32,6 @@ public class JUnitListenersModule extends AbstractModule {
 
 	@Override
 	protected void configure() {
-		bind(SuitesKeeper.class).asEagerSingleton();
 		bind(ParallelRunningContext.class).asEagerSingleton();
 		bind(IListenerHandler.class).toProvider(JUnitProvider.class).asEagerSingleton();
 	}
