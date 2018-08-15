@@ -47,7 +47,7 @@ import org.junit.runners.model.TestClass;
  */
 public class ReportPortalListener implements ShutdownListener, TestClassWatcher, RunWatcher, MethodWatcher {
 
-	private static volatile IListenerHandler handler = JUnitInjectorProvider.getInstance().getBean(IListenerHandler.class);
+	private static volatile IListenerHandler handler;
 	private static final Map<TestClass, Object> TESTCLASS_TO_RUNNER = new ConcurrentHashMap<>();
 
 	static {
