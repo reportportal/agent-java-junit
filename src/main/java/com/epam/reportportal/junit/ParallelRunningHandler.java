@@ -123,7 +123,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	/**
-	 * 
+	 * {@inheritDoc}
 	 */
 	@Override
 	public void startTestClass(TestClass testClass, boolean isSuite) {
@@ -160,6 +160,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 		}
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void startAtomicTest(FrameworkMethod method, TestClass testClass) {
 		StartTestItemRQ rq = new StartTestItemRQ();
@@ -176,6 +179,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 		}
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void stopAtomicTest(FrameworkMethod method, TestClass testClass) {
 		FinishTestItemRQ rq = new FinishTestItemRQ();
@@ -198,8 +204,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setType(detectMethodType(method));
 		rq.setLaunchId(context.getLaunchId());
 		EntryCreatedRS rs = null;
+		String parentItemId;
+		if (LifecycleHooks.hasConfiguration(testClass)) {
+			parentItemId = context.getItemIdOfAtomicTest(testClass);
+		} else {
+			parentItemId = context.getItemIdOfTestClass(testClass);
+		}
 		try {
-			rs = reportPortalService.startTestItem(context.getItemIdOfAtomicTest(testClass), rq);
+			rs = reportPortalService.startTestItem(parentItemId, rq);
 			context.setItemIdOfTestMethod(method, rs.getId());
 			ReportPortalListenerContext.setRunningNowItemId(rs.getId());
 		} catch (Exception e) {
@@ -233,7 +245,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	/**
-	 * 
+	 * {@inheritDoc}
 	 */
 	@Override
 	public void handleTestSkip(FrameworkMethod method, TestClass testClass) {
@@ -254,7 +266,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	/**
-	 * 
+	 * {@inheritDoc}
 	 */
 	@Override
 	public void clearRunningItemId() {
@@ -262,8 +274,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	/**
-	 * 
-	 * @param method describes the test that failed and the exception that was thrown
+	 * {@inheritDoc}
 	 */
 	@Override
 	public void sendReportPortalMsg(FrameworkMethod method, Throwable thrown) {
@@ -285,9 +296,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	/**
+	 * Get the stack trace of the specified exception as a string.
 	 * 
-	 * @param e
-	 * @return
+	 * @param e exception
+	 * @return stack trace of the specified exception as a string
 	 */
 	private String getStackTraceString(Throwable e) {
 		StringBuilder result = new StringBuilder();
@@ -299,9 +311,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	/**
+	 * Detect the type of the specified JUnit method.
 	 * 
-	 * @param method
-	 * @return
+	 * @param method {@FrameworkMethod} object
+	 * @return method type string; empty string for unsupported types
 	 */
 	private String detectMethodType(FrameworkMethod method) {
 		if (null != method.getAnnotation(Test.class)) {
@@ -318,6 +331,12 @@ public class ParallelRunningHandler implements IListenerHandler {
 		return "";
 	}
 
+	/**
+	 * Get the test item ID for the container of the indicated test item.
+	 * 
+	 * @param testClass {@link TestClass} object for test item
+	 * @return container ID for the indicated test item; {@code null} for root test items
+	 */
 	private String getContainerId(TestClass testClass) {
 		Object child = LifecycleHooks.getRunnerFor(testClass);
 		Object parent = LifecycleHooks.getParentOf(child);

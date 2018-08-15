@@ -111,10 +111,12 @@ public class ReportPortalListener implements ShutdownListener, TestClassWatcher,
 	 */
 	@Override
 	public void testStarted(FrameworkMethod method, TestClass testClass) {
-		try {
-			handler.startAtomicTest(method, testClass);
-		} catch (RestEndpointIOException e) {
-			UncheckedThrow.throwUnchecked(e);
+		if (LifecycleHooks.hasConfiguration(testClass)) {
+			try {
+				handler.startAtomicTest(method, testClass);
+			} catch (RestEndpointIOException e) {
+				UncheckedThrow.throwUnchecked(e);
+			}
 		}
 	}
 
@@ -123,23 +125,29 @@ public class ReportPortalListener implements ShutdownListener, TestClassWatcher,
 	 */
 	@Override
 	public void testFinished(FrameworkMethod method, TestClass testClass) {
-		try {
-			handler.stopAtomicTest(method, testClass);
-		} catch (RestEndpointIOException e) {
-			UncheckedThrow.throwUnchecked(e);
+		if (LifecycleHooks.hasConfiguration(testClass)) {
+			try {
+				handler.stopAtomicTest(method, testClass);
+			} catch (RestEndpointIOException e) {
+				UncheckedThrow.throwUnchecked(e);
+			}
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void testFailure(FrameworkMethod method, TestClass testClass, Throwable thrown) {
-		// TODO Auto-generated method stub
-		
+		// This is the failure of the "atomic" method. The failure of the "particle" has already been reported.
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void testAssumptionFailure(FrameworkMethod method, TestClass testClass, AssumptionViolatedException thrown) {
-		// TODO Auto-generated method stub
-		
+		// This is the failure of the "atomic" method. The failure of the "particle" has already been reported.
 	}
 	
 	/**
@@ -177,6 +185,7 @@ public class ReportPortalListener implements ShutdownListener, TestClassWatcher,
 			if (thrown != null) {
 				reportTestFailure(method, testClass, thrown);
 			}
+			
 			handler.stopTestMethod(method);
 		} catch (RestEndpointIOException e) {
 			UncheckedThrow.throwUnchecked(e);
@@ -184,14 +193,15 @@ public class ReportPortalListener implements ShutdownListener, TestClassWatcher,
 	}
 
 	/**
+	 * Report failure of the indicated "particle" method.
 	 * 
-	 * @param method TODO
-	 * @param testClass TODO
-	 * @param thrown the exception that was thrown
-	 * @throws RestEndpointIOException if something goes wrong
+	 * @param method {@link FrameworkMethod} object for the "particle" method
+	 * @param testClass {@link TestClass} object for the associated "atomic" test
+	 * @throws RestEndpointIOException is something goes wrong
 	 */
 	public void reportTestFailure(FrameworkMethod method, TestClass testClass, Throwable thrown)
 			throws RestEndpointIOException {
+		
 		handler.clearRunningItemId();
 		handler.sendReportPortalMsg(method, thrown);
 		handler.markCurrentTestMethod(method, Statuses.FAILED);

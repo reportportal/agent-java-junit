@@ -51,42 +51,100 @@ public class ParallelRunningContext {
 		statusOfTestMethod = new ConcurrentHashMap<>();
 	}
 
+	/**
+	 * Set the launch ID for the current launch.
+	 * 
+	 * @param launchId Report Portal launch ID
+	 */
 	public void setLaunchId(String launchId) {
 		this.launchId = launchId;
 	}
 
+	/**
+	 * Get the launch ID for the current launch.
+	 * 
+	 * @return Report Portal launch ID
+	 */
 	public String getLaunchId() {
 		return launchId;
 	}
 
+	/**
+	 * Set the test item ID for the indicated container object (test or suite).
+	 * 
+	 * @param testClass {@link TestClass} object for container object
+	 * @param itemId Report Portal test item ID for container object
+	 */
 	public void setTestIdOfTestClass(TestClass testClass, String itemId) {
 		itemIdOfTestClass.put(testClass, itemId);
 	}
 
+	/**
+	 * Get the test item ID for the indicated container object (test or suite).
+	 * 
+	 * @param testClass {@link TestClass} object for container object
+	 * @return Report Portal test item ID for container object
+	 */
 	public String getItemIdOfTestClass(TestClass testClass) {
 		return itemIdOfTestClass.get(testClass);
 	}
 
+	/**
+	 * Set the test item ID for the indicated "atomic" test.
+	 * 
+	 * @param testClass {@link TestClass} object for "atomic" test
+	 * @param itemId Report Portal test item ID for "atomic" test
+	 */
 	public void setItemIdOfAtomicTest(TestClass testClass, String itemId) {
 		itemIdOfAtomicTest.put(testClass, itemId);
 	}
 	
+	/**
+	 * Get the test item ID for the indicated "atomic" test.
+	 * 
+	 * @param testClass {@link TestClass} object for "atomic" test
+	 * @return Report Portal test item ID for "atomic" test
+	 */
 	public String getItemIdOfAtomicTest(TestClass testClass) {
 		return itemIdOfAtomicTest.get(testClass);
 	}
 	
+	/**
+	 * Set the test item ID for the specified test method.
+	 * 
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @param itemId Report Portal test item ID for test method
+	 */
 	public void setItemIdOfTestMethod(FrameworkMethod method, String itemId) {
 		itemIdOfTestMethod.put(method, itemId);
 	}
 
+	/**
+	 * Get the test item ID for the specified test method.
+	 * 
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @return Report Portal test item ID for test method
+	 */
 	public String getItemIdOfTestMethod(FrameworkMethod method) {
 		return itemIdOfTestMethod.get(method);
 	}
 
+	/**
+	 * Set the status for the specified test method.
+	 * 
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @param status status for test method
+	 */
 	public void setStatusOfTestMethod(FrameworkMethod method, String status) {
 		statusOfTestMethod.put(method, status);
 	}
 
+	/**
+	 * Get the status for the specified test method.
+	 * 
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @return status for test method
+	 */
 	public String getStatusOfTestMethod(FrameworkMethod method) {
 		return statusOfTestMethod.get(method);
 	}
