@@ -26,10 +26,10 @@ Create or update a file named reportportal.properties in your Java project in so
 
 ```
 [reportportal.properties]
-rp.endpoint=http://10.11.211.101:8080
-rp.uuid=452eab16-e69b-49cc-a482-836864d9f11c
-rp.launch=scott.babcock_TEST_EXAMPLE
-rp.project=rfds
+rp.endpoint = http://localhost:8080
+rp.uuid = e0e541d8-b1cd-426a-ae18-b771173c545a
+rp.launch = default_JUNIT_AGENT
+rp.project = default_personal
 ```
 
 * The value of the **rp.endpoint** property is the URL for the report portal server(actual link).
