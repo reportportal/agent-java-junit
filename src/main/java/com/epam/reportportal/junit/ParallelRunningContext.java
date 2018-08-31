@@ -20,108 +20,132 @@
  */
 package com.epam.reportportal.junit;
 
-import java.lang.reflect.Method;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import org.junit.runners.model.FrameworkMethod;
+import org.junit.runners.model.TestClass;
 
 /**
  * Parallel execution context and set of operations to interact with it
  */
 public class ParallelRunningContext {
-	// map of currently running tests.
-	// key- testName, value - test id
-	private ConcurrentMap<Class<?>, String> runningTests;
-	// map of currently running suites.
-	// key- suite name, value - suite id
-	private ConcurrentMap<String, String> runningSuites;
-	// map of finished methods
-	// key - test value- set of finished methods
-	private ConcurrentMap<Class<?>, Set<String>> finishedMethods;
-
-	// map of running methods
-	// key - method name value- method id
-	private ConcurrentMap<String, String> runningMethods;
+	/** Report Portal launch ID */
 	private volatile String launchId = "";
-	// map of finished test from the specified suites
-	// key- suite, value - tests
-	private ConcurrentMap<String, Set<Class<?>>> finishedTests;
-	// key- method , value - status
-	private ConcurrentMap<Method, String> methodStatuses;
+	
+	/** {@link TestClass} of test class => RP test item ID */
+	private Map<TestClass, String> itemIdOfTestClass;
+	
+	/** {@link TestClass} of atomic test => RP test item ID */
+	private Map<TestClass, String> itemIdOfAtomicTest;
+	
+	/** {@link FrameworkMethod} of test method => RP test item ID */
+	private Map<FrameworkMethod, String> itemIdOfTestMethod;
+	
+	/** {@link FrameworkMethod} of test method => status */
+	private Map<FrameworkMethod, String> statusOfTestMethod;
 
 	public ParallelRunningContext() {
-		runningTests = new ConcurrentHashMap<Class<?>, String>();
-		runningSuites = new ConcurrentHashMap<String, String>();
-		finishedMethods = new ConcurrentHashMap<Class<?>, Set<String>>();
-		runningMethods = new ConcurrentHashMap<String, String>();
-		finishedTests = new ConcurrentHashMap<String, Set<Class<?>>>();
-		methodStatuses = new ConcurrentHashMap<Method, String>();
+		itemIdOfTestClass = new ConcurrentHashMap<>();
+		itemIdOfAtomicTest = new ConcurrentHashMap<>();
+		itemIdOfTestMethod = new ConcurrentHashMap<>();
+		statusOfTestMethod = new ConcurrentHashMap<>();
 	}
 
-	public String getRunningSuiteId(String suiteName) {
-		return null == suiteName ? null : runningSuites.get(suiteName);
-	}
-
-	public String getRunningTestId(Class<?> test) {
-		return runningTests.get(test);
-	}
-
-	public void setRunningSuiteId(String suiteName, String id) {
-		runningSuites.put(suiteName, id);
-	}
-
-	public void setRunningTestId(Class<?> test, String id) {
-		runningTests.put(test, id);
-	}
-
-	public synchronized void addFinishedMethod(Class<?> test, String currentMethod) {
-		Set<String> methods = finishedMethods.get(test);
-		if (methods == null) {
-			methods = new HashSet<String>();
-		}
-		methods.add(currentMethod);
-		finishedMethods.put(test, methods);
-	}
-
-	public Set<String> getFinishedMethods(Class<?> test) {
-		return finishedMethods.get(test);
-	}
-
-	public void addRunningMethod(String method, String id) {
-		runningMethods.put(method, id);
-	}
-
-	public String getRunningMethodId(String method) {
-		return runningMethods.get(method);
-	}
-
-	public String getLaunchId() {
-		return launchId;
-	}
-
+	/**
+	 * Set the launch ID for the current launch.
+	 * 
+	 * @param launchId Report Portal launch ID
+	 */
 	public void setLaunchId(String launchId) {
 		this.launchId = launchId;
 	}
 
-	public synchronized void addFinishedTest(String suite, Class<?> test) {
-		Set<Class<?>> tests = finishedTests.get(suite);
-		if (tests == null) {
-			tests = new HashSet<Class<?>>();
-		}
-		tests.add(test);
-		finishedTests.put(suite, tests);
+	/**
+	 * Get the launch ID for the current launch.
+	 * 
+	 * @return Report Portal launch ID
+	 */
+	public String getLaunchId() {
+		return launchId;
 	}
 
-	public Set<Class<?>> getFinishedTests(String suite) {
-		return finishedTests.get(suite);
+	/**
+	 * Set the test item ID for the indicated container object (test or suite).
+	 * 
+	 * @param testClass {@link TestClass} object for container object
+	 * @param itemId Report Portal test item ID for container object
+	 */
+	public void setTestIdOfTestClass(TestClass testClass, String itemId) {
+		itemIdOfTestClass.put(testClass, itemId);
 	}
 
-	public void addStatus(Method method, String status) {
-		methodStatuses.put(method, status);
+	/**
+	 * Get the test item ID for the indicated container object (test or suite).
+	 * 
+	 * @param testClass {@link TestClass} object for container object
+	 * @return Report Portal test item ID for container object
+	 */
+	public String getItemIdOfTestClass(TestClass testClass) {
+		return itemIdOfTestClass.get(testClass);
 	}
 
-	public String getStatus(Method method) {
-		return methodStatuses.get(method);
+	/**
+	 * Set the test item ID for the indicated "atomic" test.
+	 * 
+	 * @param testClass {@link TestClass} object for "atomic" test
+	 * @param itemId Report Portal test item ID for "atomic" test
+	 */
+	public void setItemIdOfAtomicTest(TestClass testClass, String itemId) {
+		itemIdOfAtomicTest.put(testClass, itemId);
+	}
+	
+	/**
+	 * Get the test item ID for the indicated "atomic" test.
+	 * 
+	 * @param testClass {@link TestClass} object for "atomic" test
+	 * @return Report Portal test item ID for "atomic" test
+	 */
+	public String getItemIdOfAtomicTest(TestClass testClass) {
+		return itemIdOfAtomicTest.get(testClass);
+	}
+	
+	/**
+	 * Set the test item ID for the specified test method.
+	 * 
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @param itemId Report Portal test item ID for test method
+	 */
+	public void setItemIdOfTestMethod(FrameworkMethod method, String itemId) {
+		itemIdOfTestMethod.put(method, itemId);
+	}
+
+	/**
+	 * Get the test item ID for the specified test method.
+	 * 
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @return Report Portal test item ID for test method
+	 */
+	public String getItemIdOfTestMethod(FrameworkMethod method) {
+		return itemIdOfTestMethod.get(method);
+	}
+
+	/**
+	 * Set the status for the specified test method.
+	 * 
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @param status status for test method
+	 */
+	public void setStatusOfTestMethod(FrameworkMethod method, String status) {
+		statusOfTestMethod.put(method, status);
+	}
+
+	/**
+	 * Get the status for the specified test method.
+	 * 
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @return status for test method
+	 */
+	public String getStatusOfTestMethod(FrameworkMethod method) {
+		return statusOfTestMethod.get(method);
 	}
 }

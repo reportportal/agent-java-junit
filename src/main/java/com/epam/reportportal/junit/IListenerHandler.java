@@ -20,8 +20,8 @@
  */
 package com.epam.reportportal.junit;
 
-import org.junit.runner.Description;
-import org.junit.runner.notification.Failure;
+import org.junit.runners.model.FrameworkMethod;
+import org.junit.runners.model.TestClass;
 
 import com.epam.reportportal.restclient.endpoint.exception.RestEndpointIOException;
 
@@ -32,102 +32,91 @@ import com.epam.reportportal.restclient.endpoint.exception.RestEndpointIOExcepti
 public interface IListenerHandler {
 
 	/**
-	 * Start new launch in the report portal
+	 * Send a <b>start launch</b> request to Report Portal.
 	 * 
-	 * @throws RestEndpointIOException
+	 * @throws RestEndpointIOException if something goes wrong
 	 */
 
 	void startLaunch() throws RestEndpointIOException;
 
 	/**
-	 * Finish current launch
+	 * Send a "finish launch" request to Report Portal.
 	 * 
-	 * @throws RestEndpointIOException
+	 * @throws RestEndpointIOException if something goes wrong
 	 */
 
 	void stopLaunch() throws RestEndpointIOException;
 
 	/**
-	 * Start test event handler
+	 * Send a <b>start test item</b> request for the indicated container object (test or suite) to Report Portal.
 	 * 
-	 * @param description
-	 * @throws RestEndpointIOException
+	 * @param testClass {@link TestClass} object for container object
+	 * @param isSuite {@code true} if the specified test class is a suite; otherwise {@code false}
+	 * @throws RestEndpointIOException if something goes wrong
 	 */
-	void startTestMethod(Description description) throws RestEndpointIOException;
+	void startTestClass(TestClass testClass, boolean isSuite) throws RestEndpointIOException;
 
 	/**
-	 * Stop test event handler
+	 * Send a <b>finish test item</b> request for the indicated container object (test or suite) to Report Portal.
 	 * 
-	 * @param description
-	 * @throws RestEndpointIOException
+	 * @param testClass {@link TestClass} object for container object
+	 * @throws RestEndpointIOException if something goes wrong
 	 */
-
-	void stopTestMethod(Description description) throws RestEndpointIOException;
+	void stopTestClass(TestClass testClass) throws RestEndpointIOException;
+	
+	/**
+	 * Send a <b>start test item</b> request for the indicated "atomic" test to Report Portal.
+	 * 
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @param testClass {@link TestClass} object for "atomic" test
+	 * @throws RestEndpointIOException if something goes wrong
+	 */
+	void startAtomicTest(FrameworkMethod method, TestClass testClass) throws RestEndpointIOException;
 
 	/**
-	 * Mark current test method with appropriative status. This method should be
-	 * used in cases when test methods failed, skipped.
+	 * Send a <b>finish test item</b> request for the indicated "atomic" test to Report Portal.
 	 * 
-	 * @param status
-	 * @throws RestEndpointIOException
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @param testClass {@link TestClass} object for "atomic" test
+	 * @throws RestEndpointIOException if something goes wrong
 	 */
-	void markCurrentTestMethod(Description description, String status) throws RestEndpointIOException;
+	void stopAtomicTest(FrameworkMethod method, TestClass testClass) throws RestEndpointIOException;
+	
+	/**
+	 * Send a <b>start test item</b> request for the indicated test method to Report Portal.
+	 * 
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @param testClass {@link TestClass} object for test method
+	 * @throws RestEndpointIOException if something goes wrong
+	 */
+	void startTestMethod(FrameworkMethod method, TestClass testClass) throws RestEndpointIOException;
 
 	/**
-	 * Start new suite if suite(for current running method) is not started
+	 * Send a <b>finish test item</b> request for the indicated test method to Report Portal.
 	 * 
-	 * @param description
-	 *            method
-	 * @throws RestEndpointIOException
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @throws RestEndpointIOException if something goes wrong
 	 */
-	void startSuiteIfRequired(Description description) throws RestEndpointIOException;
+
+	void stopTestMethod(FrameworkMethod method) throws RestEndpointIOException;
 
 	/**
-	 * Stop current suite if all tests finished
+	 * Record the status of the specified test method.
 	 * 
-	 * @param description
-	 * @throws RestEndpointIOException
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @param status test completion status
+	 * @throws RestEndpointIOException if something goes wrong
 	 */
-	void stopSuiteIfRequired(Description description) throws RestEndpointIOException;
-
-	/**
-	 * Stop current test if all test methods passed
-	 * 
-	 * @param description
-	 * @throws RestEndpointIOException
-	 */
-	void stopTestIfRequired(Description description) throws RestEndpointIOException;
-
-	/**
-	 * Start new test
-	 * 
-	 * @param currentTest
-	 * @throws RestEndpointIOException
-	 */
-	void starTestIfRequired(Description currentTest) throws RestEndpointIOException;
-
-	/**
-	 * Initialize suite processor i.e create data structure which describes all
-	 * suites and tests relationships in the current launch
-	 * 
-	 * @param description
-	 */
-	void initSuiteProcessor(Description description);
+	void markCurrentTestMethod(FrameworkMethod method, String status) throws RestEndpointIOException;
 
 	/**
 	 * Handle test skip action
 	 * 
-	 * @param description
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @param testClass {@link TestClass} object for test method
+	 * @throws RestEndpointIOException if something goes wrong
 	 */
-	void handleTestSkip(Description description) throws RestEndpointIOException;
-
-	/**
-	 * Mark current method as finished
-	 * 
-	 * @param description
-	 * @throws RestEndpointIOException
-	 */
-	void addToFinishedMethods(Description description) throws RestEndpointIOException;
+	void handleTestSkip(FrameworkMethod method, TestClass testClass) throws RestEndpointIOException;
 
 	/**
 	 * Clear 'currently running item id' field in the context
@@ -137,7 +126,8 @@ public interface IListenerHandler {
 	/**
 	 * Send message to report portal about appeared failure
 	 * 
-	 * @param failure
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @param thrown {@link Throwable} object with details of the failure 
 	 */
-	void sendReportPortalMsg(Failure failure);
+	void sendReportPortalMsg(FrameworkMethod method, Throwable thrown);
 }
