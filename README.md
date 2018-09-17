@@ -290,9 +290,9 @@ In your project, create or update a file named logback.xml in the src/main/resou
 
 #### Add ReportPortal provider configuration files:
 
-The ReportPortal agent for JUnit is build on the the JUnit Foundation library. This library published notifications that the ReportPortal agent uses to generate the messages it sends to the back-end server. To register for notifications, add the following ServiceLoader provider configuration files to your project's resources:
+The ReportPortal agent for JUnit is build on the the JUnit Foundation library. This library publishes notifications that the ReportPortal agent uses to generate the messages it sends to the back-end server. To register for notifications, add the following ServiceLoader provider configuration files to your project's resources:
 
-![](agent-java-junit/provider-configs.png)
+![](provider-configs.png)
 
 The content of all four files is identical:
 
