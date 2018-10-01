@@ -257,7 +257,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		try {
 			EntryCreatedRS rs = reportPortalService.startTestItem(context.getItemIdOfAtomicTest(testClass), startRQ);
 			FinishTestItemRQ finishRQ = new FinishTestItemRQ();
-			finishRQ.setStatus(Statuses.FAILED);
+			finishRQ.setStatus(Statuses.SKIPPED);
 			finishRQ.setEndTime(Calendar.getInstance().getTime());
 			reportPortalService.finishTestItem(rs.getId(), finishRQ);
 		} catch (Exception e) {

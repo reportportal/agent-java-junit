@@ -28,6 +28,6 @@ test {
 }
 dependencies {
     compile 'com.epam.reportportal:client-java-core:2.7.1'
-    compile 'com.nordstrom.tools:junit-foundation:6.0.1'
-    junitAgent 'com.nordstrom.tools:junit-foundation:6.0.1'
+    compile 'com.nordstrom.tools:junit-foundation:6.1.2'
+    junitAgent 'com.nordstrom.tools:junit-foundation:6.1.2'
 }
