@@ -6,12 +6,12 @@ import org.junit.Test;
 
 public class FailedTest {
 
-    @Test
+    @Test(expected = AssertionError.class)
     public void testFailureWithCustomMessage() {
         Assert.assertEquals("Failure msg", 2, 1);
     }
 
-    @Test
+    @Test(expected = AssertionError.class)
     public void testFailure() {
         Assert.assertEquals(2, 1);
     }
