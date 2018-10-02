@@ -32,20 +32,20 @@ public class ParallelRunningContext {
 	/** Report Portal launch ID */
 	private volatile String launchId = "";
 	
-	/** {@link TestClass} of test class => RP test item ID */
-	private Map<TestClass, String> itemIdOfTestClass;
+	/** {@code ParentRunner} object => RP test item ID */
+	private final Map<Object, String> itemIdOfTestRunner;
 	
 	/** {@link TestClass} of atomic test => RP test item ID */
-	private Map<TestClass, String> itemIdOfAtomicTest;
+	private final Map<TestClass, String> itemIdOfAtomicTest;
 	
 	/** {@link FrameworkMethod} of test method => RP test item ID */
-	private Map<FrameworkMethod, String> itemIdOfTestMethod;
+	private final Map<FrameworkMethod, String> itemIdOfTestMethod;
 	
 	/** {@link FrameworkMethod} of test method => status */
-	private Map<FrameworkMethod, String> statusOfTestMethod;
+	private final Map<FrameworkMethod, String> statusOfTestMethod;
 
 	public ParallelRunningContext() {
-		itemIdOfTestClass = new ConcurrentHashMap<>();
+		itemIdOfTestRunner = new ConcurrentHashMap<>();
 		itemIdOfAtomicTest = new ConcurrentHashMap<>();
 		itemIdOfTestMethod = new ConcurrentHashMap<>();
 		statusOfTestMethod = new ConcurrentHashMap<>();
@@ -72,21 +72,21 @@ public class ParallelRunningContext {
 	/**
 	 * Set the test item ID for the indicated container object (test or suite).
 	 * 
-	 * @param testClass {@link TestClass} object for container object
+	 * @param runner JUnit test runner
 	 * @param itemId Report Portal test item ID for container object
 	 */
-	public void setTestIdOfTestClass(TestClass testClass, String itemId) {
-		itemIdOfTestClass.put(testClass, itemId);
+	public void setTestIdOfTestRunner(Object runner, String itemId) {
+		itemIdOfTestRunner.put(runner, itemId);
 	}
 
 	/**
 	 * Get the test item ID for the indicated container object (test or suite).
 	 * 
-	 * @param testClass {@link TestClass} object for container object
+	 * @param runner JUnit test runner
 	 * @return Report Portal test item ID for container object
 	 */
-	public String getItemIdOfTestClass(TestClass testClass) {
-		return itemIdOfTestClass.get(testClass);
+	public String getItemIdOfTestRunner(Object runner) {
+		return itemIdOfTestRunner.get(runner);
 	}
 
 	/**

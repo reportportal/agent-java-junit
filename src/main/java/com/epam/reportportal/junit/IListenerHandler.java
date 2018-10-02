@@ -50,19 +50,19 @@ public interface IListenerHandler {
 	/**
 	 * Send a <b>start test item</b> request for the indicated container object (test or suite) to Report Portal.
 	 * 
-	 * @param testClass {@link TestClass} object for container object
+	 * @param runner JUnit test runner
 	 * @param isSuite {@code true} if the specified test class is a suite; otherwise {@code false}
 	 * @throws RestEndpointIOException if something goes wrong
 	 */
-	void startTestClass(TestClass testClass, boolean isSuite) throws RestEndpointIOException;
+	void startRunner(Object runner, boolean isSuite) throws RestEndpointIOException;
 
 	/**
 	 * Send a <b>finish test item</b> request for the indicated container object (test or suite) to Report Portal.
 	 * 
-	 * @param testClass {@link TestClass} object for container object
+	 * @param runner JUnit test runner
 	 * @throws RestEndpointIOException if something goes wrong
 	 */
-	void stopTestClass(TestClass testClass) throws RestEndpointIOException;
+	void stopRunner(Object runner) throws RestEndpointIOException;
 	
 	/**
 	 * Send a <b>start test item</b> request for the indicated "atomic" test to Report Portal.
