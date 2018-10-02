@@ -25,12 +25,9 @@ import com.epam.reportportal.restclient.endpoint.exception.RestEndpointIOExcepti
 import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.MethodWatcher;
 import com.nordstrom.automation.junit.RunWatcher;
+import com.nordstrom.automation.junit.RunnerWatcher;
 import com.nordstrom.automation.junit.ShutdownListener;
-import com.nordstrom.automation.junit.TestClassWatcher;
 import com.nordstrom.common.base.UncheckedThrow;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.runners.Suite;
@@ -45,10 +42,9 @@ import org.junit.runners.model.TestClass;
  *
  * @author Aliaksei_Makayed (modified by Andrei_Ramanchuk)
  */
-public class ReportPortalListener implements ShutdownListener, TestClassWatcher, RunWatcher, MethodWatcher {
+public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher, MethodWatcher {
 
 	private static volatile IListenerHandler handler;
-	private static final Map<TestClass, Object> TESTCLASS_TO_RUNNER = new ConcurrentHashMap<>();
 
 	static {
 		handler = JUnitInjectorProvider.getInstance().getBean(IListenerHandler.class);
@@ -71,41 +67,26 @@ public class ReportPortalListener implements ShutdownListener, TestClassWatcher,
 		}
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
-	public void testClassCreated(TestClass testClass, Object runner) {
-		TESTCLASS_TO_RUNNER.put(testClass, runner);
-	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void testClassStarted(TestClass testClass) {
-		Object runner = TESTCLASS_TO_RUNNER.get(testClass);
+	public void runStarted(Object runner) {
 		boolean isSuite = (runner instanceof Suite);
 		
 		try {
-			handler.startTestClass(testClass, isSuite);
+			handler.startRunner(runner, isSuite);
 		} catch (RestEndpointIOException e) {
 			UncheckedThrow.throwUnchecked(e);
 		}
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
-	public void testClassFinished(TestClass testClass) {
+	public void runFinished(Object runner) {
 		try {
-			handler.stopTestClass(testClass);
+			handler.stopRunner(runner);
 		} catch (RestEndpointIOException e) {
 			UncheckedThrow.throwUnchecked(e);
 		}
 	}
-
+	
 	/**
 	 * {@inheritDoc}
 	 */
@@ -167,7 +148,7 @@ public class ReportPortalListener implements ShutdownListener, TestClassWatcher,
 	 */
 	@Override
 	public void beforeInvocation(Object target, FrameworkMethod method, Object... params) {
-		TestClass testClass = LifecycleHooks.getTestClassFor(target);
+		TestClass testClass = LifecycleHooks.getTestClassWith(method);
 		try {
 			handler.startTestMethod(method, testClass);
 		} catch (RestEndpointIOException e) {
@@ -180,7 +161,7 @@ public class ReportPortalListener implements ShutdownListener, TestClassWatcher,
 	 */
 	@Override
 	public void afterInvocation(Object target, FrameworkMethod method, Throwable thrown) {
-		TestClass testClass = LifecycleHooks.getTestClassFor(target);
+		TestClass testClass = LifecycleHooks.getTestClassWith(method);
 		try {
 			if (thrown != null) {
 				reportTestFailure(method, testClass, thrown);
@@ -207,4 +188,5 @@ public class ReportPortalListener implements ShutdownListener, TestClassWatcher,
 		handler.markCurrentTestMethod(method, Statuses.FAILED);
 		handler.handleTestSkip(method, testClass);
 	}
+
 }

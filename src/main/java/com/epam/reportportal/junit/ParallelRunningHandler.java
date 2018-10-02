@@ -126,13 +126,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void startTestClass(TestClass testClass, boolean isSuite) {
+	public void startRunner(Object runner, boolean isSuite) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setStartTime(Calendar.getInstance().getTime());
+		TestClass testClass = LifecycleHooks.getTestClassOf(runner);
 		rq.setName(testClass.getName());
 		rq.setType(isSuite ? "SUITE" : "TEST");
 		rq.setLaunchId(context.getLaunchId());
-		String containerId = getContainerId(testClass);
+		String containerId = getContainerId(runner);
 		EntryCreatedRS rs;
 		try {
 			if (containerId == null) {
@@ -140,7 +141,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 			} else {
 				rs = reportPortalService.startTestItem(containerId, rq);
 			}
-			context.setTestIdOfTestClass(testClass, rs.getId());
+			context.setTestIdOfTestRunner(runner, rs.getId());
 		} catch (Exception e) {
 			handleException(e, LOGGER, "Unable start test class: '" + testClass.getName() + "'");
 		}
@@ -150,12 +151,13 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void stopTestClass(TestClass testClass) {
+	public void stopRunner(Object runner) {
 		FinishTestItemRQ rq = new FinishTestItemRQ();
 		rq.setEndTime(Calendar.getInstance().getTime());
 		try {
-			reportPortalService.finishTestItem(context.getItemIdOfTestClass(testClass), rq);
+			reportPortalService.finishTestItem(context.getItemIdOfTestRunner(runner), rq);
 		} catch (Exception e) {
+			TestClass testClass = LifecycleHooks.getTestClassOf(runner);
 			handleException(e, LOGGER, "Unable finish test class: '" + testClass.getName() + "'");
 		}
 	}
@@ -172,7 +174,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setLaunchId(context.getLaunchId());
 		EntryCreatedRS rs;
 		try {
-			rs = reportPortalService.startTestItem(context.getItemIdOfTestClass(testClass), rq);
+			Object runner = LifecycleHooks.getRunnerFor(testClass);
+			rs = reportPortalService.startTestItem(context.getItemIdOfTestRunner(runner), rq);
 			context.setItemIdOfAtomicTest(testClass, rs.getId());
 		} catch (Exception e) {
 			handleException(e, LOGGER, "Unable start atomic test: '" + method.getName() + "'");
@@ -205,10 +208,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setLaunchId(context.getLaunchId());
 		EntryCreatedRS rs = null;
 		String parentItemId;
-		if (LifecycleHooks.hasConfiguration(testClass)) {
+		if (!method.isStatic() && LifecycleHooks.hasConfiguration(testClass)) {
 			parentItemId = context.getItemIdOfAtomicTest(testClass);
 		} else {
-			parentItemId = context.getItemIdOfTestClass(testClass);
+			Object runner = LifecycleHooks.getRunnerFor(testClass);
+			parentItemId = context.getItemIdOfTestRunner(runner);
 		}
 		try {
 			rs = reportPortalService.startTestItem(parentItemId, rq);
@@ -334,16 +338,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Get the test item ID for the container of the indicated test item.
 	 * 
-	 * @param testClass {@link TestClass} object for test item
+	 * @param runner JUnit test runner
 	 * @return container ID for the indicated test item; {@code null} for root test items
 	 */
-	private String getContainerId(TestClass testClass) {
-		Object child = LifecycleHooks.getRunnerFor(testClass);
-		Object parent = LifecycleHooks.getParentOf(child);
+	private String getContainerId(Object runner) {
+		Object parent = LifecycleHooks.getParentOf(runner);
 		// if not root object
 		if (parent != null) {
-			TestClass parentTestClass = LifecycleHooks.getTestClassOf(parent);
-			return context.getItemIdOfTestClass(parentTestClass);
+			return context.getItemIdOfTestRunner(parent);
 		}
 		return null;
 	}
