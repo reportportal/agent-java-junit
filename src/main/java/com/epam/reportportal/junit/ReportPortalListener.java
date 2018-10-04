@@ -186,7 +186,6 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		handler.clearRunningItemId();
 		handler.sendReportPortalMsg(method, thrown);
 		handler.markCurrentTestMethod(method, Statuses.FAILED);
-		handler.handleTestSkip(method, testClass);
 	}
 
 }
