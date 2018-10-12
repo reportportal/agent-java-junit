@@ -166,40 +166,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void startAtomicTest(FrameworkMethod method, TestClass testClass) {
-		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setStartTime(Calendar.getInstance().getTime());
-		rq.setName(method.getName());
-		rq.setType("SCENARIO");
-		rq.setLaunchId(context.getLaunchId());
-		EntryCreatedRS rs;
-		try {
-			Object runner = LifecycleHooks.getRunnerFor(testClass);
-			rs = reportPortalService.startTestItem(context.getItemIdOfTestRunner(runner), rq);
-			context.setItemIdOfAtomicTest(testClass, rs.getId());
-		} catch (Exception e) {
-			handleException(e, LOGGER, "Unable start atomic test: '" + method.getName() + "'");
-		}
-	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void stopAtomicTest(FrameworkMethod method, TestClass testClass) {
-		FinishTestItemRQ rq = new FinishTestItemRQ();
-		rq.setEndTime(Calendar.getInstance().getTime());
-		try {
-			reportPortalService.finishTestItem(context.getItemIdOfAtomicTest(testClass), rq);
-		} catch (Exception e) {
-			handleException(e, LOGGER, "Unable finish atomic test: '" + method.getName() + "'");
-		}
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
 	public void startTestMethod(FrameworkMethod method, TestClass testClass) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(method.getName());
@@ -207,15 +173,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setType(detectMethodType(method));
 		rq.setLaunchId(context.getLaunchId());
 		EntryCreatedRS rs = null;
-		String parentItemId;
-		if (!method.isStatic() && LifecycleHooks.hasConfiguration(testClass)) {
-			parentItemId = context.getItemIdOfAtomicTest(testClass);
-		} else {
-			Object runner = LifecycleHooks.getRunnerFor(testClass);
-			parentItemId = context.getItemIdOfTestRunner(runner);
-		}
 		try {
-			rs = reportPortalService.startTestItem(parentItemId, rq);
+			Object runner = LifecycleHooks.getRunnerFor(testClass);
+			rs = reportPortalService.startTestItem(context.getItemIdOfTestRunner(runner), rq);
 			context.setItemIdOfTestMethod(method, rs.getId());
 			ReportPortalListenerContext.setRunningNowItemId(rs.getId());
 		} catch (Exception e) {
@@ -259,7 +219,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 		startRQ.setType("TEST");
 		startRQ.setLaunchId(context.getLaunchId());
 		try {
-			EntryCreatedRS rs = reportPortalService.startTestItem(context.getItemIdOfAtomicTest(testClass), startRQ);
+			Object runner = LifecycleHooks.getRunnerFor(testClass);
+			EntryCreatedRS rs = reportPortalService.startTestItem(context.getItemIdOfTestRunner(runner), startRQ);
 			FinishTestItemRQ finishRQ = new FinishTestItemRQ();
 			finishRQ.setStatus(Statuses.SKIPPED);
 			finishRQ.setEndTime(Calendar.getInstance().getTime());

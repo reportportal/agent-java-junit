@@ -29,5 +29,7 @@ test {
 dependencies {
     compile 'com.epam.reportportal:client-java-core:2.7.1'
     compile 'com.nordstrom.tools:junit-foundation:6.1.2'
+    compile 'ch.qos.logback:logback-classic:1.2.3'
+    compile 'com.epam.reportportal:logger-java-logback:4.0.0'
     junitAgent 'com.nordstrom.tools:junit-foundation:6.1.2'
 }

@@ -23,7 +23,6 @@ package com.epam.reportportal.junit;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.runners.model.FrameworkMethod;
-import org.junit.runners.model.TestClass;
 
 /**
  * Parallel execution context and set of operations to interact with it
@@ -35,9 +34,6 @@ public class ParallelRunningContext {
 	/** {@code ParentRunner} object => RP test item ID */
 	private final Map<Object, String> itemIdOfTestRunner;
 	
-	/** {@link TestClass} of atomic test => RP test item ID */
-	private final Map<TestClass, String> itemIdOfAtomicTest;
-	
 	/** {@link FrameworkMethod} of test method => RP test item ID */
 	private final Map<FrameworkMethod, String> itemIdOfTestMethod;
 	
@@ -46,7 +42,6 @@ public class ParallelRunningContext {
 
 	public ParallelRunningContext() {
 		itemIdOfTestRunner = new ConcurrentHashMap<>();
-		itemIdOfAtomicTest = new ConcurrentHashMap<>();
 		itemIdOfTestMethod = new ConcurrentHashMap<>();
 		statusOfTestMethod = new ConcurrentHashMap<>();
 	}
@@ -89,26 +84,6 @@ public class ParallelRunningContext {
 		return itemIdOfTestRunner.get(runner);
 	}
 
-	/**
-	 * Set the test item ID for the indicated "atomic" test.
-	 * 
-	 * @param testClass {@link TestClass} object for "atomic" test
-	 * @param itemId Report Portal test item ID for "atomic" test
-	 */
-	public void setItemIdOfAtomicTest(TestClass testClass, String itemId) {
-		itemIdOfAtomicTest.put(testClass, itemId);
-	}
-	
-	/**
-	 * Get the test item ID for the indicated "atomic" test.
-	 * 
-	 * @param testClass {@link TestClass} object for "atomic" test
-	 * @return Report Portal test item ID for "atomic" test
-	 */
-	public String getItemIdOfAtomicTest(TestClass testClass) {
-		return itemIdOfAtomicTest.get(testClass);
-	}
-	
 	/**
 	 * Set the test item ID for the specified test method.
 	 * 
