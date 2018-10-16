@@ -65,24 +65,6 @@ public interface IListenerHandler {
 	void stopRunner(Object runner) throws RestEndpointIOException;
 	
 	/**
-	 * Send a <b>start test item</b> request for the indicated "atomic" test to Report Portal.
-	 * 
-	 * @param method {@link FrameworkMethod} object for test method
-	 * @param testClass {@link TestClass} object for "atomic" test
-	 * @throws RestEndpointIOException if something goes wrong
-	 */
-	void startAtomicTest(FrameworkMethod method, TestClass testClass) throws RestEndpointIOException;
-
-	/**
-	 * Send a <b>finish test item</b> request for the indicated "atomic" test to Report Portal.
-	 * 
-	 * @param method {@link FrameworkMethod} object for test method
-	 * @param testClass {@link TestClass} object for "atomic" test
-	 * @throws RestEndpointIOException if something goes wrong
-	 */
-	void stopAtomicTest(FrameworkMethod method, TestClass testClass) throws RestEndpointIOException;
-	
-	/**
 	 * Send a <b>start test item</b> request for the indicated test method to Report Portal.
 	 * 
 	 * @param method {@link FrameworkMethod} object for test method

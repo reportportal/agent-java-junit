@@ -92,13 +92,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Override
 	public void testStarted(FrameworkMethod method, TestClass testClass) {
-		if (LifecycleHooks.hasConfiguration(testClass)) {
-			try {
-				handler.startAtomicTest(method, testClass);
-			} catch (RestEndpointIOException e) {
-				UncheckedThrow.throwUnchecked(e);
-			}
-		}
+		// we're not tracking "atomic" tests, so nothing to do here
 	}
 
 	/**
@@ -106,13 +100,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Override
 	public void testFinished(FrameworkMethod method, TestClass testClass) {
-		if (LifecycleHooks.hasConfiguration(testClass)) {
-			try {
-				handler.stopAtomicTest(method, testClass);
-			} catch (RestEndpointIOException e) {
-				UncheckedThrow.throwUnchecked(e);
-			}
-		}
+		// we're not tracking "atomic" tests, so nothing to do here
 	}
 
 	/**
