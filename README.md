@@ -306,3 +306,6 @@ http://reportportal.io/docs/Logging-Integration%3Elog-message-format
 
 In addition to text log messages, ReportPortal has the ability to record images and file contents. The link above documents the formats supported by the report portal test listener for representing these artifacts.
 
+# Copyright Notice
+
+Licensed under the [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) license (see the LICENSE.md file).
