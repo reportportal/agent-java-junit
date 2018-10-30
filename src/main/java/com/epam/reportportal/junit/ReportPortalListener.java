@@ -117,9 +117,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Override
 	public void afterInvocation(Object target, FrameworkMethod method, Throwable thrown) {
-		TestClass testClass = LifecycleHooks.getTestClassWith(method);
 		if (thrown != null) {
-			reportTestFailure(method, testClass, thrown);
+			reportTestFailure(method, thrown);
 		}
 		
 		handler.stopTestMethod(method);
@@ -129,10 +128,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * Report failure of the indicated "particle" method.
 	 * 
 	 * @param method {@link FrameworkMethod} object for the "particle" method
-	 * @param testClass {@link TestClass} object for the associated "atomic" test
 	 * @throws RestEndpointIOException is something goes wrong
 	 */
-	public void reportTestFailure(FrameworkMethod method, TestClass testClass, Throwable thrown) {
+	public void reportTestFailure(FrameworkMethod method, Throwable thrown) {
 		handler.sendReportPortalMsg(method, thrown);
 		handler.markCurrentTestMethod(method, Statuses.FAILED);
 	}

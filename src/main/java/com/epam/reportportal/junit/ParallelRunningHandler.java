@@ -42,6 +42,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.TestClass;
@@ -83,7 +84,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 		this.context = parallelRunningContext;
 		this.launch = new MemoizingSupplier<>(() -> {
 			StartLaunchRQ rq = buildStartLaunchRq(reportPortalService.getParameters());
-			rq.setStartTime(Calendar.getInstance().getTime());
 			return reportPortalService.newLaunch(rq);
 		});
 	}
@@ -136,7 +136,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void stopRunner(Object runner) {
 		FinishTestItemRQ rq = buildFinishTestRq(null);
-		rq.setEndTime(Calendar.getInstance().getTime());
 		launch.get().finishTestItem(context.getItemIdOfTestRunner(runner), rq);
 	}
 	
@@ -146,9 +145,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void startTestMethod(FrameworkMethod method, TestClass testClass) {
 		StartTestItemRQ rq = buildStartStepRq(method);
-		rq.setName(method.getName());
-		rq.setStartTime(Calendar.getInstance().getTime());
-		rq.setType(detectMethodType(method));
+		rq.setParameters(createStepParameters(method));
 		Object runner = LifecycleHooks.getRunnerFor(testClass);
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), rq);
 		context.setItemIdOfTestMethod(method, itemId);
@@ -161,8 +158,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public void stopTestMethod(FrameworkMethod method) {
 		String status = context.getStatusOfTestMethod(method);
 		FinishTestItemRQ rq = buildFinishStepRq(status, method);
-		rq.setEndTime(Calendar.getInstance().getTime());
-		rq.setStatus((status == null || status.equals("")) ? Statuses.PASSED : status);
 		launch.get().finishTestItem(context.getItemIdOfTestMethod(method), rq);
 	}
 
@@ -306,7 +301,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setName(method.getName());
 
 		rq.setDescription(createStepDescription(method));
-		rq.setParameters(createStepParameters(method));
 		rq.setUniqueId(extractUniqueID(method));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType(detectMethodType(method));
@@ -349,7 +343,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	protected FinishTestItemRQ buildFinishStepRq(String status, FrameworkMethod method) {
 		FinishTestItemRQ rq = new FinishTestItemRQ();
 		rq.setEndTime(Calendar.getInstance().getTime());
-		rq.setStatus(status);
+		rq.setStatus((status == null || status.equals("")) ? Statuses.PASSED : status);
 		// Allows indicate that SKIPPED is not to investigate items for WS
 		if (Statuses.SKIPPED.equals(status) && !fromNullable(launch.get().getParameters().getSkippedAnIssue()).or(false)) {
 			Issue issue = new Issue();
@@ -378,17 +372,21 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param testResult TestNG's testResult context
 	 * @return Step Parameters being sent to ReportPortal
 	 */
-
 	private List<ParameterResource> createMethodParameters(FrameworkMethod method) {
+		boolean isStatic = method.isStatic();
+		boolean isIgnored = (null != method.getAnnotation(Ignore.class));
+		
 		List<ParameterResource> result = new ArrayList<>();
-		Object target = RunReflectiveCall.getTargetFor(method);
-		if (target instanceof ArtifactParams) {
-			Object[] values = ((ArtifactParams) target).getParameters();
-			for (int i = 0; i < values.length; i++) {
-				ParameterResource parameter = new ParameterResource();
-				parameter.setKey("arg" + i);
-				parameter.setValue(Objects.toString(values[i], null));
-				result.add(parameter);
+		if ( ! (isStatic || isIgnored)) {
+			Object target = RunReflectiveCall.getTargetFor(method);
+			if (target instanceof ArtifactParams) {
+				Object[] values = ((ArtifactParams) target).getParameters();
+				for (int i = 0; i < values.length; i++) {
+					ParameterResource parameter = new ParameterResource();
+					parameter.setKey("arg" + i);
+					parameter.setValue(Objects.toString(values[i], null));
+					result.add(parameter);
+				}
 			}
 		}
 		return result;
