@@ -81,8 +81,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Inject
 	public ParallelRunningHandler(ParallelRunningContext parallelRunningContext, ReportPortal reportPortalService) {
-		this.context = parallelRunningContext;
-		this.launch = new MemoizingSupplier<>(() -> {
+		context = parallelRunningContext;
+		launch = new MemoizingSupplier<>(() -> {
 			StartLaunchRQ rq = buildStartLaunchRq(reportPortalService.getParameters());
 			return reportPortalService.newLaunch(rq);
 		});
@@ -104,7 +104,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		FinishExecutionRQ finishExecutionRQ = new FinishExecutionRQ();
 		finishExecutionRQ.setEndTime(Calendar.getInstance().getTime());
 		launch.get().finish(finishExecutionRQ);
-		this.launch.reset();
+		launch.reset();
 	}
 
 	/**
@@ -123,9 +123,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 		Maybe<String> containerId = getContainerId(runner);
 		Maybe<String> itemId;
 		if (containerId == null) {
-			itemId = this.launch.get().startTestItem(rq);
+			itemId = launch.get().startTestItem(rq);
 		} else {
-			itemId = this.launch.get().startTestItem(containerId, rq);
+			itemId = launch.get().startTestItem(containerId, rq);
 		}
 		context.setTestIdOfTestRunner(runner, itemId);
 	}
@@ -439,26 +439,26 @@ public class ParallelRunningHandler implements IListenerHandler {
 		}
 
 		public T get() {
-			if (!this.initialized) {
+			if (!initialized) {
 				synchronized (this) {
-					if (!this.initialized) {
-						T t = this.delegate.get();
-						this.value = t;
-						this.initialized = true;
+					if (!initialized) {
+						T t = delegate.get();
+						value = t;
+						initialized = true;
 						return t;
 					}
 				}
 			}
 
-			return this.value;
+			return value;
 		}
 
 		public synchronized void reset() {
-			this.initialized = false;
+			initialized = false;
 		}
 
 		public String toString() {
-			return "Suppliers.memoize(" + this.delegate + ")";
+			return "Suppliers.memoize(" + delegate + ")";
 		}
 	}
 }
