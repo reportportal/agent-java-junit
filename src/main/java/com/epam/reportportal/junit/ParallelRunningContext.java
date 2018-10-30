@@ -24,18 +24,17 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.runners.model.FrameworkMethod;
 
+import io.reactivex.Maybe;
+
 /**
  * Parallel execution context and set of operations to interact with it
  */
 public class ParallelRunningContext {
-	/** Report Portal launch ID */
-	private volatile String launchId = "";
-	
 	/** {@code ParentRunner} object => RP test item ID */
-	private final Map<Object, String> itemIdOfTestRunner;
+	private final Map<Object, Maybe<String>> itemIdOfTestRunner;
 	
 	/** {@link FrameworkMethod} of test method => RP test item ID */
-	private final Map<FrameworkMethod, String> itemIdOfTestMethod;
+	private final Map<FrameworkMethod, Maybe<String>> itemIdOfTestMethod;
 	
 	/** {@link FrameworkMethod} of test method => status */
 	private final Map<FrameworkMethod, String> statusOfTestMethod;
@@ -47,30 +46,12 @@ public class ParallelRunningContext {
 	}
 
 	/**
-	 * Set the launch ID for the current launch.
-	 * 
-	 * @param launchId Report Portal launch ID
-	 */
-	public void setLaunchId(String launchId) {
-		this.launchId = launchId;
-	}
-
-	/**
-	 * Get the launch ID for the current launch.
-	 * 
-	 * @return Report Portal launch ID
-	 */
-	public String getLaunchId() {
-		return launchId;
-	}
-
-	/**
 	 * Set the test item ID for the indicated container object (test or suite).
 	 * 
 	 * @param runner JUnit test runner
 	 * @param itemId Report Portal test item ID for container object
 	 */
-	public void setTestIdOfTestRunner(Object runner, String itemId) {
+	public void setTestIdOfTestRunner(Object runner, Maybe<String> itemId) {
 		itemIdOfTestRunner.put(runner, itemId);
 	}
 
@@ -80,7 +61,7 @@ public class ParallelRunningContext {
 	 * @param runner JUnit test runner
 	 * @return Report Portal test item ID for container object
 	 */
-	public String getItemIdOfTestRunner(Object runner) {
+	public Maybe<String> getItemIdOfTestRunner(Object runner) {
 		return itemIdOfTestRunner.get(runner);
 	}
 
@@ -90,7 +71,7 @@ public class ParallelRunningContext {
 	 * @param method {@link FrameworkMethod} object for test method
 	 * @param itemId Report Portal test item ID for test method
 	 */
-	public void setItemIdOfTestMethod(FrameworkMethod method, String itemId) {
+	public void setItemIdOfTestMethod(FrameworkMethod method, Maybe<String> itemId) {
 		itemIdOfTestMethod.put(method, itemId);
 	}
 
@@ -100,7 +81,7 @@ public class ParallelRunningContext {
 	 * @param method {@link FrameworkMethod} object for test method
 	 * @return Report Portal test item ID for test method
 	 */
-	public String getItemIdOfTestMethod(FrameworkMethod method) {
+	public Maybe<String> getItemIdOfTestMethod(FrameworkMethod method) {
 		return itemIdOfTestMethod.get(method);
 	}
 

@@ -20,9 +20,10 @@
  */
 package com.epam.reportportal.junit;
 
-import com.epam.reportportal.guice.Injector;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 
 /**
  * JUnit provider injector is the child injector of
@@ -37,7 +38,7 @@ public class JUnitInjectorProvider {
 	private static Supplier<Injector> instance = Suppliers.memoize(new Supplier<Injector>() {
 		@Override
 		public Injector get() {
-			return Injector.getInstance().getChildInjector(new JUnitListenersModule());
+			return Guice.createInjector(new JUnitListenersModule());
 		}
 	});
 
