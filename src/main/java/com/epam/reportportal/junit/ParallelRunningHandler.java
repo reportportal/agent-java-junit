@@ -80,7 +80,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param reportPortalService Report Portal web service client
 	 */
 	@Inject
-	public ParallelRunningHandler(ParallelRunningContext parallelRunningContext, ReportPortal reportPortalService) {
+	public ParallelRunningHandler(final ParallelRunningContext parallelRunningContext,
+			final ReportPortal reportPortalService) {
+		
 		context = parallelRunningContext;
 		launch = new MemoizingSupplier<>(() -> {
 			StartLaunchRQ rq = buildStartLaunchRq(reportPortalService.getParameters());
@@ -187,25 +189,22 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	@SuppressWarnings("squid:S1604")
-	public void sendReportPortalMsg(FrameworkMethod method, Throwable thrown) {
-		ReportPortal.emitLog(new Function<String, SaveLogRQ>() {
-			@Override
-			public SaveLogRQ apply(final String itemId) {
-				SaveLogRQ rq = new SaveLogRQ();
-				rq.setTestItemId(itemId);
-				rq.setLevel("ERROR");
-				rq.setLogTime(Calendar.getInstance().getTime());
-				if (thrown != null) {
-					rq.setMessage(getStackTraceAsString(thrown));
-				} else {
-					rq.setMessage("Test has failed without exception");
-				}
-				rq.setLogTime(Calendar.getInstance().getTime());
-
-				return rq;
+	public void sendReportPortalMsg(final FrameworkMethod method, final Throwable thrown) {
+		Function<String, SaveLogRQ> function = itemId -> {
+			SaveLogRQ rq = new SaveLogRQ();
+			rq.setTestItemId(itemId);
+			rq.setLevel("ERROR");
+			rq.setLogTime(Calendar.getInstance().getTime());
+			if (thrown != null) {
+				rq.setMessage(getStackTraceAsString(thrown));
+			} else {
+				rq.setMessage("Test has failed without exception");
 			}
-		});
+			rq.setLogTime(Calendar.getInstance().getTime());
+
+			return rq;
+		};
+		ReportPortal.emitLog(function);
 	}
 
 	/**
