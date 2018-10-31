@@ -82,6 +82,12 @@ In your project, create or update a file named logback.xml in the src/main/resou
 ```xml
 [pom.xml]
 <project ...>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.source>1.8</maven.compiler.source>  	
+  </properties>
+  
   <repositories>
     <repository>
       <id>bintray</id>
@@ -114,15 +120,6 @@ In your project, create or update a file named logback.xml in the src/main/resou
   <build>
     <pluginManagement>
       <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.6.0</version>
-          <configuration>
-            <source>1.8</source>
-            <target>1.8</target>
-          </configuration>
-        </plugin>
         <!-- Add this if you plan to import into Eclipse -->
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
