@@ -159,7 +159,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void stopTestMethod(FrameworkMethod method) {
 		String status = context.getStatusOfTestMethod(method);
-		FinishTestItemRQ rq = buildFinishStepRq(status, method);
+		FinishTestItemRQ rq = buildFinishStepRq(method, status);
 		launch.get().finishTestItem(context.getItemIdOfTestMethod(method), rq);
 	}
 
@@ -181,7 +181,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		Object runner = LifecycleHooks.getRunnerFor(testClass);
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), startRQ);
 		
-		FinishTestItemRQ finishRQ = buildFinishStepRq(Statuses.SKIPPED, method);
+		FinishTestItemRQ finishRQ = buildFinishStepRq(method, Statuses.SKIPPED);
 		launch.get().finishTestItem(itemId, finishRQ);
 	}
 
@@ -264,7 +264,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize suite creation event/request
 	 *
-	 * @param testClass TestNG suite
+	 * @param testClass JUnit suite context
 	 * @return Request to ReportPortal
 	 */
 	protected StartTestItemRQ buildStartSuiteRq(TestClass testClass) {
@@ -278,7 +278,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize test creation event/request
 	 *
-	 * @param testClass TestNG test context
+	 * @param testClass JUnit test context
 	 * @return Request to ReportPortal
 	 */
 	protected StartTestItemRQ buildStartTestItemRq(TestClass testClass) {
@@ -292,7 +292,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize test step creation event/request
 	 *
-	 * @param method TestNG's testResult context
+	 * @param method JUnit framework method context
 	 * @return Request to ReportPortal
 	 */
 	protected StartTestItemRQ buildStartStepRq(FrameworkMethod method) {
@@ -311,7 +311,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize test suite on it's finish
 	 *
-	 * @param testClass TestNG's suite context
+	 * @param testClass JUnit suite context
 	 * @return Request to ReportPortal
 	 */
 	protected FinishTestItemRQ buildFinishSuiteRq(TestClass testClass) {
@@ -323,7 +323,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize test on it's finish
 	 *
-	 * @param testClass TestNG test context
+	 * @param testClass JUnit test context
 	 * @return Request to ReportPortal
 	 */
 	@SuppressWarnings("squid:S4144")
@@ -335,11 +335,12 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	/**
 	 * Extension point to customize test method on it's finish
-	 *
-	 * @param method TestNG's testResult context
+	 * 
+	 * @param method JUnit framework method context
+	 * @param status method completion status
 	 * @return Request to ReportPortal
 	 */
-	protected FinishTestItemRQ buildFinishStepRq(String status, FrameworkMethod method) {
+	protected FinishTestItemRQ buildFinishStepRq(FrameworkMethod method, String status) {
 		FinishTestItemRQ rq = new FinishTestItemRQ();
 		rq.setEndTime(Calendar.getInstance().getTime());
 		rq.setStatus((status == null || status.equals("")) ? Statuses.PASSED : status);
@@ -355,7 +356,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize Report Portal test parameters
 	 *
-	 * @param method TestNG's testResult context
+	 * @param method JUnit framework method context
 	 * @return Test/Step Parameters being sent to Report Portal
 	 */
 	protected List<ParameterResource> createStepParameters(FrameworkMethod method) {
@@ -364,19 +365,17 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	/**
-	 * Processes testResult to create parameters provided
-	 * by {@link org.testng.annotations.DataProvider} If parameter key isn't provided
-	 * by {@link ParameterKey} annotation then it will be 'arg[index]'
-	 *
-	 * @param testResult TestNG's testResult context
+	 * Assemble execution parameters list for the specified framework method.
+	 * <p>
+	 * <b>NOTE</b>: To support publication of execution parameters, the client test class must implement the
+	 * {@link com.nordstrom.automation.junit.ArtifactParams ArtifactParameters} interface.
+	 * 
+	 * @param method JUnit framework method context
 	 * @return Step Parameters being sent to ReportPortal
 	 */
 	private List<ParameterResource> createMethodParameters(FrameworkMethod method) {
-		boolean isStatic = method.isStatic();
-		boolean isIgnored = (null != method.getAnnotation(Ignore.class));
-		
 		List<ParameterResource> result = new ArrayList<>();
-		if ( ! (isStatic || isIgnored)) {
+		if ( ! (method.isStatic() || isIgnored(method))) {
 			Object target = RunReflectiveCall.getTargetFor(method);
 			if (target instanceof ArtifactParams) {
 				Object[] values = ((ArtifactParams) target).getParameters();
@@ -394,7 +393,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize test step description
 	 *
-	 * @param method TestNG's testResult context
+	 * @param method JUnit framework method context
 	 * @return Test/Step Description being sent to ReportPortal
 	 */
 	protected String createStepDescription(FrameworkMethod method) {
@@ -414,6 +413,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	/**
 	 * Calculate parent id for configuration
+	 * 
+	 * @param method JUnit framework method context
+	 * @return test item ID of parent test runner
 	 */
 	@VisibleForTesting
 	Maybe<String> getConfigParent(FrameworkMethod method) {
@@ -421,7 +423,23 @@ public class ParallelRunningHandler implements IListenerHandler {
 		Object runner = LifecycleHooks.getRunnerFor(testClass);
 		return context.getItemIdOfTestRunner(runner);
 	}
+	
+	/**
+	 * Determine if the specified JUnit framework method is being ignored.
+	 * 
+	 * @param method JUnit framework method context
+	 * @return {@code true} if specified method is being ignored; otherwise {@code false}
+	 */
+	private boolean isIgnored(FrameworkMethod method) {
+		return (null != method.getAnnotation(Ignore.class));
+	}
 
+	/**
+	 * Determine if the specified JUnit framework method is being retried.
+	 * 
+	 * @param method JUnit framework method context
+	 * @return {@code true} if specified method is being retried; otherwise {@code false}
+	 */
 	private boolean isRetry(FrameworkMethod method) {
 		return (null != method.getAnnotation(RetriedTest.class));
 	}
@@ -436,7 +454,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		MemoizingSupplier(Supplier<T> delegate) {
 			this.delegate = delegate;
 		}
-
+		
 		public T get() {
 			if (!initialized) {
 				synchronized (this) {
