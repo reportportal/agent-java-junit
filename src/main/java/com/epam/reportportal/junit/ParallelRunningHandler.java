@@ -44,6 +44,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.TestClass;
 
@@ -114,13 +115,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Override
 	public void startRunner(Object runner, boolean isSuite) {
-		TestClass testClass = LifecycleHooks.getTestClassOf(runner);
-		
 		StartTestItemRQ rq;
 		if (isSuite) {
-			rq = buildStartSuiteRq(testClass);
+			rq = buildStartSuiteRq(runner);
 		} else {
-			rq = buildStartTestItemRq(testClass);
+			rq = buildStartTestItemRq(runner);
 		}
 		Maybe<String> containerId = getContainerId(runner);
 		Maybe<String> itemId;
@@ -264,12 +263,12 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize suite creation event/request
 	 *
-	 * @param testClass JUnit suite context
+	 * @param runner JUnit suite context
 	 * @return Request to ReportPortal
 	 */
-	protected StartTestItemRQ buildStartSuiteRq(TestClass testClass) {
+	protected StartTestItemRQ buildStartSuiteRq(Object runner) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(testClass.getName());
+		rq.setName(getName(runner));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("SUITE");
 		return rq;
@@ -278,12 +277,12 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize test creation event/request
 	 *
-	 * @param testClass JUnit test context
+	 * @param runner JUnit test context
 	 * @return Request to ReportPortal
 	 */
-	protected StartTestItemRQ buildStartTestItemRq(TestClass testClass) {
+	protected StartTestItemRQ buildStartTestItemRq(Object runner) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(testClass.getName());
+		rq.setName(getName(runner));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("TEST");
 		return rq;
@@ -443,7 +442,27 @@ public class ParallelRunningHandler implements IListenerHandler {
 	private boolean isRetry(FrameworkMethod method) {
 		return (null != method.getAnnotation(RetriedTest.class));
 	}
-
+	
+	/**
+	 * Get name associated with the specified JUnit runner.
+	 * 
+	 * @param runner JUnit test runner
+	 * @return name for runner
+	 */
+	private String getName(Object runner) {
+		String name;
+		TestClass testClass = LifecycleHooks.getTestClassOf(runner);
+		Class<?> javaClass = testClass.getJavaClass();
+		if (javaClass != null) {
+			name = javaClass.getName();
+		} else {
+			String role = (null == LifecycleHooks.getParentOf(runner)) ? "Root " : "Context ";
+			String type = (runner instanceof Suite) ? "Suite" : "Class";
+			name = role + type + " Runner";
+		}
+		return name;
+	}
+	
 	@VisibleForTesting
 	static class MemoizingSupplier<T> implements Supplier<T>, Serializable {
 		final Supplier<T> delegate;
