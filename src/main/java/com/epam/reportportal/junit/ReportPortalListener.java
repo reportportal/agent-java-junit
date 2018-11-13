@@ -16,13 +16,11 @@
 package com.epam.reportportal.junit;
 
 import com.epam.reportportal.listeners.Statuses;
-import com.epam.reportportal.restclient.endpoint.exception.RestEndpointIOException;
 import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.MethodWatcher;
 import com.nordstrom.automation.junit.RunWatcher;
 import com.nordstrom.automation.junit.RunnerWatcher;
 import com.nordstrom.automation.junit.ShutdownListener;
-import com.nordstrom.common.base.UncheckedThrow;
 
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.runners.Suite;
@@ -42,12 +40,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	private static volatile IListenerHandler handler;
 
 	static {
-		handler = JUnitInjectorProvider.getInstance().getBean(IListenerHandler.class);
-		try {
-			handler.startLaunch();
-		} catch (RestEndpointIOException e) {
-			UncheckedThrow.throwUnchecked(e);
-		}
+		handler = JUnitInjectorProvider.getInstance().getInstance(IListenerHandler.class);
+		handler.startLaunch();
 	}
 	
 	/**
@@ -55,31 +49,18 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Override
 	public void onShutdown() {
-		try {
-			handler.stopLaunch();
-		} catch (RestEndpointIOException e) {
-			UncheckedThrow.throwUnchecked(e);
-		}
+		handler.stopLaunch();
 	}
 
 	@Override
 	public void runStarted(Object runner) {
 		boolean isSuite = (runner instanceof Suite);
-		
-		try {
-			handler.startRunner(runner, isSuite);
-		} catch (RestEndpointIOException e) {
-			UncheckedThrow.throwUnchecked(e);
-		}
+		handler.startRunner(runner, isSuite);
 	}
 
 	@Override
 	public void runFinished(Object runner) {
-		try {
-			handler.stopRunner(runner);
-		} catch (RestEndpointIOException e) {
-			UncheckedThrow.throwUnchecked(e);
-		}
+		handler.stopRunner(runner);
 	}
 	
 	/**
@@ -119,11 +100,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Override
 	public void testIgnored(FrameworkMethod method, TestClass testClass) {
-		try {
-			handler.handleTestSkip(method, testClass);
-		} catch (RestEndpointIOException e) {
-			UncheckedThrow.throwUnchecked(e);
-		}
+		handler.handleTestSkip(method, testClass);
 	}
 	
 	/**
@@ -132,11 +109,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	@Override
 	public void beforeInvocation(Object target, FrameworkMethod method, Object... params) {
 		TestClass testClass = LifecycleHooks.getTestClassWith(method);
-		try {
-			handler.startTestMethod(method, testClass);
-		} catch (RestEndpointIOException e) {
-			UncheckedThrow.throwUnchecked(e);
-		}
+		handler.startTestMethod(method, testClass);
 	}
 
 	/**
@@ -144,29 +117,20 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Override
 	public void afterInvocation(Object target, FrameworkMethod method, Throwable thrown) {
-		TestClass testClass = LifecycleHooks.getTestClassWith(method);
-		try {
-			if (thrown != null) {
-				reportTestFailure(method, testClass, thrown);
-			}
-			
-			handler.stopTestMethod(method);
-		} catch (RestEndpointIOException e) {
-			UncheckedThrow.throwUnchecked(e);
+		if (thrown != null) {
+			reportTestFailure(method, thrown);
 		}
+		
+		handler.stopTestMethod(method);
 	}
 
 	/**
 	 * Report failure of the indicated "particle" method.
 	 * 
 	 * @param method {@link FrameworkMethod} object for the "particle" method
-	 * @param testClass {@link TestClass} object for the associated "atomic" test
 	 * @throws RestEndpointIOException is something goes wrong
 	 */
-	public void reportTestFailure(FrameworkMethod method, TestClass testClass, Throwable thrown)
-			throws RestEndpointIOException {
-		
-		handler.clearRunningItemId();
+	public void reportTestFailure(FrameworkMethod method, Throwable thrown) {
 		handler.sendReportPortalMsg(method, thrown);
 		handler.markCurrentTestMethod(method, Statuses.FAILED);
 	}

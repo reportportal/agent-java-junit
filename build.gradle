@@ -27,7 +27,9 @@ test {
     testLogging.showStandardStreams = true
 }
 dependencies {
-    compile 'com.epam.reportportal:client-java-core:2.7.1'
-    compile 'com.nordstrom.tools:junit-foundation:6.1.2'
-    junitAgent 'com.nordstrom.tools:junit-foundation:6.1.2'
+    compile 'com.epam.reportportal:client-java:4.0.9'
+    compile 'com.epam.reportportal:commons-model:4.2.0'
+    compile 'com.nordstrom.tools:junit-foundation:6.3.0'
+    junitAgent 'com.nordstrom.tools:junit-foundation:6.3.0'
+    compile 'com.google.inject:guice:4.1.0'
 }

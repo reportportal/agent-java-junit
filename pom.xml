@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>agent-java-junit</artifactId>
-    <version>3.0.1-SNAPSHOT</version>
+    <version>3.0.2-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -26,13 +26,23 @@
     <dependencies>
         <dependency>
             <groupId>com.epam.reportportal</groupId>
-            <artifactId>client-java-core</artifactId>
-            <version>2.7.1</version>
+            <artifactId>client-java</artifactId>
+            <version>4.0.9</version>
+        </dependency>
+        <dependency>
+            <groupId>com.epam.reportportal</groupId>
+            <artifactId>commons-model</artifactId>
+            <version>4.2.0</version>
         </dependency>
         <dependency>
             <groupId>com.nordstrom.tools</groupId>
             <artifactId>junit-foundation</artifactId>
-            <version>6.1.2</version>
+            <version>6.3.0</version>
+        </dependency>
+        <dependency>
+        	<groupId>com.google.inject</groupId>
+        	<artifactId>guice</artifactId>
+        	<version>4.1.0</version>
         </dependency>
     </dependencies>
 

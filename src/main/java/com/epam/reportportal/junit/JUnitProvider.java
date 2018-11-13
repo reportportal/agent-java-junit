@@ -19,8 +19,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-import com.epam.reportportal.listeners.ListenerParameters;
-import com.epam.reportportal.service.BatchedReportPortalService;
+import com.epam.reportportal.service.ReportPortal;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 
@@ -30,19 +29,20 @@ import com.google.inject.Provider;
 public class JUnitProvider implements Provider<IListenerHandler> {
 
 	@Inject
-	private ListenerParameters listenerParameters;
-
-	@Inject
 	private ParallelRunningContext parallelRunningContext;
 
+	private ReportPortal reportPortalService;
+	
 	@Inject
-	private BatchedReportPortalService reportPortalService;
+	public void setReportPortalService() {
+		this.reportPortalService = ReportPortal.builder().build();
+	}
 
 	@Override
 	public IListenerHandler get() {
 
-		if (listenerParameters.getEnable()) {
-			return new ParallelRunningHandler(listenerParameters, parallelRunningContext, reportPortalService);
+		if (reportPortalService.getParameters().getEnable()) {
+			return new ParallelRunningHandler(parallelRunningContext, reportPortalService);
 		}
 
 		return (IListenerHandler) Proxy.newProxyInstance(this.getClass().getClassLoader(),
