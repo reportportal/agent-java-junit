@@ -16,7 +16,6 @@
    b. Add ReportPortal / Logback dependencies to your project POM
 3. [Log4J Framework](https://github.com/reportportal/agent-java-junit#log4j-framework): For the Log4J framework:
    a. Add ReportPortal / Log4J dependencies to your project POM
-4. [Provider Configuration Files](https://github.com/reportportal/agent-java-junit#provider-configuration-files): Add ReportPortal provider configuration files
 4. [Images and Files](https://github.com/reportportal/agent-java-junit#images-and-files): Logging images and files
 
 ### Configuration
@@ -281,20 +280,6 @@ In your project, create or update a file named logback.xml in the src/main/resou
     </plugins>
   </build>
 </project>
-```
-
-### Provider Configuration Files
-
-#### Add ReportPortal provider configuration files:
-
-The ReportPortal agent for JUnit is build on the the JUnit Foundation library. This library publishes notifications that the ReportPortal agent uses to generate the messages it sends to the back-end server. To register for notifications, add the following ServiceLoader provider configuration files to your project's resources:
-
-![](provider-configs.png)
-
-The content of all four files is identical:
-
-```
-com.epam.reportportal.junit.ReportPortalListener
 ```
 
 ### Images and Files
