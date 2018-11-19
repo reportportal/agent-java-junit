@@ -108,7 +108,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>3.0.0-SNAPSHOT</version>
+      <version>3.0.2-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
@@ -207,7 +207,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>3.0.0-SNAPSHOT</version>
+      <version>3.0.2-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
