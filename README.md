@@ -57,13 +57,12 @@ In your project, create or update a file named logback.xml in the src/main/resou
  
     <appender name="RP" class="com.epam.reportportal.logback.appender.ReportPortalAppender">
         <encoder>
-             <!--Best practice: don't put time and logging level to the final message. Appender do this for you-->
-            <pattern>%d{HH:mm:ss.SSS} [%t] %-5level - %msg%n</pattern>
+            <!--Best practice: don't put time and logging level to the final message. Appender do this for you-->
             <pattern>[%t] - %msg%n</pattern>
         </encoder>
     </appender>
  
-     <!--'additivity' flag is important! Without it logback will double-log log messages-->
+    <!--'additivity' flag is important! Without it logback will double-log log messages-->
     <logger name="binary_data_logger" level="TRACE" additivity="false">
         <appender-ref ref="RP"/>
     </logger>
