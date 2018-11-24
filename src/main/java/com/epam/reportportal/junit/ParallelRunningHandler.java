@@ -144,10 +144,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void startTestMethod(FrameworkMethod method, TestClass testClass) {
+	public void startTestMethod(FrameworkMethod method, Object runner) {
 		StartTestItemRQ rq = buildStartStepRq(method);
 		rq.setParameters(createStepParameters(method));
-		Object runner = LifecycleHooks.getRunnerFor(testClass);
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), rq);
 		context.setItemIdOfTestMethod(method, itemId);
 	}
@@ -204,6 +203,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 			return rq;
 		};
 		ReportPortal.emitLog(function);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean isReportable(FrameworkMethod method) {
+		return ! detectMethodType(method).isEmpty();
 	}
 
 	/**

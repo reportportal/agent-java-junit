@@ -55,9 +55,9 @@ public interface IListenerHandler {
 	 * Send a <b>start test item</b> request for the indicated test method to Report Portal.
 	 * 
 	 * @param method {@link FrameworkMethod} object for test method
-	 * @param testClass {@link TestClass} object for test method
+	 * @param runner JUnit test runner
 	 */
-	void startTestMethod(FrameworkMethod method, TestClass testClass);
+	void startTestMethod(FrameworkMethod method, Object runner);
 
 	/**
 	 * Send a <b>finish test item</b> request for the indicated test method to Report Portal.
@@ -90,4 +90,12 @@ public interface IListenerHandler {
 	 * @param thrown {@link Throwable} object with details of the failure 
 	 */
 	void sendReportPortalMsg(FrameworkMethod method, Throwable thrown);
+	
+	/**
+	 * Determine if the specified method is reportable.
+	 * 
+	 * @param method {@link FrameworkMethod} object
+	 * @return {@code true} if method is reportable; otherwise {@code false}
+	 */
+	boolean isReportable(FrameworkMethod method);
 }

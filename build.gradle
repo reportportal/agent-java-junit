@@ -24,13 +24,13 @@ test.doFirst {
     jvmArgs "-javaagent:${configurations.junitAgent.files.iterator().next()}"
 }
 test {
-//  debug true
+  debug true
     testLogging.showStandardStreams = true
 }
 dependencies {
     compile 'com.epam.reportportal:client-java:4.0.9'
     compile 'com.epam.reportportal:commons-model:4.2.0'
-    compile 'com.nordstrom.tools:junit-foundation:6.4.0'
-    junitAgent 'com.nordstrom.tools:junit-foundation:6.4.0'
+    compile 'com.nordstrom.tools:junit-foundation:6.5.1'
+    junitAgent 'com.nordstrom.tools:junit-foundation:6.5.1'
     compile 'com.google.inject:guice:4.1.0'
 }

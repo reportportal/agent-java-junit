@@ -108,8 +108,25 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Override
 	public void beforeInvocation(Object target, FrameworkMethod method, Object... params) {
-		TestClass testClass = LifecycleHooks.getTestClassWith(method);
-		handler.startTestMethod(method, testClass);
+		if (handler.isReportable(method)) {
+			// get runner for method
+			Object runner = LifecycleHooks.getParentOf(method);
+			// if undetermined
+			if (runner == null) {
+				// if target defined
+				if (target != null) {
+					// get runner for target
+					runner = LifecycleHooks.getRunnerForTarget(target);
+				// otherwise
+				} else {
+					// get test class for method
+					TestClass testClass = LifecycleHooks.getTestClassWith(method);
+					// get runner for test class
+					runner = LifecycleHooks.getRunnerFor(testClass);
+				}
+			}
+			handler.startTestMethod(method, runner);
+		}
 	}
 
 	/**
@@ -117,11 +134,13 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Override
 	public void afterInvocation(Object target, FrameworkMethod method, Throwable thrown) {
-		if (thrown != null) {
-			reportTestFailure(method, thrown);
+		if (handler.isReportable(method)) {
+			if (thrown != null) {
+				reportTestFailure(method, thrown);
+			}
+			
+			handler.stopTestMethod(method);
 		}
-		
-		handler.stopTestMethod(method);
 	}
 
 	/**
