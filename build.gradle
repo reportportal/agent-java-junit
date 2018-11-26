@@ -30,7 +30,7 @@ test {
 dependencies {
     compile 'com.epam.reportportal:client-java:4.0.9'
     compile 'com.epam.reportportal:commons-model:4.2.0'
-    compile 'com.nordstrom.tools:junit-foundation:6.5.2-SNAPSHOT'
-    junitAgent 'com.nordstrom.tools:junit-foundation:6.5.2-SNAPSHOT'
+    compile 'com.nordstrom.tools:junit-foundation:6.6.0'
+    junitAgent 'com.nordstrom.tools:junit-foundation:6.6.0'
     compile 'com.google.inject:guice:4.1.0'
 }
