@@ -52,8 +52,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
-
 import static rp.com.google.common.base.Optional.fromNullable;
 import static rp.com.google.common.base.Strings.isNullOrEmpty;
 import static rp.com.google.common.base.Throwables.getStackTraceAsString;
@@ -384,12 +384,13 @@ public class ParallelRunningHandler implements IListenerHandler {
 		if ( ! (method.isStatic() || isIgnored(method))) {
 			Object target = RunReflectiveCall.getTargetFor(method);
 			if (target instanceof ArtifactParams) {
-				Object[] values = ((ArtifactParams) target).getParameters();
-				for (int i = 0; i < values.length; i++) {
-					ParameterResource parameter = new ParameterResource();
-					parameter.setKey("arg" + i);
-					parameter.setValue(Objects.toString(values[i], null));
-					result.add(parameter);
+				if (((ArtifactParams) target).getParameters().isPresent()) {
+					for (Entry<String, Object> param : ((ArtifactParams) target).getParameters().get().entrySet()) {
+						ParameterResource parameter = new ParameterResource();
+						parameter.setKey(param.getKey());
+						parameter.setValue(Objects.toString(param.getValue(), null));
+						result.add(parameter);
+					}
 				}
 			}
 		}
