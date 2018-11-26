@@ -11,12 +11,12 @@
 #### Overview: How to Add ReportPortal Logging to Your JUnit Java Project
 
 1. [Configuration](#configuration): Create/update the **_reportportal.properties_** configuration file
-2. [Logback Framework](#logback-framework): For the Logback framework:
-   a. Create/update the **_logback.xml_** file
+2. [Logback Framework](#logback-framework): For the Logback framework:  
+   a. Create/update the **_logback.xml_** file  
    b. Add ReportPortal / Logback dependencies to your project POM
-3. [Log4J Framework](#log4j-framework): For the Log4J framework:
+3. [Log4J Framework](#log4j-framework): For the Log4J framework:  
    a. Add ReportPortal / Log4J dependencies to your project POM
-4. [Support for Parameterized Tests](#support-for-parameterized-tests)
+4. [Support for Parameterized Tests](#support-for-parameterized-tests): Reporting of test parameters
 5. [Images and Files](#images-and-files): Logging images and files
 
 ### Configuration
