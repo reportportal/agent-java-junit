@@ -31,8 +31,6 @@ import com.google.inject.Inject;
 import com.nordstrom.automation.junit.ArtifactParams;
 import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.RetriedTest;
-import com.nordstrom.automation.junit.RunReflectiveCall;
-
 import io.reactivex.Maybe;
 import rp.com.google.common.annotations.VisibleForTesting;
 import rp.com.google.common.base.Function;
@@ -146,7 +144,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void startTestMethod(FrameworkMethod method, Object runner) {
 		StartTestItemRQ rq = buildStartStepRq(method);
-		rq.setParameters(createStepParameters(method));
+		rq.setParameters(createStepParameters(method, runner));
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), rq);
 		context.setItemIdOfTestMethod(method, itemId);
 	}
@@ -155,7 +153,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void stopTestMethod(FrameworkMethod method) {
+	public void stopTestMethod(FrameworkMethod method, Object runner) {
 		String status = context.getStatusOfTestMethod(method);
 		FinishTestItemRQ rq = buildFinishStepRq(method, status);
 		launch.get().finishTestItem(context.getItemIdOfTestMethod(method), rq);
@@ -165,7 +163,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void markCurrentTestMethod(FrameworkMethod method, String status) {
+	public void markCurrentTestMethod(FrameworkMethod method, Object runner, String status) {
 		context.setStatusOfTestMethod(method, status);
 	}
 
@@ -173,12 +171,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void handleTestSkip(FrameworkMethod method, TestClass testClass) {
+	public void handleTestSkip(FrameworkMethod method, Object runner) {
 		StartTestItemRQ startRQ = buildStartStepRq(method);
-		
-		Object runner = LifecycleHooks.getRunnerFor(testClass);
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), startRQ);
-		
 		FinishTestItemRQ finishRQ = buildFinishStepRq(method, Statuses.SKIPPED);
 		launch.get().finishTestItem(itemId, finishRQ);
 	}
@@ -187,7 +182,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void sendReportPortalMsg(final FrameworkMethod method, final Throwable thrown) {
+	public void sendReportPortalMsg(final FrameworkMethod method, Object runner, final Exception thrown) {
 		Function<String, SaveLogRQ> function = itemId -> {
 			SaveLogRQ rq = new SaveLogRQ();
 			rq.setTestItemId(itemId);
@@ -363,10 +358,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * Extension point to customize Report Portal test parameters
 	 *
 	 * @param method JUnit framework method context
+	 * @param runner JUnit test runner context
 	 * @return Test/Step Parameters being sent to Report Portal
 	 */
-	protected List<ParameterResource> createStepParameters(FrameworkMethod method) {
-		List<ParameterResource> parameters = createMethodParameters(method);
+	protected List<ParameterResource> createStepParameters(FrameworkMethod method, Object runner) {
+		List<ParameterResource> parameters = createMethodParameters(method, runner);
 		return parameters.isEmpty() ? null : parameters;
 	}
 
@@ -377,20 +373,20 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@link com.nordstrom.automation.junit.ArtifactParams ArtifactParameters} interface.
 	 * 
 	 * @param method JUnit framework method context
+	 * @param runner JUnit test runner context
 	 * @return Step Parameters being sent to ReportPortal
 	 */
-	private List<ParameterResource> createMethodParameters(FrameworkMethod method) {
+	@SuppressWarnings("squid:S3655")
+	private List<ParameterResource> createMethodParameters(FrameworkMethod method, Object runner) {
 		List<ParameterResource> result = new ArrayList<>();
 		if ( ! (method.isStatic() || isIgnored(method))) {
-			Object target = RunReflectiveCall.getTargetFor(method);
-			if (target instanceof ArtifactParams) {
-				if (((ArtifactParams) target).getParameters().isPresent()) {
-					for (Entry<String, Object> param : ((ArtifactParams) target).getParameters().get().entrySet()) {
-						ParameterResource parameter = new ParameterResource();
-						parameter.setKey(param.getKey());
-						parameter.setValue(Objects.toString(param.getValue(), null));
-						result.add(parameter);
-					}
+			Object target = LifecycleHooks.getTargetForRunner(runner);
+			if ((target instanceof ArtifactParams) && (((ArtifactParams) target).getParameters().isPresent())) {
+				for (Entry<String, Object> param : ((ArtifactParams) target).getParameters().get().entrySet()) {
+					ParameterResource parameter = new ParameterResource();
+					parameter.setKey(param.getKey());
+					parameter.setValue(Objects.toString(param.getValue(), null));
+					result.add(parameter);
 				}
 			}
 		}
@@ -418,19 +414,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 		return itemUniqueID != null ? itemUniqueID.value() : null;
 	}
 
-	/**
-	 * Calculate parent id for configuration
-	 * 
-	 * @param method JUnit framework method context
-	 * @return test item ID of parent test runner
-	 */
-	@VisibleForTesting
-	Maybe<String> getConfigParent(FrameworkMethod method) {
-		TestClass testClass = LifecycleHooks.getTestClassWith(method);
-		Object runner = LifecycleHooks.getRunnerFor(testClass);
-		return context.getItemIdOfTestRunner(runner);
-	}
-	
 	/**
 	 * Determine if the specified JUnit framework method is being ignored.
 	 * 

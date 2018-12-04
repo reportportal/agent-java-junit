@@ -16,7 +16,6 @@
 package com.epam.reportportal.junit;
 
 import org.junit.runners.model.FrameworkMethod;
-import org.junit.runners.model.TestClass;
 
 /**
  * Describes all operations for junit RP listener handler
@@ -63,33 +62,35 @@ public interface IListenerHandler {
 	 * Send a <b>finish test item</b> request for the indicated test method to Report Portal.
 	 * 
 	 * @param method {@link FrameworkMethod} object for test method
+	 * @param runner JUnit test runner
 	 */
-
-	void stopTestMethod(FrameworkMethod method);
+	void stopTestMethod(FrameworkMethod method, Object runner);
 
 	/**
 	 * Record the status of the specified test method.
 	 * 
 	 * @param method {@link FrameworkMethod} object for test method
+	 * @param runner JUnit test runner
 	 * @param status test completion status
 	 */
-	void markCurrentTestMethod(FrameworkMethod method, String status);
+	void markCurrentTestMethod(FrameworkMethod method, Object runner, String status);
 
 	/**
 	 * Handle test skip action
 	 * 
 	 * @param method {@link FrameworkMethod} object for test method
-	 * @param testClass {@link TestClass} object for test method
+	 * @param runner JUnit test runner
 	 */
-	void handleTestSkip(FrameworkMethod method, TestClass testClass);
+	void handleTestSkip(FrameworkMethod method, Object runner);
 
 	/**
 	 * Send message to report portal about appeared failure
 	 * 
 	 * @param method {@link FrameworkMethod} object for test method
-	 * @param thrown {@link Throwable} object with details of the failure 
+	 * @param runner JUnit test runner
+	 * @param thrown {@link Exception} object with details of the failure 
 	 */
-	void sendReportPortalMsg(FrameworkMethod method, Throwable thrown);
+	void sendReportPortalMsg(FrameworkMethod method, Object runner, Exception thrown);
 	
 	/**
 	 * Determine if the specified method is reportable.
