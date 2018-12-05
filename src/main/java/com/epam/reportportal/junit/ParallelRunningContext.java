@@ -29,10 +29,10 @@ public class ParallelRunningContext {
 	/** {@code ParentRunner} object => RP test item ID */
 	private final Map<Object, Maybe<String>> itemIdOfTestRunner;
 	
-	/** {@link FrameworkMethod} of test method => RP test item ID */
+	/** hash of runner/method pair => RP test item ID */
 	private final Map<Integer, Maybe<String>> itemIdOfTestMethod;
 	
-	/** {@link FrameworkMethod} of test method => status */
+	/** hash of runner/method pair => status */
 	private final Map<Integer, String> statusOfTestMethod;
 
 	public ParallelRunningContext() {
