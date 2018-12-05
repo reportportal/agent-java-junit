@@ -50,8 +50,11 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
+
 import static rp.com.google.common.base.Optional.fromNullable;
 import static rp.com.google.common.base.Strings.isNullOrEmpty;
 import static rp.com.google.common.base.Throwables.getStackTraceAsString;
@@ -182,7 +185,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void sendReportPortalMsg(final FrameworkMethod method, Object runner, final Exception thrown) {
+	public void sendReportPortalMsg(final FrameworkMethod method, Object runner, final Throwable thrown) {
 		Function<String, SaveLogRQ> function = itemId -> {
 			SaveLogRQ rq = new SaveLogRQ();
 			rq.setTestItemId(itemId);
@@ -381,12 +384,15 @@ public class ParallelRunningHandler implements IListenerHandler {
 		List<ParameterResource> result = new ArrayList<>();
 		if ( ! (method.isStatic() || isIgnored(method))) {
 			Object target = LifecycleHooks.getTargetForRunner(runner);
-			if ((target instanceof ArtifactParams) && (((ArtifactParams) target).getParameters().isPresent())) {
-				for (Entry<String, Object> param : ((ArtifactParams) target).getParameters().get().entrySet()) {
-					ParameterResource parameter = new ParameterResource();
-					parameter.setKey(param.getKey());
-					parameter.setValue(Objects.toString(param.getValue(), null));
-					result.add(parameter);
+			if (target instanceof ArtifactParams) {
+				Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
+				if (params.isPresent()) {
+					for (Entry<String, Object> param : params.get().entrySet()) {
+						ParameterResource parameter = new ParameterResource();
+						parameter.setKey(param.getKey());
+						parameter.setValue(Objects.toString(param.getValue(), null));
+						result.add(parameter);
+					}
 				}
 			}
 		}

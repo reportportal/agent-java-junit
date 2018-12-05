@@ -82,7 +82,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void testFailure(AtomicTest atomicTest, Exception thrown) {
+	public void testFailure(AtomicTest atomicTest, Throwable thrown) {
 		// This is the failure of the "atomic" method. The failure of the "particle" has already been reported.
 	}
 
@@ -116,7 +116,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void afterInvocation(Object runner, Object target, FrameworkMethod method, Exception thrown) {
+	public void afterInvocation(Object runner, Object target, FrameworkMethod method, Throwable thrown) {
 		if (handler.isReportable(method)) {
 			if (thrown != null) {
 				reportTestFailure(method, runner, thrown);
@@ -132,7 +132,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param method {@link FrameworkMethod} object for the "particle" method
 	 * @throws RestEndpointIOException is something goes wrong
 	 */
-	public void reportTestFailure(FrameworkMethod method, Object runner, Exception thrown) {
+	public void reportTestFailure(FrameworkMethod method, Object runner, Throwable thrown) {
 		handler.sendReportPortalMsg(method, runner, thrown);
 		handler.markCurrentTestMethod(method, runner, Statuses.FAILED);
 	}
