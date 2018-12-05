@@ -25,14 +25,15 @@ import io.reactivex.Maybe;
  * Parallel execution context and set of operations to interact with it
  */
 public class ParallelRunningContext {
+
 	/** {@code ParentRunner} object => RP test item ID */
 	private final Map<Object, Maybe<String>> itemIdOfTestRunner;
 	
 	/** {@link FrameworkMethod} of test method => RP test item ID */
-	private final Map<FrameworkMethod, Maybe<String>> itemIdOfTestMethod;
+	private final Map<Integer, Maybe<String>> itemIdOfTestMethod;
 	
 	/** {@link FrameworkMethod} of test method => status */
-	private final Map<FrameworkMethod, String> statusOfTestMethod;
+	private final Map<Integer, String> statusOfTestMethod;
 
 	public ParallelRunningContext() {
 		itemIdOfTestRunner = new ConcurrentHashMap<>();
@@ -64,39 +65,54 @@ public class ParallelRunningContext {
 	 * Set the test item ID for the specified test method.
 	 * 
 	 * @param method {@link FrameworkMethod} object for test method
+	 * @param runner JUnit test runner
 	 * @param itemId Report Portal test item ID for test method
 	 */
-	public void setItemIdOfTestMethod(FrameworkMethod method, Maybe<String> itemId) {
-		itemIdOfTestMethod.put(method, itemId);
+	public void setItemIdOfTestMethod(FrameworkMethod method, Object runner, Maybe<String> itemId) {
+		itemIdOfTestMethod.put(methodHash(runner, method), itemId);
 	}
 
 	/**
 	 * Get the test item ID for the specified test method.
 	 * 
 	 * @param method {@link FrameworkMethod} object for test method
+	 * @param runner JUnit test runner
 	 * @return Report Portal test item ID for test method
 	 */
-	public Maybe<String> getItemIdOfTestMethod(FrameworkMethod method) {
-		return itemIdOfTestMethod.get(method);
+	public Maybe<String> getItemIdOfTestMethod(FrameworkMethod method, Object runner) {
+		return itemIdOfTestMethod.get(methodHash(runner, method));
 	}
 
 	/**
 	 * Set the status for the specified test method.
 	 * 
 	 * @param method {@link FrameworkMethod} object for test method
+	 * @param runner JUnit test runner
 	 * @param status status for test method
 	 */
-	public void setStatusOfTestMethod(FrameworkMethod method, String status) {
-		statusOfTestMethod.put(method, status);
+	public void setStatusOfTestMethod(FrameworkMethod method, Object runner, String status) {
+		statusOfTestMethod.put(methodHash(runner, method), status);
 	}
 
 	/**
 	 * Get the status for the specified test method.
 	 * 
 	 * @param method {@link FrameworkMethod} object for test method
+	 * @param runner JUnit test runner
 	 * @return status for test method
 	 */
-	public String getStatusOfTestMethod(FrameworkMethod method) {
-		return statusOfTestMethod.get(method);
+	public String getStatusOfTestMethod(FrameworkMethod method, Object runner) {
+		return statusOfTestMethod.get(methodHash(runner, method));
+	}
+	
+	/**
+	 * Get hash code for the specified runner/method pair.
+	 * 
+	 * @param runner JUnit test runner
+	 * @param method {@link FrameworkMethod} object for test method
+	 * @return hash code for runner/method pair
+	 */
+	private static Integer methodHash(Object runner, FrameworkMethod method) {
+		return runner.hashCode() * 31 + method.hashCode();
 	}
 }

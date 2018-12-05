@@ -149,7 +149,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		StartTestItemRQ rq = buildStartStepRq(method);
 		rq.setParameters(createStepParameters(method, runner));
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), rq);
-		context.setItemIdOfTestMethod(method, itemId);
+		context.setItemIdOfTestMethod(method, runner, itemId);
 	}
 
 	/**
@@ -157,9 +157,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Override
 	public void stopTestMethod(FrameworkMethod method, Object runner) {
-		String status = context.getStatusOfTestMethod(method);
+		String status = context.getStatusOfTestMethod(method, runner);
 		FinishTestItemRQ rq = buildFinishStepRq(method, status);
-		launch.get().finishTestItem(context.getItemIdOfTestMethod(method), rq);
+		launch.get().finishTestItem(context.getItemIdOfTestMethod(method, runner), rq);
 	}
 
 	/**
@@ -167,7 +167,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Override
 	public void markCurrentTestMethod(FrameworkMethod method, Object runner, String status) {
-		context.setStatusOfTestMethod(method, status);
+		context.setStatusOfTestMethod(method, runner, status);
 	}
 
 	/**
