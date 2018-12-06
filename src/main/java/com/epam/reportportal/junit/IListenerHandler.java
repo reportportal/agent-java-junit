@@ -88,7 +88,7 @@ public interface IListenerHandler {
 	 * 
 	 * @param method {@link FrameworkMethod} object for test method
 	 * @param runner JUnit test runner
-	 * @param thrown {@link Exception} object with details of the failure 
+	 * @param thrown {@link Throwable} object with details of the failure 
 	 */
 	void sendReportPortalMsg(FrameworkMethod method, Object runner, Throwable thrown);
 	
