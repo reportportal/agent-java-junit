@@ -108,7 +108,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>4.0.0</version>
+      <version>4.1.0</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
@@ -207,7 +207,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>4.0.0</version>
+      <version>4.1.0</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
@@ -342,9 +342,9 @@ public class ParameterizedTest implements ArtifactParams {
     @Test
     public void parameterized() {
         System.out.println("invoking: " + getDescription().getMethodName());
-    	Optional<Map<String, Object>> params = identity.getParameters();
-    	assertTrue(params.isPresent());
-    	assertTrue(params.get().containsKey("input"));
+        Optional<Map<String, Object>> params = identity.getParameters();
+        assertTrue(params.isPresent());
+        assertTrue(params.get().containsKey("input"));
         assertEquals(input, params.get().get("input"));
     }
 }
