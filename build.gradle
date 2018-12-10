@@ -24,7 +24,7 @@ test.doFirst {
     jvmArgs "-javaagent:${configurations.junitAgent.files.iterator().next()}"
 }
 test {
-  debug true
+//  debug true
     testLogging.showStandardStreams = true
 }
 dependencies {
