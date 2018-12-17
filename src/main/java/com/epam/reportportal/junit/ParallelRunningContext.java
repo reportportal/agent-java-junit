@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.runners.model.FrameworkMethod;
 
+import com.nordstrom.automation.junit.RunReflectiveCall;
+
 import io.reactivex.Maybe;
 
 /**
@@ -69,7 +71,7 @@ public class ParallelRunningContext {
 	 * @param itemId Report Portal test item ID for test method
 	 */
 	public void setItemIdOfTestMethod(FrameworkMethod method, Object runner, Maybe<String> itemId) {
-		itemIdOfTestMethod.put(methodHash(runner, method), itemId);
+		itemIdOfTestMethod.put(RunReflectiveCall.methodHash(runner, method), itemId);
 	}
 
 	/**
@@ -80,7 +82,7 @@ public class ParallelRunningContext {
 	 * @return Report Portal test item ID for test method
 	 */
 	public Maybe<String> getItemIdOfTestMethod(FrameworkMethod method, Object runner) {
-		return itemIdOfTestMethod.get(methodHash(runner, method));
+		return itemIdOfTestMethod.get(RunReflectiveCall.methodHash(runner, method));
 	}
 
 	/**
@@ -91,7 +93,7 @@ public class ParallelRunningContext {
 	 * @param status status for test method
 	 */
 	public void setStatusOfTestMethod(FrameworkMethod method, Object runner, String status) {
-		statusOfTestMethod.put(methodHash(runner, method), status);
+		statusOfTestMethod.put(RunReflectiveCall.methodHash(runner, method), status);
 	}
 
 	/**
@@ -102,17 +104,6 @@ public class ParallelRunningContext {
 	 * @return status for test method
 	 */
 	public String getStatusOfTestMethod(FrameworkMethod method, Object runner) {
-		return statusOfTestMethod.get(methodHash(runner, method));
-	}
-	
-	/**
-	 * Get hash code for the specified runner/method pair.
-	 * 
-	 * @param runner JUnit test runner
-	 * @param method {@link FrameworkMethod} object for test method
-	 * @return hash code for runner/method pair
-	 */
-	private static Integer methodHash(Object runner, FrameworkMethod method) {
-		return runner.hashCode() * 31 + method.hashCode();
+		return statusOfTestMethod.get(RunReflectiveCall.methodHash(runner, method));
 	}
 }
