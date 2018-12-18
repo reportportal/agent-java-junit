@@ -16,7 +16,7 @@
 package com.epam.reportportal.junit;
 
 import com.epam.reportportal.listeners.Statuses;
-import com.nordstrom.automation.junit.LifecycleHooks;
+import com.nordstrom.automation.junit.AtomicTest;
 import com.nordstrom.automation.junit.MethodWatcher;
 import com.nordstrom.automation.junit.RunWatcher;
 import com.nordstrom.automation.junit.RunnerWatcher;
@@ -25,7 +25,6 @@ import com.nordstrom.automation.junit.ShutdownListener;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
-import org.junit.runners.model.TestClass;
 
 /**
  * Report portal custom event listener. This listener support parallel running
@@ -67,7 +66,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void testStarted(FrameworkMethod method, TestClass testClass) {
+	public void testStarted(AtomicTest atomicTest) {
 		// we're not tracking "atomic" tests, so nothing to do here
 	}
 
@@ -75,7 +74,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void testFinished(FrameworkMethod method, TestClass testClass) {
+	public void testFinished(AtomicTest atomicTest) {
 		// we're not tracking "atomic" tests, so nothing to do here
 	}
 
@@ -83,7 +82,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void testFailure(FrameworkMethod method, TestClass testClass, Throwable thrown) {
+	public void testFailure(AtomicTest atomicTest, Throwable thrown) {
 		// This is the failure of the "atomic" method. The failure of the "particle" has already been reported.
 	}
 
@@ -91,7 +90,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void testAssumptionFailure(FrameworkMethod method, TestClass testClass, AssumptionViolatedException thrown) {
+	public void testAssumptionFailure(AtomicTest atomicTest, AssumptionViolatedException thrown) {
 		// This is the failure of the "atomic" method. The failure of the "particle" has already been reported.
 	}
 	
@@ -99,29 +98,32 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void testIgnored(FrameworkMethod method, TestClass testClass) {
-		handler.handleTestSkip(method, testClass);
+	public void testIgnored(AtomicTest atomicTest) {
+		handler.handleTestSkip(atomicTest.getIdentity(), atomicTest.getRunner());
 	}
 	
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void beforeInvocation(Object target, FrameworkMethod method, Object... params) {
-		TestClass testClass = LifecycleHooks.getTestClassWith(method);
-		handler.startTestMethod(method, testClass);
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void afterInvocation(Object target, FrameworkMethod method, Throwable thrown) {
-		if (thrown != null) {
-			reportTestFailure(method, thrown);
+	public void beforeInvocation(Object runner, Object target, FrameworkMethod method, Object... params) {
+		if (handler.isReportable(method)) {
+			handler.startTestMethod(method, runner);
 		}
-		
-		handler.stopTestMethod(method);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void afterInvocation(Object runner, Object target, FrameworkMethod method, Throwable thrown) {
+		if (handler.isReportable(method)) {
+			if (thrown != null) {
+				reportTestFailure(method, runner, thrown);
+			}
+			
+			handler.stopTestMethod(method, runner);
+		}
 	}
 
 	/**
@@ -130,9 +132,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param method {@link FrameworkMethod} object for the "particle" method
 	 * @throws RestEndpointIOException is something goes wrong
 	 */
-	public void reportTestFailure(FrameworkMethod method, Throwable thrown) {
-		handler.sendReportPortalMsg(method, thrown);
-		handler.markCurrentTestMethod(method, Statuses.FAILED);
+	public void reportTestFailure(FrameworkMethod method, Object runner, Throwable thrown) {
+		handler.sendReportPortalMsg(method, runner, thrown);
+		handler.markCurrentTestMethod(method, runner, Statuses.FAILED);
 	}
 
 }
