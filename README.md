@@ -181,6 +181,12 @@ In your project, create or update a file named logback.xml in the src/main/resou
 ```xml
 [pom.xml]
 <project ...>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.source>1.8</maven.compiler.source>  	
+  </properties>
+  
   <repositories>
     <repository>
       <id>bintray</id>
@@ -218,15 +224,6 @@ In your project, create or update a file named logback.xml in the src/main/resou
   <build>
     <pluginManagement>
       <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.6.0</version>
-          <configuration>
-            <source>1.8</source>
-            <target>1.8</target>
-          </configuration>
-        </plugin>
         <!-- Add this if you plan to import into Eclipse -->
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
@@ -280,6 +277,41 @@ In your project, create or update a file named logback.xml in the src/main/resou
     </plugins>
   </build>
 </project>
+```
+
+### Gradle Configuration
+```
+apply plugin: 'java'
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+description = 'ReportPortal JUnit 4 example'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    jcenter()
+    maven { url 'https://jitpack.io' }
+    maven { url "http://dl.bintray.com/epam/reportportal" }
+}
+
+dependencies {
+    compile 'com.epam.reportportal:logger-java-log4j:4.0.1'
+    compile 'com.epam.reportportal:agent-java-junit:4.1.0'
+}
+
+ext {
+    junitFoundation = configurations.compile.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
+}
+
+test.doFirst {
+    jvmArgs "-javaagent:${junitFoundation.file}"
+}
+
+test {
+//  debug true
+    testLogging.showStandardStreams = true
+}
 ```
 
 ### Support for Parameterized Tests
