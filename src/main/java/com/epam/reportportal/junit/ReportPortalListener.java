@@ -22,6 +22,7 @@ import com.nordstrom.automation.junit.RunWatcher;
 import com.nordstrom.automation.junit.RunnerWatcher;
 import com.nordstrom.automation.junit.ShutdownListener;
 
+import org.junit.Test;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
@@ -118,10 +119,12 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	@Override
 	public void afterInvocation(Object runner, Object target, FrameworkMethod method, Throwable thrown) {
 		if (handler.isReportable(method)) {
-			if (thrown != null) {
+			if (thrown != null && !method.getAnnotation(Test.class).expected().equals(thrown.getClass())) {
 				reportTestFailure(method, runner, thrown);
-			}
-			
+			} else {
+                handler.markCurrentTestMethod(method, runner, Statuses.PASSED);
+            }
+
 			handler.stopTestMethod(method, runner);
 		}
 	}
