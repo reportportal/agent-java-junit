@@ -30,6 +30,6 @@ test.doFirst {
     jvmArgs "-javaagent:${junitFoundation.file}"
 }
 test {
-  debug true
+//  debug true
     testLogging.showStandardStreams = true
 }
