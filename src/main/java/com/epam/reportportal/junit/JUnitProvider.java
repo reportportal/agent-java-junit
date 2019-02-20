@@ -15,13 +15,14 @@
  */
 package com.epam.reportportal.junit;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-
 import com.epam.reportportal.service.ReportPortal;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import org.apache.commons.lang3.ClassUtils;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 
 /**
  * @author Dzmitry_Kavalets
@@ -32,7 +33,7 @@ public class JUnitProvider implements Provider<IListenerHandler> {
 	private ParallelRunningContext parallelRunningContext;
 
 	private ReportPortal reportPortalService;
-	
+
 	@Inject
 	public void setReportPortalService() {
 		this.reportPortalService = ReportPortal.builder().build();
@@ -40,7 +41,6 @@ public class JUnitProvider implements Provider<IListenerHandler> {
 
 	@Override
 	public IListenerHandler get() {
-
 		if (reportPortalService.getParameters().getEnable()) {
 			return new ParallelRunningHandler(parallelRunningContext, reportPortalService);
 		}
@@ -49,6 +49,12 @@ public class JUnitProvider implements Provider<IListenerHandler> {
 				new Class[] { IListenerHandler.class }, new InvocationHandler() {
 					@Override
 					public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+						Class<?> returnType = method.getReturnType();
+
+						if (ClassUtils.isAssignable(returnType, Boolean.class, true)) {
+							return false;
+						}
+
 						return null;
 					}
 				});
