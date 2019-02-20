@@ -17,12 +17,14 @@ package com.epam.reportportal.junit;
 
 import com.epam.reportportal.listeners.Statuses;
 import com.nordstrom.automation.junit.AtomicTest;
+import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.MethodWatcher;
 import com.nordstrom.automation.junit.RunWatcher;
 import com.nordstrom.automation.junit.RunnerWatcher;
 import com.nordstrom.automation.junit.ShutdownListener;
 
 import org.junit.Test;
+import org.junit.Test.None;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
@@ -37,92 +39,105 @@ import org.junit.runners.model.FrameworkMethod;
  */
 public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher, MethodWatcher {
 
-	private static volatile IListenerHandler handler;
+    private static volatile IListenerHandler handler;
 
-	static {
-		handler = JUnitInjectorProvider.getInstance().getInstance(IListenerHandler.class);
-		handler.startLaunch();
-	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void onShutdown() {
-		handler.stopLaunch();
-	}
+    static {
+        handler = JUnitInjectorProvider.getInstance().getInstance(IListenerHandler.class);
+        handler.startLaunch();
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onShutdown() {
+        handler.stopLaunch();
+    }
 
-	@Override
-	public void runStarted(Object runner) {
-		boolean isSuite = (runner instanceof Suite);
-		handler.startRunner(runner, isSuite);
-	}
+    @Override
+    public void runStarted(Object runner) {
+        boolean isSuite = (runner instanceof Suite);
+        handler.startRunner(runner, isSuite);
+    }
 
-	@Override
-	public void runFinished(Object runner) {
-		handler.stopRunner(runner);
-	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void testStarted(AtomicTest atomicTest) {
-		// we're not tracking "atomic" tests, so nothing to do here
-	}
+    @Override
+    public void runFinished(Object runner) {
+        handler.stopRunner(runner);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void testStarted(AtomicTest atomicTest) {
+        handler.startTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void testFinished(AtomicTest atomicTest) {
-		// we're not tracking "atomic" tests, so nothing to do here
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void testFinished(AtomicTest atomicTest) {
+        handler.stopTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void testFailure(AtomicTest atomicTest, Throwable thrown) {
-		// This is the failure of the "atomic" method. The failure of the "particle" has already been reported.
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void testFailure(AtomicTest atomicTest, Throwable thrown) {
+        reportTestFailure(atomicTest.getIdentity(), atomicTest.getRunner(), thrown);
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void testAssumptionFailure(AtomicTest atomicTest, AssumptionViolatedException thrown) {
-		// This is the failure of the "atomic" method. The failure of the "particle" has already been reported.
-	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void testIgnored(AtomicTest atomicTest) {
-		handler.handleTestSkip(atomicTest.getIdentity(), atomicTest.getRunner());
-	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void beforeInvocation(Object runner, Object target, FrameworkMethod method, Object... params) {
-		if (handler.isReportable(method)) {
-			handler.startTestMethod(method, runner);
-		}
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void testAssumptionFailure(AtomicTest atomicTest, AssumptionViolatedException thrown) {
+        reportTestFailure(atomicTest.getIdentity(), atomicTest.getRunner(), thrown);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void testIgnored(AtomicTest atomicTest) {
+        handler.handleTestSkip(atomicTest.getIdentity(), atomicTest.getRunner());
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void beforeInvocation(Object runner, Object target, FrameworkMethod method, Object... params) {
+        if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
+            handler.startTestMethod(method, runner);
+        }
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void afterInvocation(Object runner, Object target, FrameworkMethod method, Throwable thrown) {
-		if (handler.isReportable(method)) {
-			if (thrown != null && !method.getAnnotation(Test.class).expected().equals(thrown.getClass())) {
-				reportTestFailure(method, runner, thrown);
-			} else {
-                handler.markCurrentTestMethod(method, runner, Statuses.PASSED);
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void afterInvocation(Object runner, Object target, FrameworkMethod method, Throwable thrown) {
+        if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
+            boolean didSucceed = true;
+            Class<? extends Throwable> expected = None.class;
+            
+            AtomicTest atomicTest = LifecycleHooks.getAtomicTestOf(runner);
+            if (atomicTest != null) {
+                Test annotation = atomicTest.getIdentity().getAnnotation(Test.class);
+                expected = annotation.expected();
+            }
+            
+            if (thrown != null) {
+                didSucceed = (expected.isInstance(thrown));
+            } else {
+                didSucceed = (expected == None.class);
+            }
+            
+            if (!didSucceed) {
+                reportTestFailure(method, runner, thrown);
             }
 
 			handler.stopTestMethod(method, runner);

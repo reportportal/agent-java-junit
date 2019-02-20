@@ -20,7 +20,7 @@ repositories {
 dependencies {
     compile 'com.epam.reportportal:client-java:4.0.9'
     compile 'com.epam.reportportal:commons-model:4.2.0'
-    compile 'com.nordstrom.tools:junit-foundation:9.1.0'
+    compile 'com.nordstrom.tools:junit-foundation:9.1.1'
     compile 'com.google.inject:guice:4.1.0'
 }
 ext {
@@ -30,6 +30,6 @@ test.doFirst {
     jvmArgs "-javaagent:${junitFoundation.file}"
 }
 test {
-//  debug true
+  debug true
     testLogging.showStandardStreams = true
 }
