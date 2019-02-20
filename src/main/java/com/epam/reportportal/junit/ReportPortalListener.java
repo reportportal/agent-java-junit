@@ -121,23 +121,18 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
     @Override
     public void afterInvocation(Object runner, Object target, FrameworkMethod method, Throwable thrown) {
         if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
-            boolean didSucceed = true;
-            Class<? extends Throwable> expected = None.class;
-            
-            AtomicTest atomicTest = LifecycleHooks.getAtomicTestOf(runner);
-            if (atomicTest != null) {
-                Test annotation = atomicTest.getIdentity().getAnnotation(Test.class);
-                expected = annotation.expected();
-            }
-            
             if (thrown != null) {
-                didSucceed = (expected.isInstance(thrown));
-            } else {
-                didSucceed = (expected == None.class);
-            }
-            
-            if (!didSucceed) {
-                reportTestFailure(method, runner, thrown);
+                Class<? extends Throwable> expected = None.class;
+                AtomicTest atomicTest = LifecycleHooks.getAtomicTestOf(runner);
+                
+                if (atomicTest != null) {
+                    Test annotation = atomicTest.getIdentity().getAnnotation(Test.class);
+                    expected = annotation.expected();
+                }
+                
+                if (!expected.isInstance(thrown)) {
+                    reportTestFailure(method, runner, thrown);
+                }
             }
 
 			handler.stopTestMethod(method, runner);
