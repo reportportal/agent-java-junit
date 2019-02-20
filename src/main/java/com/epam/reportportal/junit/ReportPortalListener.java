@@ -135,19 +135,19 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
                 }
             }
 
-			handler.stopTestMethod(method, runner);
-		}
-	}
+            handler.stopTestMethod(method, runner);
+        }
+    }
 
-	/**
-	 * Report failure of the indicated "particle" method.
-	 * 
-	 * @param method {@link FrameworkMethod} object for the "particle" method
-	 * @throws RestEndpointIOException is something goes wrong
-	 */
-	public void reportTestFailure(FrameworkMethod method, Object runner, Throwable thrown) {
-		handler.sendReportPortalMsg(method, runner, thrown);
-		handler.markCurrentTestMethod(method, runner, Statuses.FAILED);
-	}
+    /**
+     * Report failure of the indicated "particle" method.
+     * 
+     * @param method {@link FrameworkMethod} object for the "particle" method
+     * @throws RestEndpointIOException is something goes wrong
+     */
+    public void reportTestFailure(FrameworkMethod method, Object runner, Throwable thrown) {
+        handler.sendReportPortalMsg(method, runner, thrown);
+        handler.markCurrentTestMethod(method, runner, Statuses.FAILED);
+    }
 
 }
