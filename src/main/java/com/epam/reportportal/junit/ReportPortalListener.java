@@ -123,9 +123,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
         if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
             if (thrown != null) {
                 Class<? extends Throwable> expected = None.class;
-                AtomicTest atomicTest = LifecycleHooks.getAtomicTestOf(runner);
                 
-                if (atomicTest != null) {
+                if (target != null) {
+                    AtomicTest atomicTest = LifecycleHooks.getAtomicTestOf(runner);
                     Test annotation = atomicTest.getIdentity().getAnnotation(Test.class);
                     expected = annotation.expected();
                 }
