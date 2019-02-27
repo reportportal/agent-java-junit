@@ -15,6 +15,7 @@
  */
 package com.epam.reportportal.junit;
 
+import com.epam.reportportal.annotations.Tags;
 import com.epam.reportportal.annotations.UniqueID;
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.Statuses;
@@ -27,33 +28,26 @@ import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import com.epam.ta.reportportal.ws.model.issue.Issue;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
+import com.google.common.collect.Sets;
 import com.google.inject.Inject;
 import com.nordstrom.automation.junit.ArtifactParams;
 import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.RetriedTest;
 import io.reactivex.Maybe;
+import org.junit.*;
+import org.junit.experimental.categories.Category;
+import org.junit.runners.Suite;
+import org.junit.runners.model.Annotatable;
+import org.junit.runners.model.FrameworkMethod;
+import org.junit.runners.model.TestClass;
 import rp.com.google.common.annotations.VisibleForTesting;
 import rp.com.google.common.base.Function;
 import rp.com.google.common.base.Supplier;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runners.Suite;
-import org.junit.runners.model.FrameworkMethod;
-import org.junit.runners.model.TestClass;
-
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static rp.com.google.common.base.Optional.fromNullable;
 import static rp.com.google.common.base.Strings.isNullOrEmpty;
@@ -68,7 +62,7 @@ import static rp.com.google.common.base.Throwables.getStackTraceAsString;
  * @author Aliaksey_Makayed (modified by Andrei_Ramanchuk)
  */
 public class ParallelRunningHandler implements IListenerHandler {
-	
+
 	public static final String API_BASE = "/reportportal-ws/api/v1";
 
 	private ParallelRunningContext context;
@@ -76,15 +70,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	/**
 	 * Constructor: Instantiate a parallel running handler
-	 * 
-	 * @param suitesKeeper test collection hierarchy processor
+	 *
+	 * @param suitesKeeper           test collection hierarchy processor
 	 * @param parallelRunningContext test execution context manager
-	 * @param reportPortalService Report Portal web service client
+	 * @param reportPortalService    Report Portal web service client
 	 */
 	@Inject
-	public ParallelRunningHandler(final ParallelRunningContext parallelRunningContext,
-			final ReportPortal reportPortalService) {
-		
+	public ParallelRunningHandler(final ParallelRunningContext parallelRunningContext, final ReportPortal reportPortalService) {
+
 		context = parallelRunningContext;
 		launch = new MemoizingSupplier<>(() -> {
 			StartLaunchRQ rq = buildStartLaunchRq(reportPortalService.getParameters());
@@ -140,7 +133,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		FinishTestItemRQ rq = buildFinishTestRq(null);
 		launch.get().finishTestItem(context.getItemIdOfTestRunner(runner), rq);
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -202,18 +195,18 @@ public class ParallelRunningHandler implements IListenerHandler {
 		};
 		ReportPortal.emitLog(function);
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
 	public boolean isReportable(FrameworkMethod method) {
-		return ! detectMethodType(method).isEmpty();
+		return !detectMethodType(method).isEmpty();
 	}
 
 	/**
 	 * Detect the type of the specified JUnit method.
-	 * 
+	 *
 	 * @param method {@FrameworkMethod} object
 	 * @return method type string; empty string for unsupported types
 	 */
@@ -234,7 +227,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	/**
 	 * Get the test item ID for the container of the indicated test item.
-	 * 
+	 *
 	 * @param runner JUnit test runner
 	 * @return container ID for the indicated test item; {@code null} for root test items
 	 */
@@ -290,6 +283,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setName(getName(runner));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("TEST");
+		rq.setTags(getAnnotationTags(LifecycleHooks.getTestClassOf(runner)));
 		return rq;
 	}
 
@@ -307,9 +301,37 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setUniqueId(extractUniqueID(method));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType(detectMethodType(method));
+		rq.setTags(getAnnotationTags(method));
 
 		rq.setRetry(isRetry(method));
 		return rq;
+	}
+
+	/**
+	 * Returns a set of tags of the given annotated context. This method is looking for the following annotations in
+	 * this context:
+	 *
+	 * <ul>
+	 * <li>{@link Tags}</li>
+	 * <li>{@link Category}</li>
+	 * </ul>
+	 * <p>
+	 * If annotations are not present - this method returns empty set.
+	 *
+	 * @param context Context to extract tags
+	 * @return Set of tags of given annotated element
+	 */
+	@VisibleForTesting
+	static Set<String> getAnnotationTags(Annotatable context) {
+		Set<String> result = new HashSet<>();
+
+		Optional.ofNullable(context.getAnnotation(Category.class))
+				.map(category -> Arrays.stream(category.value()).map(Class::getSimpleName).collect(Collectors.toSet()))
+				.ifPresent(result::addAll);
+
+		Optional.ofNullable(context.getAnnotation(Tags.class)).map(tags -> Sets.newHashSet(tags.value())).ifPresent(result::addAll);
+
+		return result;
 	}
 
 	/**
@@ -339,7 +361,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	/**
 	 * Extension point to customize test method on it's finish
-	 * 
+	 *
 	 * @param method JUnit framework method context
 	 * @param status method completion status
 	 * @return Request to ReportPortal
@@ -356,7 +378,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		}
 		return rq;
 	}
-	
+
 	/**
 	 * Extension point to customize Report Portal test parameters
 	 *
@@ -374,7 +396,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * <p>
 	 * <b>NOTE</b>: To support publication of execution parameters, the client test class must implement the
 	 * {@link com.nordstrom.automation.junit.ArtifactParams ArtifactParameters} interface.
-	 * 
+	 *
 	 * @param method JUnit framework method context
 	 * @param runner JUnit test runner context
 	 * @return Step Parameters being sent to ReportPortal
@@ -382,7 +404,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@SuppressWarnings("squid:S3655")
 	private List<ParameterResource> createMethodParameters(FrameworkMethod method, Object runner) {
 		List<ParameterResource> result = new ArrayList<>();
-		if ( ! (method.isStatic() || isIgnored(method))) {
+		if (!(method.isStatic() || isIgnored(method))) {
 			Object target = LifecycleHooks.getTargetForRunner(runner);
 			if (target instanceof ArtifactParams) {
 				Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
@@ -422,7 +444,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	/**
 	 * Determine if the specified JUnit framework method is being ignored.
-	 * 
+	 *
 	 * @param method JUnit framework method context
 	 * @return {@code true} if specified method is being ignored; otherwise {@code false}
 	 */
@@ -432,17 +454,17 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	/**
 	 * Determine if the specified JUnit framework method is being retried.
-	 * 
+	 *
 	 * @param method JUnit framework method context
 	 * @return {@code true} if specified method is being retried; otherwise {@code false}
 	 */
 	private boolean isRetry(FrameworkMethod method) {
 		return (null != method.getAnnotation(RetriedTest.class));
 	}
-	
+
 	/**
 	 * Get name associated with the specified JUnit runner.
-	 * 
+	 *
 	 * @param runner JUnit test runner
 	 * @return name for runner
 	 */
@@ -459,7 +481,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		}
 		return name;
 	}
-	
+
 	@VisibleForTesting
 	static class MemoizingSupplier<T> implements Supplier<T>, Serializable {
 		final Supplier<T> delegate;
@@ -470,7 +492,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		MemoizingSupplier(Supplier<T> delegate) {
 			this.delegate = delegate;
 		}
-		
+
 		public T get() {
 			if (!initialized) {
 				synchronized (this) {

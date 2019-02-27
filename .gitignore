@@ -24,5 +24,6 @@ build/
 .settings
 *.iml
 /bin/
+out
 
 target
