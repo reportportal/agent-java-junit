@@ -20,8 +20,10 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.TestClass;
 
+import java.lang.reflect.Method;
 import java.util.Set;
 
 /**
@@ -35,6 +37,15 @@ public class TagsTest {
 	public void realTagsParsing() {
 		Set<String> tags = ParallelRunningHandler.getAnnotationTags(new TestClass(this.getClass()));
 		Assert.assertThat(tags, CoreMatchers.hasItems("Tag1", "Tag5", "Tag4", "Tag2"));
+	}
+
+	@Test
+	@Tags({"Tag4", "Tag5"})
+	@Category({Tag1.class, Tag2.class})
+	public void realMethodTagsParsing() throws NoSuchMethodException {
+		Method method = getClass().getDeclaredMethod("realMethodTagsParsing");
+		Set<String> tags = ParallelRunningHandler.getAnnotationTags(new FrameworkMethod(method));
+		Assert.assertThat(tags, CoreMatchers.hasItems("Tag1", "Tag2", "Tag4", "Tag5"));
 	}
 
 	static class Tag1 {
