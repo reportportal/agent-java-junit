@@ -321,7 +321,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param context Context to extract tags
 	 * @return Set of tags of given annotated element
 	 */
-	private Set<String> getAnnotationTags(Annotatable context) {
+	static Set<String> getAnnotationTags(Annotatable context) {
 		Set<String> result = new HashSet<>();
 
 		Optional.ofNullable(context.getAnnotation(Category.class))
