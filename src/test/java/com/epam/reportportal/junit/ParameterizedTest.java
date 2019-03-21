@@ -1,4 +1,4 @@
-package com.epam.reportportal.junit.junit;
+package com.epam.reportportal.junit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
