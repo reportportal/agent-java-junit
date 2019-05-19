@@ -435,23 +435,17 @@ We’ll assume that Report Portal is installed and running on <http://localhost:
 
 ##### 2.2 Add following dependencies:
 
-*The JUnit 4 library*
-```xml
-<dependency>
-    <groupId>junit</groupId>
-    <artifactId>junit</artifactId>
-    <version>4.12</version>
-    <scope>test</scope>
-</dependency>
-```
 *Report Portal agent implementation for JUnit 4*
 ```xml
 <dependency>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>agent-java-junit</artifactId>
     <version>4.1.8</version>
+    <scope>test</scope>
 </dependency>
 ```
+Note that `agent-java-junit` brings in `JUnit 4.12` and the `JUnit Foundation` library as transitive dependencies, so these don't need to be declared explicitly in your project.
+
 > Latest version of the agent, could be found [here](https://bintray.com/epam/reportportal/agent-java-junit)
 
 ##### 2.3 Add Report Portal dedicated logger wrapper  
@@ -503,26 +497,6 @@ If you prefer using **Log4j** logging library, add following dependencies:
      <version>2.10.0</version>
 </dependency>
 ```
-
-*JUnit-Foundation dependency*
-```xml
-<dependency>
-    <groupId>com.nordstrom.tools</groupId>
-    <artifactId>junit-foundation</artifactId>
-    <version>9.2.0</version>
-</dependency>
-```
-> It is used to link Report Portal agent with the JUnit 4  
-More on this in step 5.2
-
-> *Important note*! To avoid issues and for consistency reasons - use same version as ReportPortal `agent-java-junit` uses.  
-To find the version of `junit-foundation` used by reportportal agent, in `pom.xml` go to dependency declaration of the `com.epam.reportportal:agent-java-junit` and check the version on `junit-foundation` there
-
-![Go to agent declaration](screens/note_go_to_declaration_junit_agent.png)
-
-![Go to agent declaration](screens/note_junit_agent_declaration.png)
-
-> By this moment, latest version of ReportPortal JUnit agent (4.1.8) uses `junit-foundation` dependency versioned `9.2.0`
 
 #### Step 3 - Add the test with logging
 
@@ -738,24 +712,11 @@ in this case - add a `maven dependency plugin` dependency explicitly, like this:
    </repositories>
 
    <dependencies>
-
-      <dependency>
-         <groupId>org.apache.maven.plugins</groupId>
-         <artifactId>maven-dependency-plugin</artifactId>
-         <version>3.1.1</version>
-         <type>maven-plugin</type>
-      </dependency>
-      <dependency>
-         <groupId>junit</groupId>
-         <artifactId>junit</artifactId>
-         <version>4.12</version>
-         <scope>test</scope>
-      </dependency>
-
       <dependency>
          <groupId>com.epam.reportportal</groupId>
          <artifactId>agent-java-junit</artifactId>
          <version>4.1.8</version>
+         <scope>test</scope>
       </dependency>
 
       <dependency>
@@ -774,12 +735,6 @@ in this case - add a `maven dependency plugin` dependency explicitly, like this:
          <groupId>org.apache.logging.log4j</groupId>
          <artifactId>log4j-core</artifactId>
          <version>2.10.0</version>
-      </dependency>
-
-      <dependency>
-         <groupId>com.nordstrom.tools</groupId>
-         <artifactId>junit-foundation</artifactId>
-         <version>9.2.0</version>
       </dependency>
    </dependencies>
 
@@ -867,7 +822,7 @@ You can put the jar directly in the project tree or use the one, that Maven down
 On MAC OS system the path to maven downloaded junit-foundation.jar would have the following format:
 
 ```shell
-/Users/<user_name>/.m2/repository/com/nordstrom/tools/junit-foundation/9.2.0/junit-foundation-9.2.0.jar
+/Users/<user_name>/.m2/repository/com/nordstrom/tools/junit-foundation/9.4.3/junit-foundation-9.4.3.jar
 ```
 
 When you are done adding local run configuration, simply go to *Run* -> *Run '<test_run_name>'* and that test run results will be sent to Report Portal
