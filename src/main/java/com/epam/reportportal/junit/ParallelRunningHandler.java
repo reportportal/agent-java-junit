@@ -28,7 +28,6 @@ import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import com.epam.ta.reportportal.ws.model.issue.Issue;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
-import com.google.common.collect.Sets;
 import com.google.inject.Inject;
 import com.nordstrom.automation.junit.ArtifactParams;
 import com.nordstrom.automation.junit.LifecycleHooks;
@@ -42,14 +41,22 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.TestClass;
 import rp.com.google.common.annotations.VisibleForTesting;
 import rp.com.google.common.base.Function;
+import rp.com.google.common.base.Optional;
 import rp.com.google.common.base.Supplier;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import static rp.com.google.common.base.Optional.fromNullable;
 import static rp.com.google.common.base.Strings.isNullOrEmpty;
 import static rp.com.google.common.base.Throwables.getStackTraceAsString;
 
@@ -324,15 +331,33 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@VisibleForTesting
 	static Set<String> getAnnotationTags(Annotatable context) {
 		Set<String> result = new HashSet<>();
+		
+		result.addAll(Optional.fromNullable(context.getAnnotation(Category.class))
+		        .transform(toCategoryNames()).or(Collections.emptySet()));
 
-		Optional.ofNullable(context.getAnnotation(Category.class))
-				.map(category -> Arrays.stream(category.value()).map(Class::getSimpleName).collect(Collectors.toSet()))
-				.ifPresent(result::addAll);
-
-		Optional.ofNullable(context.getAnnotation(Tags.class)).map(tags -> Sets.newHashSet(tags.value())).ifPresent(result::addAll);
+		result.addAll(Optional.fromNullable(context.getAnnotation(Tags.class))
+		        .transform(toTagNames()).or(Collections.emptySet()));
 
 		return result;
 	}
+	
+	private static Function<Category, Set<String>> toCategoryNames() {
+	    return new Function<Category, Set<String>>() {
+            @Override
+            public Set<String> apply(Category category) {
+                return Arrays.stream(category.value()).map(Class::getSimpleName).collect(Collectors.toSet());
+            }
+	    };
+	}
+
+    private static Function<Tags, Set<String>> toTagNames() {
+        return new Function<Tags, Set<String>>() {
+            @Override
+            public Set<String> apply(Tags tags) {
+                return Arrays.stream(tags.value()).collect(Collectors.toSet());
+            }
+        };
+    }
 
 	/**
 	 * Extension point to customize test suite on it's finish
@@ -371,7 +396,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setEndTime(Calendar.getInstance().getTime());
 		rq.setStatus((status == null || status.equals("")) ? Statuses.PASSED : status);
 		// Allows indicate that SKIPPED is not to investigate items for WS
-		if (Statuses.SKIPPED.equals(status) && !fromNullable(launch.get().getParameters().getSkippedAnIssue()).or(false)) {
+		if (Statuses.SKIPPED.equals(status) && !Optional.fromNullable(launch.get().getParameters().getSkippedAnIssue()).or(false)) {
 			Issue issue = new Issue();
 			issue.setIssueType("NOT_ISSUE");
 			rq.setIssue(issue);
@@ -407,7 +432,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		if (!(method.isStatic() || isIgnored(method))) {
 			Object target = LifecycleHooks.getTargetForRunner(runner);
 			if (target instanceof ArtifactParams) {
-				Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
+				com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
 				if (params.isPresent()) {
 					for (Entry<String, Object> param : params.get().entrySet()) {
 						ParameterResource parameter = new ParameterResource();
