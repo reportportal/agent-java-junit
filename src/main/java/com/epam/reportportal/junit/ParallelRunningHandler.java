@@ -333,31 +333,31 @@ public class ParallelRunningHandler implements IListenerHandler {
 		Set<String> result = new HashSet<>();
 		
 		result.addAll(Optional.fromNullable(context.getAnnotation(Category.class))
-		        .transform(toCategoryNames()).or(Collections.emptySet()));
+				.transform(toCategoryNames()).or(Collections.emptySet()));
 
 		result.addAll(Optional.fromNullable(context.getAnnotation(Tags.class))
-		        .transform(toTagNames()).or(Collections.emptySet()));
+				.transform(toTagNames()).or(Collections.emptySet()));
 
 		return result;
 	}
 	
 	private static Function<Category, Set<String>> toCategoryNames() {
-	    return new Function<Category, Set<String>>() {
-            @Override
-            public Set<String> apply(Category category) {
-                return Arrays.stream(category.value()).map(Class::getSimpleName).collect(Collectors.toSet());
-            }
-	    };
+		return new Function<Category, Set<String>>() {
+			@Override
+			public Set<String> apply(Category category) {
+				return Arrays.stream(category.value()).map(Class::getSimpleName).collect(Collectors.toSet());
+			}
+		};
 	}
 
-    private static Function<Tags, Set<String>> toTagNames() {
-        return new Function<Tags, Set<String>>() {
-            @Override
-            public Set<String> apply(Tags tags) {
-                return Arrays.stream(tags.value()).collect(Collectors.toSet());
-            }
-        };
-    }
+	private static Function<Tags, Set<String>> toTagNames() {
+		return new Function<Tags, Set<String>>() {
+			@Override
+			public Set<String> apply(Tags tags) {
+				return Arrays.stream(tags.value()).collect(Collectors.toSet());
+			}
+		};
+	}
 
 	/**
 	 * Extension point to customize test suite on it's finish
