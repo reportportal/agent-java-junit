@@ -65,8 +65,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	public static final String CLASS_PREFIX = "class ";
 
-	public static final String METHOD_PREFIX = "method ";
-
 	private ParallelRunningContext context;
 	private MemoizingSupplier<Launch> launch;
 
