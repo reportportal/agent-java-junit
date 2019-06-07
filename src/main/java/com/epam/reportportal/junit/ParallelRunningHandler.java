@@ -33,6 +33,7 @@ import com.nordstrom.automation.junit.ArtifactParams;
 import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.RetriedTest;
 import io.reactivex.Maybe;
+import io.reactivex.annotations.Nullable;
 import org.junit.*;
 import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
@@ -61,6 +62,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	public static final String API_BASE = "/reportportal-ws/api/v1";
 	private static final String SKIPPED_ISSUE_KEY = "skippedIssue";
+
+	public static final String CLASS_PREFIX = "class ";
+
+	public static final String METHOD_PREFIX = "method ";
 
 	private ParallelRunningContext context;
 	private MemoizingSupplier<Launch> launch;
@@ -272,6 +277,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	protected StartTestItemRQ buildStartSuiteRq(Object runner) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(getName(runner));
+		rq.setLocation(getLocation(runner));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("SUITE");
 		return rq;
@@ -286,6 +292,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	protected StartTestItemRQ buildStartTestItemRq(Object runner) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(getName(runner));
+		rq.setLocation(getLocation(runner));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("TEST");
 		return rq;
@@ -456,6 +463,22 @@ public class ParallelRunningHandler implements IListenerHandler {
 			name = role + type + " Runner";
 		}
 		return name;
+	}
+
+	/**
+	 * Get location associated with the specified JUnit runner.
+	 *
+	 * @param runner JUnit test runner
+	 * @return location of the runner
+	 */
+	@Nullable
+	private String getLocation(Object runner) {
+		TestClass testClass = LifecycleHooks.getTestClassOf(runner);
+		Class<?> javaClass = testClass.getJavaClass();
+		if (javaClass != null) {
+			return CLASS_PREFIX + javaClass.getCanonicalName();
+		}
+		return null;
 	}
 
 	@VisibleForTesting
