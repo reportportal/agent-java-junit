@@ -37,7 +37,7 @@ import org.junit.runners.model.FrameworkMethod;
  *
  * @author Aliaksei_Makayed (modified by Andrei_Ramanchuk)
  */
-public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher, MethodWatcher {
+public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher<FrameworkMethod>, MethodWatcher {
 
     private static volatile IListenerHandler handler;
 
@@ -69,7 +69,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void testStarted(AtomicTest atomicTest) {
+    public void testStarted(AtomicTest<FrameworkMethod> atomicTest) {
         handler.startTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
     }
 
@@ -77,7 +77,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void testFinished(AtomicTest atomicTest) {
+    public void testFinished(AtomicTest<FrameworkMethod> atomicTest) {
         handler.stopTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
     }
 
@@ -85,7 +85,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void testFailure(AtomicTest atomicTest, Throwable thrown) {
+    public void testFailure(AtomicTest<FrameworkMethod> atomicTest, Throwable thrown) {
         reportTestFailure(atomicTest.getIdentity(), atomicTest.getRunner(), thrown);
     }
 
@@ -93,7 +93,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void testAssumptionFailure(AtomicTest atomicTest, AssumptionViolatedException thrown) {
+    public void testAssumptionFailure(AtomicTest<FrameworkMethod> atomicTest, AssumptionViolatedException thrown) {
         reportTestFailure(atomicTest.getIdentity(), atomicTest.getRunner(), thrown);
     }
     
@@ -101,7 +101,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void testIgnored(AtomicTest atomicTest) {
+    public void testIgnored(AtomicTest<FrameworkMethod> atomicTest) {
         handler.handleTestSkip(atomicTest.getIdentity(), atomicTest.getRunner());
     }
     
@@ -125,7 +125,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
                 Class<? extends Throwable> expected = None.class;
                 
                 if (target != null) {
-                    AtomicTest atomicTest = LifecycleHooks.getAtomicTestOf(runner);
+                    AtomicTest<FrameworkMethod> atomicTest = LifecycleHooks.getAtomicTestOf(runner);
                     Test annotation = atomicTest.getIdentity().getAnnotation(Test.class);
                     expected = annotation.expected();
                 }
