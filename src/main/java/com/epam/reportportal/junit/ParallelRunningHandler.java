@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *	 http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -80,9 +80,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Constructor: Instantiate a parallel running handler
 	 *
-	 * @param suitesKeeper           test collection hierarchy processor
+	 * @param suitesKeeper		   test collection hierarchy processor
 	 * @param parallelRunningContext test execution context manager
-	 * @param reportPortalService    Report Portal web service client
+	 * @param reportPortalService	Report Portal web service client
 	 */
 	@Inject
 	public ParallelRunningHandler(final ParallelRunningContext parallelRunningContext, final ReportPortal reportPortalService) {
@@ -220,17 +220,17 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return method type string; empty string for unsupported types
 	 */
 	private String detectMethodType(Object method) {
-        if (null != LifecycleHooks.getAnnotation(method, Test.class)) {
-        	return "STEP";
-        } else if (null != LifecycleHooks.getAnnotation(method, Before.class)) {
-        	return "BEFORE_METHOD";
-        } else if (null != LifecycleHooks.getAnnotation(method, After.class)) {
-        	return "AFTER_METHOD";
-        } else if (null != LifecycleHooks.getAnnotation(method, BeforeClass.class)) {
-        	return "BEFORE_CLASS";
-        } else if (null != LifecycleHooks.getAnnotation(method, AfterClass.class)) {
-        	return "AFTER_CLASS";
-        }
+		if (null != LifecycleHooks.getAnnotation(method, Test.class)) {
+			return "STEP";
+		} else if (null != LifecycleHooks.getAnnotation(method, Before.class)) {
+			return "BEFORE_METHOD";
+		} else if (null != LifecycleHooks.getAnnotation(method, After.class)) {
+			return "AFTER_METHOD";
+		} else if (null != LifecycleHooks.getAnnotation(method, BeforeClass.class)) {
+			return "BEFORE_CLASS";
+		} else if (null != LifecycleHooks.getAnnotation(method, AfterClass.class)) {
+			return "AFTER_CLASS";
+		}
 		return "";
 	}
 
@@ -334,11 +334,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 	static Set<String> getAnnotationTags(Object context) {
 		Set<String> result = new HashSet<>();
 		
-        Category category = LifecycleHooks.getAnnotation(context, Category.class);
-        Tags tags = LifecycleHooks.getAnnotation(context, Tags.class);
-        
-        result.addAll(Optional.fromNullable(category).transform(toCategoryNames()).or(Collections.emptySet()));
-        result.addAll(Optional.fromNullable(tags).transform(toTagNames()).or(Collections.emptySet()));
+		Category category = LifecycleHooks.getAnnotation(context, Category.class);
+		Tags tags = LifecycleHooks.getAnnotation(context, Tags.class);
+		
+		result.addAll(Optional.fromNullable(category).transform(toCategoryNames()).or(Collections.emptySet()));
+		result.addAll(Optional.fromNullable(tags).transform(toTagNames()).or(Collections.emptySet()));
 
 		return result;
 	}
@@ -465,8 +465,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return test item ID or null
 	 */
 	private static String extractUniqueID(Object method) {
-        UniqueID itemUniqueID = LifecycleHooks.getAnnotation(method, UniqueID.class);
-        return itemUniqueID != null ? itemUniqueID.value() : null;
+		UniqueID itemUniqueID = LifecycleHooks.getAnnotation(method, UniqueID.class);
+		return itemUniqueID != null ? itemUniqueID.value() : null;
 	}
 	
 	/**
@@ -476,11 +476,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return 'true' if method is static; otherwise 'false'
 	 */
 	private static boolean isStatic(Object method) {
-	    try {
-            return Modifier.isStatic((int) MethodUtils.invokeMethod(method, "getModifiers"));
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            return false;
-        }
+		try {
+			return Modifier.isStatic((int) MethodUtils.invokeMethod(method, "getModifiers"));
+		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+			return false;
+		}
 	}
 
 	/**
@@ -490,7 +490,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return {@code true} if specified method is being ignored; otherwise {@code false}
 	 */
 	private static boolean isIgnored(Object method) {
-        return (null != LifecycleHooks.getAnnotation(method, Ignore.class));
+		return (null != LifecycleHooks.getAnnotation(method, Ignore.class));
 	}
 
 	/**
@@ -500,7 +500,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return {@code true} if specified method is being retried; otherwise {@code false}
 	 */
 	private static boolean isRetry(Object method) {
-        return (null != LifecycleHooks.getAnnotation(method, RetriedTest.class));
+		return (null != LifecycleHooks.getAnnotation(method, RetriedTest.class));
 	}
 
 	/**
@@ -530,11 +530,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return child object name
 	 */
 	private static String getChildName(Object child) {
-	    try {
-            return (String) MethodUtils.invokeMethod(child, "getName");
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            return child.toString();
-        }
+		try {
+			return (String) MethodUtils.invokeMethod(child, "getName");
+		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+			return child.toString();
+		}
 	}
 
 	@VisibleForTesting
