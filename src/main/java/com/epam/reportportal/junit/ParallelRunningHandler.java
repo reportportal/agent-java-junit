@@ -216,7 +216,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Detect the type of the specified JUnit method.
 	 *
-	 * @param method {@code FrameworkMethod} method
+	 * @param method {@code FrameworkMethod} object
 	 * @return method type string; empty string for unsupported types
 	 */
 	private String detectMethodType(Object method) {
