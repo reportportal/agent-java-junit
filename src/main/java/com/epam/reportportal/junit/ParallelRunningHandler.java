@@ -327,15 +327,15 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * <p>
 	 * If annotations are not present - this method returns empty set.
 	 *
-	 * @param method Context to extract tags
+	 * @param context Context to extract tags
 	 * @return Set of tags of given annotated element
 	 */
 	@VisibleForTesting
-	static Set<String> getAnnotationTags(Object method) {
+	static Set<String> getAnnotationTags(Object context) {
 		Set<String> result = new HashSet<>();
 		
-        Category category = LifecycleHooks.getAnnotation(method, Category.class);
-        Tags tags = LifecycleHooks.getAnnotation(method, Tags.class);
+        Category category = LifecycleHooks.getAnnotation(context, Category.class);
+        Tags tags = LifecycleHooks.getAnnotation(context, Tags.class);
         
         result.addAll(Optional.fromNullable(category).transform(toCategoryNames()).or(Collections.emptySet()));
         result.addAll(Optional.fromNullable(tags).transform(toTagNames()).or(Collections.emptySet()));
