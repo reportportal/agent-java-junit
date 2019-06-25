@@ -33,11 +33,11 @@ import com.nordstrom.automation.junit.ArtifactParams;
 import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.RetriedTest;
 import io.reactivex.Maybe;
+
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runners.Suite;
-import org.junit.runners.model.Annotatable;
-import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.TestClass;
 import rp.com.google.common.annotations.VisibleForTesting;
 import rp.com.google.common.base.Function;
@@ -45,6 +45,8 @@ import rp.com.google.common.base.Optional;
 import rp.com.google.common.base.Supplier;
 
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -145,7 +147,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void startTestMethod(FrameworkMethod method, Object runner) {
+	public void startTestMethod(Object method, Object runner) {
 		StartTestItemRQ rq = buildStartStepRq(method);
 		rq.setParameters(createStepParameters(method, runner));
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), rq);
@@ -156,7 +158,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void stopTestMethod(FrameworkMethod method, Object runner) {
+	public void stopTestMethod(Object method, Object runner) {
 		String status = context.getStatusOfTestMethod(method, runner);
 		FinishTestItemRQ rq = buildFinishStepRq(method, status);
 		launch.get().finishTestItem(context.getItemIdOfTestMethod(method, runner), rq);
@@ -166,7 +168,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void markCurrentTestMethod(FrameworkMethod method, Object runner, String status) {
+	public void markCurrentTestMethod(Object method, Object runner, String status) {
 		context.setStatusOfTestMethod(method, runner, status);
 	}
 
@@ -174,7 +176,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void handleTestSkip(FrameworkMethod method, Object runner) {
+	public void handleTestSkip(Object method, Object runner) {
 		StartTestItemRQ startRQ = buildStartStepRq(method);
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), startRQ);
 		FinishTestItemRQ finishRQ = buildFinishStepRq(method, Statuses.SKIPPED);
@@ -185,7 +187,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void sendReportPortalMsg(final FrameworkMethod method, Object runner, final Throwable thrown) {
+	public void sendReportPortalMsg(final Object method, Object runner, final Throwable thrown) {
 		Function<String, SaveLogRQ> function = itemId -> {
 			SaveLogRQ rq = new SaveLogRQ();
 			rq.setTestItemId(itemId);
@@ -207,28 +209,28 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public boolean isReportable(FrameworkMethod method) {
+	public boolean isReportable(Object method) {
 		return !detectMethodType(method).isEmpty();
 	}
 
 	/**
 	 * Detect the type of the specified JUnit method.
 	 *
-	 * @param method {@FrameworkMethod} object
+	 * @param method {@code FrameworkMethod} method
 	 * @return method type string; empty string for unsupported types
 	 */
-	private String detectMethodType(FrameworkMethod method) {
-		if (null != method.getAnnotation(Test.class)) {
-			return "STEP";
-		} else if (null != method.getAnnotation(Before.class)) {
-			return "BEFORE_METHOD";
-		} else if (null != method.getAnnotation(After.class)) {
-			return "AFTER_METHOD";
-		} else if (null != method.getAnnotation(BeforeClass.class)) {
-			return "BEFORE_CLASS";
-		} else if (null != method.getAnnotation(AfterClass.class)) {
-			return "AFTER_CLASS";
-		}
+	private String detectMethodType(Object method) {
+        if (null != LifecycleHooks.getAnnotation(method, Test.class)) {
+        	return "STEP";
+        } else if (null != LifecycleHooks.getAnnotation(method, Before.class)) {
+        	return "BEFORE_METHOD";
+        } else if (null != LifecycleHooks.getAnnotation(method, After.class)) {
+        	return "AFTER_METHOD";
+        } else if (null != LifecycleHooks.getAnnotation(method, BeforeClass.class)) {
+        	return "BEFORE_CLASS";
+        } else if (null != LifecycleHooks.getAnnotation(method, AfterClass.class)) {
+        	return "AFTER_CLASS";
+        }
 		return "";
 	}
 
@@ -273,7 +275,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	protected StartTestItemRQ buildStartSuiteRq(Object runner) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(getName(runner));
+		rq.setName(getRunnerName(runner));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("SUITE");
 		return rq;
@@ -287,7 +289,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	protected StartTestItemRQ buildStartTestItemRq(Object runner) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(getName(runner));
+		rq.setName(getRunnerName(runner));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("TEST");
 		rq.setTags(getAnnotationTags(LifecycleHooks.getTestClassOf(runner)));
@@ -300,9 +302,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param method JUnit framework method context
 	 * @return Request to ReportPortal
 	 */
-	protected StartTestItemRQ buildStartStepRq(FrameworkMethod method) {
+	protected StartTestItemRQ buildStartStepRq(Object method) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(method.getName());
+		rq.setName(getChildName(method));
 
 		rq.setDescription(createStepDescription(method));
 		rq.setUniqueId(extractUniqueID(method));
@@ -325,18 +327,18 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * <p>
 	 * If annotations are not present - this method returns empty set.
 	 *
-	 * @param context Context to extract tags
+	 * @param method Context to extract tags
 	 * @return Set of tags of given annotated element
 	 */
 	@VisibleForTesting
-	static Set<String> getAnnotationTags(Annotatable context) {
+	static Set<String> getAnnotationTags(Object method) {
 		Set<String> result = new HashSet<>();
 		
-		result.addAll(Optional.fromNullable(context.getAnnotation(Category.class))
-				.transform(toCategoryNames()).or(Collections.emptySet()));
-
-		result.addAll(Optional.fromNullable(context.getAnnotation(Tags.class))
-				.transform(toTagNames()).or(Collections.emptySet()));
+        Category category = LifecycleHooks.getAnnotation(method, Category.class);
+        Tags tags = LifecycleHooks.getAnnotation(method, Tags.class);
+        
+        result.addAll(Optional.fromNullable(category).transform(toCategoryNames()).or(Collections.emptySet()));
+        result.addAll(Optional.fromNullable(tags).transform(toTagNames()).or(Collections.emptySet()));
 
 		return result;
 	}
@@ -391,7 +393,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param status method completion status
 	 * @return Request to ReportPortal
 	 */
-	protected FinishTestItemRQ buildFinishStepRq(FrameworkMethod method, String status) {
+	protected FinishTestItemRQ buildFinishStepRq(Object method, String status) {
 		FinishTestItemRQ rq = new FinishTestItemRQ();
 		rq.setEndTime(Calendar.getInstance().getTime());
 		rq.setStatus((status == null || status.equals("")) ? Statuses.PASSED : status);
@@ -411,7 +413,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param runner JUnit test runner context
 	 * @return Test/Step Parameters being sent to Report Portal
 	 */
-	protected List<ParameterResource> createStepParameters(FrameworkMethod method, Object runner) {
+	protected List<ParameterResource> createStepParameters(Object method, Object runner) {
 		List<ParameterResource> parameters = createMethodParameters(method, runner);
 		return parameters.isEmpty() ? null : parameters;
 	}
@@ -427,9 +429,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return Step Parameters being sent to ReportPortal
 	 */
 	@SuppressWarnings("squid:S3655")
-	private List<ParameterResource> createMethodParameters(FrameworkMethod method, Object runner) {
+	private List<ParameterResource> createMethodParameters(Object method, Object runner) {
 		List<ParameterResource> result = new ArrayList<>();
-		if (!(method.isStatic() || isIgnored(method))) {
+		if (!(isStatic(method) || isIgnored(method))) {
 			Object target = LifecycleHooks.getTargetForRunner(runner);
 			if (target instanceof ArtifactParams) {
 				com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
@@ -452,8 +454,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param method JUnit framework method context
 	 * @return Test/Step Description being sent to ReportPortal
 	 */
-	protected String createStepDescription(FrameworkMethod method) {
-		return method.getName();
+	protected String createStepDescription(Object method) {
+		return getChildName(method);
 	}
 
 	/**
@@ -462,9 +464,23 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param method Where to find
 	 * @return test item ID or null
 	 */
-	private String extractUniqueID(FrameworkMethod method) {
-		UniqueID itemUniqueID = method.getAnnotation(UniqueID.class);
-		return itemUniqueID != null ? itemUniqueID.value() : null;
+	private static String extractUniqueID(Object method) {
+        UniqueID itemUniqueID = LifecycleHooks.getAnnotation(method, UniqueID.class);
+        return itemUniqueID != null ? itemUniqueID.value() : null;
+	}
+	
+	/**
+	 * Determine if the specified JUnit method is static.
+	 * 
+	 * @param method JUnit child object
+	 * @return 'true' if method is static; otherwise 'false'
+	 */
+	private static boolean isStatic(Object method) {
+	    try {
+            return Modifier.isStatic((int) MethodUtils.invokeMethod(method, "getModifiers"));
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            return false;
+        }
 	}
 
 	/**
@@ -473,8 +489,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param method JUnit framework method context
 	 * @return {@code true} if specified method is being ignored; otherwise {@code false}
 	 */
-	private boolean isIgnored(FrameworkMethod method) {
-		return (null != method.getAnnotation(Ignore.class));
+	private static boolean isIgnored(Object method) {
+        return (null != LifecycleHooks.getAnnotation(method, Ignore.class));
 	}
 
 	/**
@@ -483,8 +499,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param method JUnit framework method context
 	 * @return {@code true} if specified method is being retried; otherwise {@code false}
 	 */
-	private boolean isRetry(FrameworkMethod method) {
-		return (null != method.getAnnotation(RetriedTest.class));
+	private static boolean isRetry(Object method) {
+        return (null != LifecycleHooks.getAnnotation(method, RetriedTest.class));
 	}
 
 	/**
@@ -493,7 +509,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param runner JUnit test runner
 	 * @return name for runner
 	 */
-	private String getName(Object runner) {
+	private static String getRunnerName(Object runner) {
 		String name;
 		TestClass testClass = LifecycleHooks.getTestClassOf(runner);
 		Class<?> javaClass = testClass.getJavaClass();
@@ -505,6 +521,20 @@ public class ParallelRunningHandler implements IListenerHandler {
 			name = role + type + " Runner";
 		}
 		return name;
+	}
+	
+	/**
+	 * Get name of the specified JUnit child object.
+	 * 
+	 * @param child JUnit child object
+	 * @return child object name
+	 */
+	private static String getChildName(Object child) {
+	    try {
+            return (String) MethodUtils.invokeMethod(child, "getName");
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            return child.toString();
+        }
 	}
 
 	@VisibleForTesting
