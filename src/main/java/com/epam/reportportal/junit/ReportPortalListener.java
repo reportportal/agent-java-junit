@@ -40,8 +40,7 @@ import org.junit.runners.model.FrameworkMethod;
  *
  * @author Aliaksei_Makayed (modified by Andrei_Ramanchuk)
  */
-@SuppressWarnings("rawtypes")
-public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher<FrameworkMethod>, MethodWatcher {
+public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher<FrameworkMethod>, MethodWatcher<FrameworkMethod> {
 
     private static volatile IListenerHandler handler;
 
@@ -113,13 +112,10 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void beforeInvocation(Object runner, Object child, ReflectiveCallable callable) {
-        if (child instanceof FrameworkMethod) {
-            FrameworkMethod method = (FrameworkMethod) child;
-            // if this is a JUnit configuration method
-            if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
-                handler.startTestMethod(method, runner);
-            }
+    public void beforeInvocation(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
+        // if this is a JUnit configuration method
+        if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
+            handler.startTestMethod(method, runner);
         }
     }
 
@@ -127,34 +123,31 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void afterInvocation(Object runner, Object child, ReflectiveCallable callable, Throwable thrown) {
-        if (child instanceof FrameworkMethod) {
-            FrameworkMethod method = (FrameworkMethod) child;
-            // if this is a JUnit configuration method
-            if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
-                // if has exception
-                if (thrown != null) {
-                    Class<? extends Throwable> expected = None.class;
+    public void afterInvocation(Object runner, FrameworkMethod method, ReflectiveCallable callable, Throwable thrown) {
+        // if this is a JUnit configuration method
+        if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
+            // if has exception
+            if (thrown != null) {
+                Class<? extends Throwable> expected = None.class;
+                
+                // if this is not a class-level configuration method
+                if ((null == method.getAnnotation(BeforeClass.class)) && 
+                    (null == method.getAnnotation(AfterClass.class))) {
                     
-                    // if this not a class-level configuration method
-                    if ((null == method.getAnnotation(BeforeClass.class)) && 
-                        (null == method.getAnnotation(AfterClass.class))) {
-                        
-                        AtomicTest atomicTest = LifecycleHooks.getAtomicTestOf(runner);
-                        FrameworkMethod identity = (FrameworkMethod) atomicTest.getIdentity();
-                        Test annotation = identity.getAnnotation(Test.class);
-                        if (annotation != null) {
-                            expected = annotation.expected();
-                        }
-                    }
-                    
-                    if (!expected.isInstance(thrown)) {
-                        reportTestFailure(method, runner, thrown);
+                    AtomicTest<FrameworkMethod> atomicTest = LifecycleHooks.getAtomicTestOf(runner);
+                    FrameworkMethod identity = atomicTest.getIdentity();
+                    Test annotation = identity.getAnnotation(Test.class);
+                    if (annotation != null) {
+                        expected = annotation.expected();
                     }
                 }
-    
-                handler.stopTestMethod(method, runner);
+                
+                if (!expected.isInstance(thrown)) {
+                    reportTestFailure(method, runner, thrown);
+                }
             }
+
+            handler.stopTestMethod(method, runner);
         }
     }
 
@@ -167,5 +160,10 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
     public void reportTestFailure(FrameworkMethod method, Object runner, Throwable thrown) {
         handler.sendReportPortalMsg(method, runner, thrown);
         handler.markCurrentTestMethod(method, runner, Statuses.FAILED);
+    }
+
+    @Override
+    public Class<FrameworkMethod> supportedType() {
+        return FrameworkMethod.class;
     }
 }
