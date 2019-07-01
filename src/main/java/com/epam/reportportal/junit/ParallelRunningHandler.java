@@ -337,7 +337,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		
 		Category category = context.getAnnotation(Category.class);
 		Tags tags = context.getAnnotation(Tags.class);
-		
+
 		result.addAll(Optional.fromNullable(category).transform(toCategoryNames()).or(Collections.emptySet()));
 		result.addAll(Optional.fromNullable(tags).transform(toTagNames()).or(Collections.emptySet()));
 
