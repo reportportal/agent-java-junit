@@ -469,7 +469,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		UniqueID itemUniqueID = method.getAnnotation(UniqueID.class);
 		return itemUniqueID != null ? itemUniqueID.value() : null;
 	}
-	
+
 	/**
 	 * Determine if the specified JUnit framework method is being ignored.
 	 *
