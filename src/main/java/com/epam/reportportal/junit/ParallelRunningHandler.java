@@ -48,7 +48,6 @@ import rp.com.google.common.base.Supplier;
 
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -433,7 +432,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@SuppressWarnings("squid:S3655")
 	private List<ParameterResource> createMethodParameters(FrameworkMethod method, Object runner) {
 		List<ParameterResource> result = new ArrayList<>();
-		if (!(isStatic(method) || isIgnored(method))) {
+		if (!(method.isStatic() || isIgnored(method))) {
 			Object target = LifecycleHooks.getTargetForRunner(runner);
 			if (target instanceof ArtifactParams) {
 				com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
@@ -471,20 +470,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 		return itemUniqueID != null ? itemUniqueID.value() : null;
 	}
 	
-	/**
-	 * Determine if the specified JUnit method is static.
-	 * 
-	 * @param method JUnit child object
-	 * @return 'true' if method is static; otherwise 'false'
-	 */
-	private static boolean isStatic(FrameworkMethod method) {
-		try {
-			return Modifier.isStatic((int) MethodUtils.invokeMethod(method, "getModifiers"));
-		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-			return false;
-		}
-	}
-
 	/**
 	 * Determine if the specified JUnit framework method is being ignored.
 	 *
