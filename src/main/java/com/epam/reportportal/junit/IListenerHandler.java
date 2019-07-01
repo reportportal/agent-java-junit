@@ -56,7 +56,7 @@ public interface IListenerHandler {
 	 * @param method {@link FrameworkMethod} object for test method
 	 * @param runner JUnit test runner
 	 */
-	void startTestMethod(Object method, Object runner);
+	void startTestMethod(FrameworkMethod method, Object runner);
 
 	/**
 	 * Send a <b>finish test item</b> request for the indicated test method to Report Portal.
@@ -64,7 +64,7 @@ public interface IListenerHandler {
 	 * @param method {@link FrameworkMethod} object for test method
 	 * @param runner JUnit test runner
 	 */
-	void stopTestMethod(Object method, Object runner);
+	void stopTestMethod(FrameworkMethod method, Object runner);
 
 	/**
 	 * Record the status of the specified test method.
@@ -73,7 +73,7 @@ public interface IListenerHandler {
 	 * @param runner JUnit test runner
 	 * @param status test completion status
 	 */
-	void markCurrentTestMethod(Object method, Object runner, String status);
+	void markCurrentTestMethod(FrameworkMethod method, Object runner, String status);
 
 	/**
 	 * Handle test skip action
@@ -81,7 +81,7 @@ public interface IListenerHandler {
 	 * @param method {@link FrameworkMethod} object for test method
 	 * @param runner JUnit test runner
 	 */
-	void handleTestSkip(Object method, Object runner);
+	void handleTestSkip(FrameworkMethod method, Object runner);
 
 	/**
 	 * Send message to report portal about appeared failure
@@ -90,7 +90,7 @@ public interface IListenerHandler {
 	 * @param runner JUnit test runner
 	 * @param thrown {@link Throwable} object with details of the failure 
 	 */
-	void sendReportPortalMsg(Object method, Object runner, Throwable thrown);
+	void sendReportPortalMsg(FrameworkMethod method, Object runner, Throwable thrown);
 	
 	/**
 	 * Determine if the specified method is reportable.
@@ -98,5 +98,5 @@ public interface IListenerHandler {
 	 * @param method {@link FrameworkMethod} object
 	 * @return {@code true} if method is reportable; otherwise {@code false}
 	 */
-	boolean isReportable(Object method);
+	boolean isReportable(FrameworkMethod method);
 }

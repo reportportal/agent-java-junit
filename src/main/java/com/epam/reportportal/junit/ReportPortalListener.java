@@ -30,6 +30,7 @@ import org.junit.Test.None;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runners.Suite;
+import org.junit.runners.model.FrameworkMethod;
 
 /**
  * Report portal custom event listener. This listener support parallel running
@@ -40,7 +41,7 @@ import org.junit.runners.Suite;
  * @author Aliaksei_Makayed (modified by Andrei_Ramanchuk)
  */
 @SuppressWarnings("rawtypes")
-public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher, MethodWatcher {
+public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher<FrameworkMethod>, MethodWatcher {
 
     private static volatile IListenerHandler handler;
 
@@ -72,7 +73,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void testStarted(AtomicTest atomicTest) {
+    public void testStarted(AtomicTest<FrameworkMethod> atomicTest) {
         handler.startTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
     }
 
@@ -80,7 +81,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void testFinished(AtomicTest atomicTest) {
+    public void testFinished(AtomicTest<FrameworkMethod> atomicTest) {
         handler.stopTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
     }
 
@@ -88,7 +89,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void testFailure(AtomicTest atomicTest, Throwable thrown) {
+    public void testFailure(AtomicTest<FrameworkMethod> atomicTest, Throwable thrown) {
         reportTestFailure(atomicTest.getIdentity(), atomicTest.getRunner(), thrown);
     }
 
@@ -96,7 +97,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void testAssumptionFailure(AtomicTest atomicTest, AssumptionViolatedException thrown) {
+    public void testAssumptionFailure(AtomicTest<FrameworkMethod> atomicTest, AssumptionViolatedException thrown) {
         reportTestFailure(atomicTest.getIdentity(), atomicTest.getRunner(), thrown);
     }
     
@@ -104,7 +105,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void testIgnored(AtomicTest atomicTest) {
+    public void testIgnored(AtomicTest<FrameworkMethod> atomicTest) {
         handler.handleTestSkip(atomicTest.getIdentity(), atomicTest.getRunner());
     }
     
@@ -113,9 +114,12 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void beforeInvocation(Object runner, Object child, ReflectiveCallable callable) {
-        // if this is a JUnit configuration method
-        if ((null == LifecycleHooks.getAnnotation(child, Test.class)) && handler.isReportable(child)) {
-            handler.startTestMethod(child, runner);
+        if (child instanceof FrameworkMethod) {
+            FrameworkMethod method = (FrameworkMethod) child;
+            // if this is a JUnit configuration method
+            if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
+                handler.startTestMethod(method, runner);
+            }
         }
     }
 
@@ -124,38 +128,44 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void afterInvocation(Object runner, Object child, ReflectiveCallable callable, Throwable thrown) {
-        // if this is a JUnit configuration method
-        if ((null == LifecycleHooks.getAnnotation(child, Test.class)) && handler.isReportable(child)) {
-            // if has exception
-            if (thrown != null) {
-                Class<? extends Throwable> expected = None.class;
-                
-                // if this not a class-level configuration method
-                if ((null == LifecycleHooks.getAnnotation(child, BeforeClass.class)) &&
-                    (null == LifecycleHooks.getAnnotation(child, AfterClass.class))) {
+        if (child instanceof FrameworkMethod) {
+            FrameworkMethod method = (FrameworkMethod) child;
+            // if this is a JUnit configuration method
+            if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
+                // if has exception
+                if (thrown != null) {
+                    Class<? extends Throwable> expected = None.class;
                     
-                    AtomicTest atomicTest = LifecycleHooks.getAtomicTestOf(runner);
-                    Test annotation = LifecycleHooks.getAnnotation(atomicTest.getIdentity(), Test.class);
-                    expected = (annotation != null) ? annotation.expected() : None.class;
+                    // if this not a class-level configuration method
+                    if ((null == method.getAnnotation(BeforeClass.class)) && 
+                        (null == method.getAnnotation(AfterClass.class))) {
+                        
+                        AtomicTest atomicTest = LifecycleHooks.getAtomicTestOf(runner);
+                        FrameworkMethod identity = (FrameworkMethod) atomicTest.getIdentity();
+                        Test annotation = identity.getAnnotation(Test.class);
+                        if (annotation != null) {
+                            expected = annotation.expected();
+                        }
+                    }
+                    
+                    if (!expected.isInstance(thrown)) {
+                        reportTestFailure(method, runner, thrown);
+                    }
                 }
-                
-                if (!expected.isInstance(thrown)) {
-                    reportTestFailure(child, runner, thrown);
-                }
+    
+                handler.stopTestMethod(method, runner);
             }
-
-            handler.stopTestMethod(child, runner);
         }
     }
 
     /**
      * Report failure of the indicated "particle" method.
      * 
-     * @param object {@code FrameworkMethod} object for the "particle" method
+     * @param method {@code FrameworkMethod} object for the "particle" method
      * @throws RestEndpointIOException is something goes wrong
      */
-    public void reportTestFailure(Object object, Object runner, Throwable thrown) {
-        handler.sendReportPortalMsg(object, runner, thrown);
-        handler.markCurrentTestMethod(object, runner, Statuses.FAILED);
+    public void reportTestFailure(FrameworkMethod method, Object runner, Throwable thrown) {
+        handler.sendReportPortalMsg(method, runner, thrown);
+        handler.markCurrentTestMethod(method, runner, Statuses.FAILED);
     }
 }
