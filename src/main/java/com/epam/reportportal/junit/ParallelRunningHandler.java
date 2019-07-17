@@ -63,8 +63,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public static final String API_BASE = "/reportportal-ws/api/v1";
 	private static final String SKIPPED_ISSUE_KEY = "skippedIssue";
 
-	public static final String CLASS_PREFIX = "class ";
-
 	private ParallelRunningContext context;
 	private MemoizingSupplier<Launch> launch;
 
@@ -275,7 +273,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	protected StartTestItemRQ buildStartSuiteRq(Object runner) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(getName(runner));
-		rq.setLocation(getLocation(runner));
+		rq.setCodeRef(getCodeRef(runner));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("SUITE");
 		return rq;
@@ -290,7 +288,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	protected StartTestItemRQ buildStartTestItemRq(Object runner) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(getName(runner));
-		rq.setLocation(getLocation(runner));
+		rq.setCodeRef(getCodeRef(runner));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("TEST");
 		return rq;
@@ -305,7 +303,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	protected StartTestItemRQ buildStartStepRq(FrameworkMethod method) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(method.getName());
-
+		rq.setCodeRef(getCodeRef(method));
 		rq.setDescription(createStepDescription(method));
 		rq.setUniqueId(extractUniqueID(method));
 		rq.setStartTime(Calendar.getInstance().getTime());
@@ -464,19 +462,30 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	/**
-	 * Get location associated with the specified JUnit runner.
+	 * Get code reference associated with the specified JUnit runner.
 	 *
 	 * @param runner JUnit test runner
-	 * @return location of the runner
+	 * @return code reference to the runner
 	 */
 	@Nullable
-	private String getLocation(Object runner) {
+	private String getCodeRef(Object runner) {
 		TestClass testClass = LifecycleHooks.getTestClassOf(runner);
 		Class<?> javaClass = testClass.getJavaClass();
 		if (javaClass != null) {
-			return CLASS_PREFIX + javaClass.getCanonicalName();
+			javaClass.getCanonicalName();
 		}
 		return null;
+	}
+
+	/**
+	 * Get code reference associated with the specified JUnit test method.
+	 *
+	 * @param frameworkMethod JUnit test method
+	 * @return code reference to the test method
+	 */
+	@Nullable
+	private String getCodeRef(FrameworkMethod frameworkMethod) {
+		return frameworkMethod.getDeclaringClass() + "." + frameworkMethod.getName();
 	}
 
 	@VisibleForTesting
