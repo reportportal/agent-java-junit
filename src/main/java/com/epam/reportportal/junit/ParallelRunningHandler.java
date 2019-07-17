@@ -33,6 +33,8 @@ import com.nordstrom.automation.junit.ArtifactParams;
 import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.RetriedTest;
 import io.reactivex.Maybe;
+
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runners.Suite;
@@ -45,6 +47,7 @@ import rp.com.google.common.base.Optional;
 import rp.com.google.common.base.Supplier;
 
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -214,7 +217,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Detect the type of the specified JUnit method.
 	 *
-	 * @param method {@FrameworkMethod} object
+	 * @param method {@code FrameworkMethod} object
 	 * @return method type string; empty string for unsupported types
 	 */
 	private String detectMethodType(FrameworkMethod method) {
@@ -273,7 +276,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	protected StartTestItemRQ buildStartSuiteRq(Object runner) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(getName(runner));
+		rq.setName(getRunnerName(runner));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("SUITE");
 		return rq;
@@ -287,7 +290,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	protected StartTestItemRQ buildStartTestItemRq(Object runner) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(getName(runner));
+		rq.setName(getRunnerName(runner));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("TEST");
 		rq.setTags(getAnnotationTags(LifecycleHooks.getTestClassOf(runner)));
@@ -302,7 +305,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	protected StartTestItemRQ buildStartStepRq(FrameworkMethod method) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(method.getName());
+		rq.setName(getChildName(method));
 
 		rq.setDescription(createStepDescription(method));
 		rq.setUniqueId(extractUniqueID(method));
@@ -332,11 +335,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 	static Set<String> getAnnotationTags(Annotatable context) {
 		Set<String> result = new HashSet<>();
 		
-		result.addAll(Optional.fromNullable(context.getAnnotation(Category.class))
-				.transform(toCategoryNames()).or(Collections.emptySet()));
+		Category category = context.getAnnotation(Category.class);
+		Tags tags = context.getAnnotation(Tags.class);
 
-		result.addAll(Optional.fromNullable(context.getAnnotation(Tags.class))
-				.transform(toTagNames()).or(Collections.emptySet()));
+		result.addAll(Optional.fromNullable(category).transform(toCategoryNames()).or(Collections.emptySet()));
+		result.addAll(Optional.fromNullable(tags).transform(toTagNames()).or(Collections.emptySet()));
 
 		return result;
 	}
@@ -453,7 +456,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return Test/Step Description being sent to ReportPortal
 	 */
 	protected String createStepDescription(FrameworkMethod method) {
-		return method.getName();
+		return getChildName(method);
 	}
 
 	/**
@@ -462,7 +465,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param method Where to find
 	 * @return test item ID or null
 	 */
-	private String extractUniqueID(FrameworkMethod method) {
+	private static String extractUniqueID(FrameworkMethod method) {
 		UniqueID itemUniqueID = method.getAnnotation(UniqueID.class);
 		return itemUniqueID != null ? itemUniqueID.value() : null;
 	}
@@ -473,7 +476,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param method JUnit framework method context
 	 * @return {@code true} if specified method is being ignored; otherwise {@code false}
 	 */
-	private boolean isIgnored(FrameworkMethod method) {
+	private static boolean isIgnored(FrameworkMethod method) {
 		return (null != method.getAnnotation(Ignore.class));
 	}
 
@@ -483,7 +486,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param method JUnit framework method context
 	 * @return {@code true} if specified method is being retried; otherwise {@code false}
 	 */
-	private boolean isRetry(FrameworkMethod method) {
+	private static boolean isRetry(FrameworkMethod method) {
 		return (null != method.getAnnotation(RetriedTest.class));
 	}
 
@@ -493,7 +496,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param runner JUnit test runner
 	 * @return name for runner
 	 */
-	private String getName(Object runner) {
+	private static String getRunnerName(Object runner) {
 		String name;
 		TestClass testClass = LifecycleHooks.getTestClassOf(runner);
 		Class<?> javaClass = testClass.getJavaClass();
@@ -505,6 +508,20 @@ public class ParallelRunningHandler implements IListenerHandler {
 			name = role + type + " Runner";
 		}
 		return name;
+	}
+	
+	/**
+	 * Get name of the specified JUnit child object.
+	 * 
+	 * @param child JUnit child object
+	 * @return child object name
+	 */
+	private static String getChildName(Object child) {
+		try {
+			return (String) MethodUtils.invokeMethod(child, "getName");
+		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+			return child.toString();
+		}
 	}
 
 	@VisibleForTesting

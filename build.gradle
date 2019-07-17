@@ -20,7 +20,7 @@ repositories {
 dependencies {
     compile 'com.epam.reportportal:client-java:4.0.12'
     compile 'com.epam.reportportal:commons-model:4.2.0'
-    compile 'com.nordstrom.tools:junit-foundation:9.4.3'
+    compile 'com.nordstrom.tools:junit-foundation:11.0.0-SNAPSHOT'
     compile 'com.google.inject:guice:4.1.0'
 }
 ext {
