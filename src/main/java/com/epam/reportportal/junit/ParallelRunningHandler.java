@@ -485,7 +485,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Nullable
 	private String getCodeRef(FrameworkMethod frameworkMethod) {
-		return frameworkMethod.getDeclaringClass() + "." + frameworkMethod.getName();
+		return frameworkMethod.getDeclaringClass().getCanonicalName() + "." + frameworkMethod.getName();
 	}
 
 	@VisibleForTesting
