@@ -18,6 +18,7 @@
    a. Add ReportPortal / Log4J dependencies to your project POM
 4. [Support for Parameterized Tests](#support-for-parameterized-tests): Reporting of test parameters
 5. [Images and Files](#images-and-files): Logging images and files
+6. [Step by step instruction](#reportportal-integration-with-junit-4): Report Portal and JUnit4 integration example
 
 ### Configuration
 
@@ -107,7 +108,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>4.1.0</version>
+      <version>4.1.10</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
@@ -212,7 +213,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>4.1.0</version>
+      <version>4.1.10</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
@@ -297,7 +298,7 @@ repositories {
 
 dependencies {
     compile 'com.epam.reportportal:logger-java-log4j:4.0.1'
-    compile 'com.epam.reportportal:agent-java-junit:4.1.0'
+    compile 'com.epam.reportportal:agent-java-junit:4.1.10'
 }
 
 ext {
@@ -390,6 +391,582 @@ When sending reports for tests in parameterized classes like this, the JUnit age
 http://reportportal.io/docs/Logging-Integration%3Elog-message-format
 
 In addition to text log messages, ReportPortal has the ability to record images and file contents. The link above documents the formats supported by the report portal test listener for representing these artifacts.
+
+### ReportPortal integration with JUnit 4
+
+This manual will walk you through the steps for integration of Report Portal with JUnit4 based project
+
+First, make sure you have installed Report Portal, the installation steps could be found [here](http://reportportal.io/docs/Installation-steps)
+
+We’ll assume that Report Portal is installed and running on <http://localhost:8080>
+
+#### Step 1 - Create new project (Maven)
+
+> If you want to integrate Report Portal with existing project, go to step 2
+
+##### 1.1 Start new maven project
+
+![Start new maven project](screens/step_new_maven_project.png)
+
+##### 1.2 Enter GroupId and ArtifactId 
+
+![Entering groupId and artifactId](screens/step_group_and_artifact_id.png)
+
+##### 1.3 Enter project name
+
+![Entering project name](screens/step_project_name.png)
+
+#### Step 2 - Configure pom.xml
+
+##### 2.1 Add following repositories:
+
+```xml
+<repositories>
+    <repository>
+        <id>bintray</id>
+        <url>http://dl.bintray.com/epam/reportportal</url>
+    </repository>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+```
+
+##### 2.2 Add following dependencies:
+
+*Report Portal agent implementation for JUnit 4*
+```xml
+<dependency>
+    <groupId>com.epam.reportportal</groupId>
+    <artifactId>agent-java-junit</artifactId>
+    <version>4.1.8</version>
+    <scope>test</scope>
+</dependency>
+```
+Note that `agent-java-junit` brings in `JUnit 4.12` and the `JUnit Foundation` library as transitive dependencies, so these don't need to be declared explicitly in your project.
+
+> Latest version of the agent, could be found [here](https://bintray.com/epam/reportportal/agent-java-junit)
+
+##### 2.3 Add Report Portal dedicated logger wrapper  
+
+If you prefer using **Logback** logging library, add following dependencies:
+
+*ReportPortal logback logger dependency*
+```xml
+<dependency>
+    <groupId>com.epam.reportportal</groupId>
+    <artifactId>logger-java-logback</artifactId>
+    <version>4.0.0</version>
+</dependency>
+```
+> Up to date version could be found [here](https://bintray.com/epam/reportportal/logger-java-logback)
+
+*The logback itself*
+```xml
+<dependency>
+    <groupId>ch.qos.logback</groupId>
+    <artifactId>logback-classic</artifactId>
+    <version>1.2.3</version>
+</dependency>
+```
+
+If you prefer using **Log4j** logging library, add following dependencies:
+
+*ReportPortal log4j logger dependency*
+```xml
+<dependency>
+    <groupId>com.epam.reportportal</groupId>
+    <artifactId>logger-java-log4j</artifactId>
+    <version>4.0.1</version>
+</dependency>
+```
+> Up to date version could be found [here](https://bintray.com/epam/reportportal/logger-java-log4j)
+
+*The log4j itself*
+```xml
+<dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-api</artifactId>
+    <version>2.10.0</version>
+</dependency>
+
+<dependency>
+     <groupId>org.apache.logging.log4j</groupId>
+     <artifactId>log4j-core</artifactId>
+     <version>2.10.0</version>
+</dependency>
+```
+
+#### Step 3 - Add the test with logging
+
+##### 3.1 Add simple test method
+
+Create a test class `MyTests` in the test directory and add JUnit 4 test method there
+```java
+package com.mycompany.tests;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.junit.Test;
+
+public class MyTests {
+
+    private static final Logger LOGGER = LogManager.getLogger(MyTests.class);
+    
+    @Test
+    public void testMySimpleTest() {
+        LOGGER.info("Hello from my simple test");
+    }
+}
+```
+
+##### 3.2 Add `log4j2.xml` file to `resources` folder  
+*Example:*
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+            <PatternLayout
+                    pattern="%d [%t] %-5level %logger{36} - %msg%n%throwable"/>
+        </Console>
+        <ReportPortalLog4j2Appender name="ReportPortalAppender">
+            <PatternLayout
+                    pattern="%d [%t] %-5level %logger{36} - %msg%n%throwable"/>
+        </ReportPortalLog4j2Appender>
+    </Appenders>
+    <Loggers>
+        <Root level="DEBUG">
+            <AppenderRef ref="ConsoleAppender"/>
+            <AppenderRef ref="ReportPortalAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>
+```
+It's needed to add `ReportPortalAppender` into this (as shown in the example)  
+
+By this moment, your project tree should look somewhat like the this:
+
+![Project structure](screens/step_project_structure.png)
+ 
+#### Step 4 - Configuring ReportPortal
+
+##### 4.1 Open ReportPortal UI 
+
+Go to *http:$IP_ADDRESS_OF_REPORT_PORTAL:8080* (by default it is *http://localhost:8080*)
+  
+Login as **Admin** user and create the project (more details [here](http://reportportal.io/docs/Deploy-ReportPortal) and [here](http://reportportal.io/docs/Creation-of-project))
+
+![RP. Add Project](screens/step_add_project.png)
+
+![RP. Add Project 2](screens/step_add_project2.png)
+
+##### 4.2 Add users to your project:
+
+Go to *Administrative* -> *My Test Project* -> *Members* -> *Add user*   
+> Example link *http://localhost:8080/ui/#administrate/project-details/my_test_project/members* 
+
+![RP. Add user](screens/step_add_user.png)
+
+#### Step 5 - Link ReportPortal with your tests 
+
+#### Step 5.1 - Add `reportportal.properties` 
+
+After you have created new user in your project, you can get `reportportal.properties` file example from the user *Profile* page
+ 
+To do that, login as created user and go to *User icon* in header -> *Profile*  
+
+There, in *Configuration Examples* section, you can find the example of `reportportal.properties` file for that user
+
+![RP. User profile](screens/step_user_profile.png)
+
+Returning back to the code. In your project, create file named `reportportal.properties` in `resources` folder and copy&paste the contents form the user profile page
+
+*Example:*
+```properties
+[reportportal.properties]
+rp.endpoint = http://localhost:8080
+rp.uuid = d50810f1-ace9-44fc-b1ba-a0077fb3cc44
+rp.launch = jack_TEST_EXAMPLE
+rp.project = my_test_project
+rp.enable = true
+```
+
+> More details on `reportportal.properties` file could be found [here](http://reportportal.io/docs/JVM-based-clients-configuration)
+
+#### Step 5.2 - Make Report Portal agent invoked by the tests
+
+Current *Report Portal JUnit 4 Agent* implementation uses "junit-foundation" library to intercept test steps and make possible to generate test-reports
+> More about "junit-foundation" could be found [here](https://github.com/Nordstrom/JUnit-Foundation)
+
+So we need to inject the "junit-foundation' library into our running tests. 
+There are multiple ways for doing that
+
+* method 1 - via Maven Surefire/Failsafe plugin (maven only)
+* method 2 - via IDE Run configurations
+* method 3 - via Gradle (gradle only)
+
+##### Method 1 - using Maven Surefire/Failsafe plugin (maven only)
+
+Add the `build` section and Maven Surefire plugin with the following configuration section to `pom.xml`
+
+```xml
+   <build>
+      <pluginManagement>
+         <plugins>
+            <!-- This part is only needed for Eclipse IDE users-->
+            <plugin>
+               <groupId>org.eclipse.m2e</groupId>
+               <artifactId>lifecycle-mapping</artifactId>
+               <version>1.0.0</version>
+               <configuration>
+                  <lifecycleMappingMetadata>
+                     <pluginExecutions>
+                        <pluginExecution>
+                           <pluginExecutionFilter>
+                              <groupId>org.apache.maven.plugins</groupId>
+                              <artifactId>maven-dependency-plugin</artifactId>
+                              <versionRange>[1.0.0,)</versionRange>
+                              <goals>
+                                 <goal>properties</goal>
+                              </goals>
+                           </pluginExecutionFilter>
+                           <action>
+                              <execute/>
+                           </action>
+                        </pluginExecution>
+                     </pluginExecutions>
+                  </lifecycleMappingMetadata>
+               </configuration>
+            </plugin>
+         </plugins>
+      </pluginManagement>
+      <plugins>
+         <!-- This plugin provides the path to the Java agent (used in surefire argLine part) -->
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>3.1.1</version>
+            <executions>
+               <execution>
+                  <id>getClasspathFilenames</id>
+                  <goals>
+                     <goal>properties</goal>
+                  </goals>
+               </execution>
+            </executions>
+         </plugin>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>2.22.0</version>
+            <configuration>
+               <argLine>-javaagent:${com.nordstrom.tools:junit-foundation:jar}</argLine>
+            </configuration>
+         </plugin>
+      </plugins>
+   </build>
+```
+Please pay attention on *Eclipse* users block, you can remove it if you're not using Eclipse
+
+> Note - your IDE might get confused by the `argLine` value (in `maven-surefire-plugin` configuration section) and mark it as error. This is okay and argLine will still work, so you can set your IDE to ignore this error
+
+![IntelliJ IDEA suppress example](screens/note_suppress_javaagent_error.png)
+
+> Note - in some cases the `maven-dependency-plugin` might also be marked red, since maven might be failing to download the dependency for it  
+in this case - add a `maven dependency plugin` dependency explicitly, like this:
+```xml
+<dependency>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-dependency-plugin</artifactId>
+    <version>3.1.1</version>
+    <type>maven-plugin</type>
+</dependency>
+```
+> After maven imported new dependency, you can remove this dependency block
+
+*Full pom.xml file example*
+
+```xml
+[pom.xml]
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+
+   <groupId>com.myCompany</groupId>
+   <artifactId>myProject</artifactId>
+   <version>1.0-SNAPSHOT</version>
+
+   <repositories>
+      <repository>
+         <id>bintray</id>
+         <url>http://dl.bintray.com/epam/reportportal</url>
+      </repository>
+      <repository>
+         <id>jitpack.io</id>
+         <url>https://jitpack.io</url>
+      </repository>
+   </repositories>
+
+   <dependencies>
+      <dependency>
+         <groupId>com.epam.reportportal</groupId>
+         <artifactId>agent-java-junit</artifactId>
+         <version>4.1.8</version>
+         <scope>test</scope>
+      </dependency>
+
+      <dependency>
+         <groupId>com.epam.reportportal</groupId>
+         <artifactId>logger-java-log4j</artifactId>
+         <version>4.0.1</version>
+      </dependency>
+
+      <dependency>
+         <groupId>org.apache.logging.log4j</groupId>
+         <artifactId>log4j-api</artifactId>
+         <version>2.10.0</version>
+      </dependency>
+
+      <dependency>
+         <groupId>org.apache.logging.log4j</groupId>
+         <artifactId>log4j-core</artifactId>
+         <version>2.10.0</version>
+      </dependency>
+   </dependencies>
+
+   <build>
+      <pluginManagement>
+         <plugins>
+            <!-- This part is only needed for Eclipse IDE users-->
+            <plugin>
+               <groupId>org.eclipse.m2e</groupId>
+               <artifactId>lifecycle-mapping</artifactId>
+               <version>1.0.0</version>
+               <configuration>
+                  <lifecycleMappingMetadata>
+                     <pluginExecutions>
+                        <pluginExecution>
+                           <pluginExecutionFilter>
+                              <groupId>org.apache.maven.plugins</groupId>
+                              <artifactId>maven-dependency-plugin</artifactId>
+                              <versionRange>[1.0.0,)</versionRange>
+                              <goals>
+                                 <goal>properties</goal>
+                              </goals>
+                           </pluginExecutionFilter>
+                           <action>
+                              <execute/>
+                           </action>
+                        </pluginExecution>
+                     </pluginExecutions>
+                  </lifecycleMappingMetadata>
+               </configuration>
+            </plugin>
+         </plugins>
+      </pluginManagement>
+      <plugins>
+         <!-- This plugin provides the path to the Java agent (used in surefire argLine part) -->
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>3.1.1</version>
+            <executions>
+               <execution>
+                  <id>getClasspathFilenames</id>
+                  <goals>
+                     <goal>properties</goal>
+                  </goals>
+               </execution>
+            </executions>
+         </plugin>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>2.22.0</version>
+            <configuration>
+               <!--suppress UnresolvedMavenProperty -->
+               <argLine>-javaagent:${com.nordstrom.tools:junit-foundation:jar}</argLine>
+            </configuration>
+         </plugin>
+      </plugins>
+   </build>
+</project>
+```
+
+Now the Report Portal agent is linked to your tests and when you run the tests with maven (e.g. `mvn clean test`) the results should be sent Report Portal
+
+*Important note*. With this approach, only the tests executed using maven will be sent to Report Portal and local runs will not trigger the Report Portal agent and therefore the test-report won't be generated  
+To have test results from local runs to be sent to Report Portal, follow the steps below
+
+##### Method 2 - using IDE Run configurations
+
+Another way to link local test runs with Report Portal is to add javaagent via Run Configurations of the IDE.
+
+*Example for IntelliJ IDEA*
+
+In Intellij IDEA go to *Run* -> *Edit Configurations* -> click on "+" sign -> select JUnit
+
+![IntelliJ IDEA add JUnit Run Configuration with javaagent](screens/step_add_run_configuration.png)
+
+Enter the name of the run, select classes and/or methods to be run in this configuration and add the following line into *VM Options* field:
+```shell
+-javaagent:"path/to/junit-foundation.jar"
+```
+
+You can put the jar directly in the project tree or use the one, that Maven downloaded from "Method 1"
+
+On MAC OS system the path to maven downloaded junit-foundation.jar would have the following format:
+
+```shell
+/Users/<user_name>/.m2/repository/com/nordstrom/tools/junit-foundation/9.4.3/junit-foundation-9.4.3.jar
+```
+
+When you are done adding local run configuration, simply go to *Run* -> *Run '<test_run_name>'* and that test run results will be sent to Report Portal
+
+##### Method 3 - using Gradle test task (Gradle only)
+
+Assuming that you have the default `test` task in your `gradle.build` file, you need to add `jvmArgs` part and `junitFoundation` variable from artifacts using following code:
+
+```gradle
+ext {
+    junitFoundation = configurations.compile.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
+}
+
+test.doFirst {
+    jvmArgs "-javaagent:${junitFoundation.file}"
+}
+
+test {
+    // your test task
+}
+```
+
+And the full `build.gradle` file example:
+
+```gradle
+[build.gradle]
+apply plugin: 'java'
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    jcenter()
+    maven { url 'https://jitpack.io' }
+    maven { url "http://dl.bintray.com/epam/reportportal" }
+}
+
+dependencies {
+    compile 'com.epam.reportportal:logger-java-log4j:4.0.1'
+    compile 'com.epam.reportportal:agent-java-junit:4.1.8'
+    compile 'org.apache.logging.log4j:log4j-api:2.10.0'
+    compile 'org.apache.logging.log4j:log4j-core:2.10.0'
+}
+
+ext {
+    junitFoundation = configurations.compile.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
+}
+
+test.doFirst {
+    jvmArgs "-javaagent:${junitFoundation.file}"
+}
+
+test {
+    testLogging.showStandardStreams = true
+}
+```
+
+#### Step 6 - Observing test run report
+
+After you linked the Report Portal JUnit 4 agent using one of the approaches described above, and ran your tests, you should be able to see the results in your ReportPortal instance  
+To do that, login to ReportPortal, and go to *Left Panel* -> *Launches*  
+You should see the launch there, with the name equal to the value of `rp.launch` from your `reportportal.properties` file  
+
+*Example:* 
+
+![RP. Launches](screens/step_launches.png)
+
+You can also see the test classes and individual test results by clicking on the launch name and going deeper
+
+![RP. Test Results](screens/step_test_results.png)
+
+#### Step 7 - Reporting parameterized test results to ReportPortal
+
+ReportPortal JUnit 4 agent supports presenting parameterized test results, again using the `junit-foundation` agent
+
+Here is an example of simple parameterized test and the code required to have test results sent to ReportPortal:
+```java
+package com.mycompany.tests;
+
+import com.nordstrom.automation.junit.ArtifactParams;
+import com.nordstrom.automation.junit.AtomIdentity;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.Description;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+
+import java.util.Map;
+import java.util.Optional;
+
+@RunWith(Parameterized.class)
+public class MyParameterizedTests implements ArtifactParams {
+
+    private static final Logger LOGGER = LogManager.getLogger(MyParameterizedTests.class);
+
+    @Rule
+    public final AtomIdentity identity = new AtomIdentity(this);
+
+    private String input;
+
+    public MyParameterizedTests(String input) {
+        this.input = input;
+    }
+
+    @Parameters
+    public static Object[] data() {
+        return new Object[] { "param1", "param2" };
+    }
+
+    @Test
+    public void simpleParameterizedTest() {
+        LOGGER.info("running test: " + getDescription().getMethodName() + ", parameter: " + input);
+    }
+
+    @Override
+    public Description getDescription() {
+        return identity.getDescription();
+    }
+
+    @Override
+    public Optional<Map<String, Object>> getParameters() {
+        return ArtifactParams.mapOf(ArtifactParams.param("input", input));
+    }
+
+}
+```
+
+`AtomIdentity` and `ArtifactParams` are classes from `junit-foundation` that should be used to link parameterized test with ReportPortal
+
+In this example we have 2 items in the Object array returned by `data()` method, this means that the test `simpleParameterizedTest` will be executed twice with different parameters
+
+After running this test class, the results in Report Portal should look somewhat like this:
+
+*Two invocations of parameterized test*
+
+![Two invocation of test](screens/step_parameterized_2_invocations.png)
+
+*Individual test result*
+
+![Two invocation of test](screens/step_parameterized_individual_results.png)
 
 # Copyright Notice
 

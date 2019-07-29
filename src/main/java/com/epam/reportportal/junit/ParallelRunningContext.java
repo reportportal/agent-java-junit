@@ -16,10 +16,9 @@
 package com.epam.reportportal.junit;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.runners.model.FrameworkMethod;
-
-import com.nordstrom.automation.junit.RunReflectiveCall;
 
 import io.reactivex.Maybe;
 
@@ -70,8 +69,8 @@ public class ParallelRunningContext {
 	 * @param runner JUnit test runner
 	 * @param itemId Report Portal test item ID for test method
 	 */
-	public void setItemIdOfTestMethod(FrameworkMethod method, Object runner, Maybe<String> itemId) {
-		itemIdOfTestMethod.put(RunReflectiveCall.methodHash(runner, method), itemId);
+	public void setItemIdOfTestMethod(Object method, Object runner, Maybe<String> itemId) {
+		itemIdOfTestMethod.put(Objects.hash(Thread.currentThread(), runner, method), itemId);
 	}
 
 	/**
@@ -81,8 +80,8 @@ public class ParallelRunningContext {
 	 * @param runner JUnit test runner
 	 * @return Report Portal test item ID for test method
 	 */
-	public Maybe<String> getItemIdOfTestMethod(FrameworkMethod method, Object runner) {
-		return itemIdOfTestMethod.get(RunReflectiveCall.methodHash(runner, method));
+	public Maybe<String> getItemIdOfTestMethod(Object method, Object runner) {
+		return itemIdOfTestMethod.get(Objects.hash(Thread.currentThread(), runner, method));
 	}
 
 	/**
@@ -92,8 +91,8 @@ public class ParallelRunningContext {
 	 * @param runner JUnit test runner
 	 * @param status status for test method
 	 */
-	public void setStatusOfTestMethod(FrameworkMethod method, Object runner, String status) {
-		statusOfTestMethod.put(RunReflectiveCall.methodHash(runner, method), status);
+	public void setStatusOfTestMethod(Object method, Object runner, String status) {
+		statusOfTestMethod.put(Objects.hash(Thread.currentThread(), runner, method), status);
 	}
 
 	/**
@@ -103,7 +102,7 @@ public class ParallelRunningContext {
 	 * @param runner JUnit test runner
 	 * @return status for test method
 	 */
-	public String getStatusOfTestMethod(FrameworkMethod method, Object runner) {
-		return statusOfTestMethod.get(RunReflectiveCall.methodHash(runner, method));
+	public String getStatusOfTestMethod(Object method, Object runner) {
+		return statusOfTestMethod.get(Objects.hash(Thread.currentThread(), runner, method));
 	}
 }
