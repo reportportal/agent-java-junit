@@ -176,9 +176,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Override
 	public void sendReportPortalMsg(final FrameworkMethod method, Object runner, final Throwable thrown) {
-		Function<String, SaveLogRQ> function = itemId -> {
+		Function<String, SaveLogRQ> function = itemUuid -> {
 			SaveLogRQ rq = new SaveLogRQ();
-			rq.setItemId(itemId);
+			rq.setItemUuid(itemUuid);
 			rq.setLevel("ERROR");
 			rq.setLogTime(Calendar.getInstance().getTime());
 			if (thrown != null) {
