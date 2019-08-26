@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>agent-java-junit</artifactId>
-    <version>4.1.0-SNAPSHOT</version>
+    <version>4.1.10-SNAPSHOT</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -28,7 +28,7 @@
         <dependency>
             <groupId>com.epam.reportportal</groupId>
             <artifactId>client-java</artifactId>
-            <version>4.0.9</version>
+            <version>4.0.12</version>
         </dependency>
         <dependency>
             <groupId>com.epam.reportportal</groupId>
@@ -38,7 +38,7 @@
         <dependency>
             <groupId>com.nordstrom.tools</groupId>
             <artifactId>junit-foundation</artifactId>
-            <version>9.1.0</version>
+            <version>11.0.0</version>
         </dependency>
         <dependency>
         	<groupId>com.google.inject</groupId>

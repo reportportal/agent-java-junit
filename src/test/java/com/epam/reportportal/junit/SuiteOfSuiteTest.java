@@ -1,15 +1,15 @@
-package com.epam.reportportal.junit.junit;
+package com.epam.reportportal.junit;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({DummyTest.class})
-public class SuiteTest {
+@SuiteClasses({SuiteTest.class})
+public class SuiteOfSuiteTest {
 
     static {
-        System.out.println("<init> SuiteTest");
+        System.out.println("<init> SuiteOfSuiteTest");
     }
     
 }

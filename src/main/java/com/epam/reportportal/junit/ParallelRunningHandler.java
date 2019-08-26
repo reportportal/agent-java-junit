@@ -46,7 +46,6 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.Map.Entry;
 
-import static rp.com.google.common.base.Optional.fromNullable;
 import static rp.com.google.common.base.Strings.isNullOrEmpty;
 import static rp.com.google.common.base.Throwables.getStackTraceAsString;
 
@@ -177,9 +176,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Override
 	public void sendReportPortalMsg(final FrameworkMethod method, Object runner, final Throwable thrown) {
-		Function<String, SaveLogRQ> function = itemId -> {
+		Function<String, SaveLogRQ> function = itemUuid -> {
 			SaveLogRQ rq = new SaveLogRQ();
-			rq.setItemId(itemId);
+			rq.setItemUuid(itemUuid);
 			rq.setLevel("ERROR");
 			rq.setLogTime(Calendar.getInstance().getTime());
 			if (thrown != null) {
@@ -258,6 +257,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 		skippedIssueAttr.setSystem(true);
 		rq.getAttributes().add(skippedIssueAttr);
 
+		rq.setRerun(parameters.isRerun());
+		if (!isNullOrEmpty(parameters.getRerunOf())) {
+			rq.setRerunOf(parameters.getRerunOf());
+		}
+
 		if (!isNullOrEmpty(parameters.getDescription())) {
 			rq.setDescription(parameters.getDescription());
 		}
@@ -272,7 +276,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	protected StartTestItemRQ buildStartSuiteRq(Object runner) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(getName(runner));
+		rq.setName(getRunnerName(runner));
 		rq.setCodeRef(getCodeRef(runner));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("SUITE");
@@ -287,7 +291,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	protected StartTestItemRQ buildStartTestItemRq(Object runner) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(getName(runner));
+		rq.setName(getRunnerName(runner));
 		rq.setCodeRef(getCodeRef(runner));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("TEST");
@@ -350,7 +354,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setEndTime(Calendar.getInstance().getTime());
 		rq.setStatus((status == null || status.equals("")) ? Statuses.PASSED : status);
 		// Allows indicate that SKIPPED is not to investigate items for WS
-		if (Statuses.SKIPPED.equals(status) && !fromNullable(launch.get().getParameters().getSkippedAnIssue()).or(false)) {
+		if (Statuses.SKIPPED.equals(status) && !Optional.ofNullable(launch.get().getParameters().getSkippedAnIssue()).orElse(false)) {
 			Issue issue = new Issue();
 			issue.setIssueType("NOT_ISSUE");
 			rq.setIssue(issue);
@@ -386,7 +390,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		if (!(method.isStatic() || isIgnored(method))) {
 			Object target = LifecycleHooks.getTargetForRunner(runner);
 			if (target instanceof ArtifactParams) {
-				Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
+				com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
 				if (params.isPresent()) {
 					for (Entry<String, Object> param : params.get().entrySet()) {
 						ParameterResource parameter = new ParameterResource();
@@ -416,7 +420,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param method Where to find
 	 * @return test item ID or null
 	 */
-	private String extractUniqueID(FrameworkMethod method) {
+	private static String extractUniqueID(FrameworkMethod method) {
 		UniqueID itemUniqueID = method.getAnnotation(UniqueID.class);
 		return itemUniqueID != null ? itemUniqueID.value() : null;
 	}
@@ -427,7 +431,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param method JUnit framework method context
 	 * @return {@code true} if specified method is being ignored; otherwise {@code false}
 	 */
-	private boolean isIgnored(FrameworkMethod method) {
+	private static boolean isIgnored(FrameworkMethod method) {
 		return (null != method.getAnnotation(Ignore.class));
 	}
 
@@ -437,7 +441,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param method JUnit framework method context
 	 * @return {@code true} if specified method is being retried; otherwise {@code false}
 	 */
-	private boolean isRetry(FrameworkMethod method) {
+	private static boolean isRetry(FrameworkMethod method) {
 		return (null != method.getAnnotation(RetriedTest.class));
 	}
 
@@ -447,7 +451,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param runner JUnit test runner
 	 * @return name for runner
 	 */
-	private String getName(Object runner) {
+	private static String getRunnerName(Object runner) {
 		String name;
 		TestClass testClass = LifecycleHooks.getTestClassOf(runner);
 		Class<?> javaClass = testClass.getJavaClass();
