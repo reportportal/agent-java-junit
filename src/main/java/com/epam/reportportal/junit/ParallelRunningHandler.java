@@ -457,8 +457,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return Test/Step Description being sent to ReportPortal
 	 */
 	protected String createStepDescription(FrameworkMethod method) {
-	    DisplayName displayName = method.getAnnotation(DisplayName.class);
-	    return (displayName != null) ? displayName.value() : getChildName(method);
+	    DisplayName itemDisplayName = method.getAnnotation(DisplayName.class);
+	    return (itemDisplayName != null) ? itemDisplayName.value() : getChildName(method);
 	}
 
 	/**
