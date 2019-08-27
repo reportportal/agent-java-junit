@@ -1,4 +1,4 @@
-package com.epam.reportportal.junit.junit;
+package com.epam.reportportal.junit;
 
 import com.epam.reportportal.service.ReportPortal;
 import com.google.common.io.Files;
@@ -52,5 +52,5 @@ public class DummyTest {
 	public static void afterClass() throws InterruptedException {
 		Thread.sleep(100);
 	}
-    
+
 }

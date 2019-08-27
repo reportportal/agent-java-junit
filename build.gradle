@@ -19,8 +19,8 @@ plugins {
     id 'com.jfrog.bintray' version '1.8.4'
 }
 apply plugin: 'java'
-apply from: 'https://raw.githubusercontent.com/reportportal/gradle-scripts/master/build-commons.gradle'
 apply from: 'quality.gradle'
+apply from: 'https://raw.githubusercontent.com/reportportal/gradle-scripts/master/release-commons.gradle'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -40,11 +40,11 @@ repositories {
 }
 dependencies {
     if (releaseMode) {
-        compile 'com.epam.reportportal:client-java:5.0.0-BETA-1'
-        compile 'com.epam.reportportal:commons-model:5.0.0-BETA-7'
+        compile 'com.epam.reportportal:client-java:5.0.0-BETA-4'
+        compile 'com.epam.reportportal:commons-model:5.0.0-BETA-11'
     } else {
-        compile 'com.github.reportportal:client-java:59bcb21b'
-        compile 'com.github.reportportal:commons-model:2332113'
+        compile 'com.github.reportportal:client-java:9ede451'
+        compile 'com.github.reportportal:commons-model:2d10629'
     }
     compile 'com.nordstrom.tools:junit-foundation:11.0.0'
     compile 'com.google.inject:guice:4.1.0'
