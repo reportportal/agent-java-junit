@@ -30,6 +30,7 @@ import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import com.google.inject.Inject;
 import com.nordstrom.automation.junit.ArtifactParams;
+import com.nordstrom.automation.junit.DisplayName;
 import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.RetriedTest;
 import io.reactivex.Maybe;
@@ -204,7 +205,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Detect the type of the specified JUnit method.
 	 *
-	 * @param method {@FrameworkMethod} object
+	 * @param method {@code FrameworkMethod} object
 	 * @return method type string; empty string for unsupported types
 	 */
 	private String detectMethodType(FrameworkMethod method) {
@@ -411,7 +412,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return Test/Step Description being sent to ReportPortal
 	 */
 	protected String createStepDescription(FrameworkMethod method) {
-		return method.getName();
+	    DisplayName itemDisplayName = method.getAnnotation(DisplayName.class);
+	    return (itemDisplayName != null) ? itemDisplayName.value() : getChildName(method);
 	}
 
 	/**
