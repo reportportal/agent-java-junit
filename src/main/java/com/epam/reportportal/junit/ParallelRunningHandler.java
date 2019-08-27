@@ -30,6 +30,7 @@ import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import com.google.inject.Inject;
 import com.nordstrom.automation.junit.ArtifactParams;
+import com.nordstrom.automation.junit.DisplayName;
 import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.RetriedTest;
 import io.reactivex.Maybe;
@@ -456,7 +457,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return Test/Step Description being sent to ReportPortal
 	 */
 	protected String createStepDescription(FrameworkMethod method) {
-		return getChildName(method);
+	    DisplayName itemDisplayName = method.getAnnotation(DisplayName.class);
+	    return (itemDisplayName != null) ? itemDisplayName.value() : getChildName(method);
 	}
 
 	/**
