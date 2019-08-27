@@ -35,6 +35,7 @@ import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.RetriedTest;
 import io.reactivex.Maybe;
 import io.reactivex.annotations.Nullable;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.*;
 import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
@@ -44,6 +45,7 @@ import rp.com.google.common.base.Function;
 import rp.com.google.common.base.Supplier;
 
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -412,8 +414,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return Test/Step Description being sent to ReportPortal
 	 */
 	protected String createStepDescription(FrameworkMethod method) {
-	    DisplayName itemDisplayName = method.getAnnotation(DisplayName.class);
-	    return (itemDisplayName != null) ? itemDisplayName.value() : getChildName(method);
+		DisplayName itemDisplayName = method.getAnnotation(DisplayName.class);
+		return (itemDisplayName != null) ? itemDisplayName.value() : getChildName(method);
 	}
 
 	/**
@@ -492,6 +494,20 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Nullable
 	private String getCodeRef(FrameworkMethod frameworkMethod) {
 		return frameworkMethod.getDeclaringClass().getCanonicalName() + "." + frameworkMethod.getName();
+	}
+
+	/**
+	 * Get name of the specified JUnit child object.
+	 *
+	 * @param child JUnit child object
+	 * @return child object name
+	 */
+	private static String getChildName(Object child) {
+		try {
+			return (String) MethodUtils.invokeMethod(child, "getName");
+		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+			return child.toString();
+		}
 	}
 
 	@VisibleForTesting
