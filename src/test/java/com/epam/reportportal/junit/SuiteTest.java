@@ -5,11 +5,11 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({DummyTest.class})
+@SuiteClasses({ com.epam.reportportal.junit.DummyTest.class })
 public class SuiteTest {
 
-    static {
-        System.out.println("<init> SuiteTest");
-    }
-    
+	static {
+		System.out.println("<init> SuiteTest");
+	}
+
 }
