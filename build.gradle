@@ -46,7 +46,12 @@ dependencies {
         compile 'com.github.reportportal:client-java:9ede451'
         compile 'com.github.reportportal:commons-model:2d10629'
     }
-    compile 'com.nordstrom.tools:junit-foundation:11.0.0'
+
+    compile('com.nordstrom.tools:junit-foundation:11.0.1') {
+        exclude group: 'commons-beanutils', module: 'commons-beanutils'
+    }
+    compile 'commons-beanutils:commons-beanutils:1.9.4'
+
     compile 'com.google.inject:guice:4.1.0'
 }
 ext {
