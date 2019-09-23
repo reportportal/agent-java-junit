@@ -28,12 +28,12 @@
         <dependency>
             <groupId>com.epam.reportportal</groupId>
             <artifactId>client-java</artifactId>
-            <version>4.0.12</version>
+            <version>5.0.0-BETA-4</version>
         </dependency>
         <dependency>
             <groupId>com.epam.reportportal</groupId>
             <artifactId>commons-model</artifactId>
-            <version>4.2.0</version>
+            <version>5.0.0-BETA-11</version>
         </dependency>
         <dependency>
             <groupId>com.nordstrom.tools</groupId>
