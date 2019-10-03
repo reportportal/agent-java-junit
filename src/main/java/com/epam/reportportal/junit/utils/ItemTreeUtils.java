@@ -1,6 +1,7 @@
 package com.epam.reportportal.junit.utils;
 
 import com.epam.reportportal.service.tree.TestItemTree;
+import io.reactivex.annotations.Nullable;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 
@@ -21,6 +22,7 @@ public class ItemTreeUtils {
 		return TestItemTree.ItemTreeKey.of(description.getMethodName(), description.getTestClass().getName().hashCode());
 	}
 
+	@Nullable
 	public static TestItemTree.TestItemLeaf retrieveLeaf(Description description, TestItemTree testItemTree) {
 		return testItemTree.getTestItems().get(createItemTreeKey(description));
 	}

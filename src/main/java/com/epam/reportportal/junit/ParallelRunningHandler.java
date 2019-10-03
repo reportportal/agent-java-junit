@@ -48,6 +48,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import static com.epam.reportportal.junit.JUnitProvider.ITEM_TREE;
+import static com.epam.reportportal.junit.JUnitProvider.REPORT_PORTAL;
 import static com.epam.reportportal.junit.utils.ItemTreeUtils.createItemTreeKey;
 import static rp.com.google.common.base.Strings.isNullOrEmpty;
 import static rp.com.google.common.base.Throwables.getStackTraceAsString;
@@ -144,7 +145,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setParameters(createStepParameters(method, runner));
 		Maybe<String> parentId = context.getItemIdOfTestRunner(runner);
 		Maybe<String> itemId = launch.get().startTestItem(parentId, rq);
-		ITEM_TREE.get().getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
+		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
+			ITEM_TREE.get().getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
+		}
 		context.setItemIdOfTestMethod(method, runner, itemId);
 	}
 
@@ -156,9 +159,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 		String status = context.getStatusOfTestMethod(method, runner);
 		FinishTestItemRQ rq = buildFinishStepRq(method, status);
 		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(context.getItemIdOfTestMethod(method, runner), rq);
-		TestItemTree.TestItemLeaf testItemLeaf = ITEM_TREE.get().getTestItems().get(createItemTreeKey(method));
-		if (testItemLeaf != null) {
-			testItemLeaf.setFinishResponse(finishResponse);
+		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
+			TestItemTree.TestItemLeaf testItemLeaf = ITEM_TREE.get().getTestItems().get(createItemTreeKey(method));
+			if (testItemLeaf != null) {
+				testItemLeaf.setFinishResponse(finishResponse);
+			}
 		}
 	}
 
@@ -178,7 +183,13 @@ public class ParallelRunningHandler implements IListenerHandler {
 		StartTestItemRQ startRQ = buildStartStepRq(method);
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), startRQ);
 		FinishTestItemRQ finishRQ = buildFinishStepRq(method, Statuses.SKIPPED);
-		launch.get().finishTestItem(itemId, finishRQ);
+		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(itemId, finishRQ);
+		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
+			TestItemTree.TestItemLeaf testItemLeaf = ITEM_TREE.get().getTestItems().get(createItemTreeKey(method));
+			if (testItemLeaf != null) {
+				testItemLeaf.setFinishResponse(finishResponse);
+			}
+		}
 	}
 
 	/**
