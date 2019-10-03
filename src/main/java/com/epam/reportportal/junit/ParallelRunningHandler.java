@@ -50,6 +50,7 @@ import java.util.Map.Entry;
 import static com.epam.reportportal.junit.JUnitProvider.ITEM_TREE;
 import static com.epam.reportportal.junit.JUnitProvider.REPORT_PORTAL;
 import static com.epam.reportportal.junit.utils.ItemTreeUtils.createItemTreeKey;
+import static com.epam.reportportal.junit.utils.ItemTreeUtils.retrieveLeaf;
 import static rp.com.google.common.base.Strings.isNullOrEmpty;
 import static rp.com.google.common.base.Throwables.getStackTraceAsString;
 
@@ -72,7 +73,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Constructor: Instantiate a parallel running handler
 	 *
-	 * @param suitesKeeper           test collection hierarchy processor
 	 * @param parallelRunningContext test execution context manager
 	 * @param reportPortalService    Report Portal web service client
 	 */
@@ -187,7 +187,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {
-		TestItemTree.TestItemLeaf testItemLeaf = ITEM_TREE.get().getTestItems().get(createItemTreeKey(method));
+		TestItemTree.TestItemLeaf testItemLeaf = retrieveLeaf(method, ITEM_TREE.get());
 		if (testItemLeaf != null) {
 			testItemLeaf.setFinishResponse(finishResponse);
 		}

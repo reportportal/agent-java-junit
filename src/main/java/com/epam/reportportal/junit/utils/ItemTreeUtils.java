@@ -23,6 +23,10 @@ public class ItemTreeUtils {
 	}
 
 	@Nullable
+	public static TestItemTree.TestItemLeaf retrieveLeaf(FrameworkMethod method, TestItemTree testItemTree) {
+		return testItemTree.getTestItems().get(createItemTreeKey(method));
+	}
+	@Nullable
 	public static TestItemTree.TestItemLeaf retrieveLeaf(Description description, TestItemTree testItemTree) {
 		return testItemTree.getTestItems().get(createItemTreeKey(description));
 	}
