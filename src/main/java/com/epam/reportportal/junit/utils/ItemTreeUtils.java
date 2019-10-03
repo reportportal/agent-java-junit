@@ -1,6 +1,7 @@
 package com.epam.reportportal.junit.utils;
 
 import com.epam.reportportal.service.tree.TestItemTree;
+import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 
 /**
@@ -14,5 +15,13 @@ public class ItemTreeUtils {
 
 	public static TestItemTree.ItemTreeKey createItemTreeKey(FrameworkMethod method) {
 		return TestItemTree.ItemTreeKey.of(method.getName(), method.getDeclaringClass().getName().hashCode());
+	}
+
+	public static TestItemTree.ItemTreeKey createItemTreeKey(Description description) {
+		return TestItemTree.ItemTreeKey.of(description.getMethodName(), description.getTestClass().getName().hashCode());
+	}
+
+	public static TestItemTree.TestItemLeaf retrieveLeaf(Description description, TestItemTree testItemTree) {
+		return testItemTree.getTestItems().get(createItemTreeKey(description));
 	}
 }
