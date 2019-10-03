@@ -160,10 +160,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		FinishTestItemRQ rq = buildFinishStepRq(method, status);
 		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(context.getItemIdOfTestMethod(method, runner), rq);
 		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
-			TestItemTree.TestItemLeaf testItemLeaf = ITEM_TREE.get().getTestItems().get(createItemTreeKey(method));
-			if (testItemLeaf != null) {
-				testItemLeaf.setFinishResponse(finishResponse);
-			}
+			updateTestItemTree(method, finishResponse);
 		}
 	}
 
@@ -185,10 +182,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 		FinishTestItemRQ finishRQ = buildFinishStepRq(method, Statuses.SKIPPED);
 		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(itemId, finishRQ);
 		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
-			TestItemTree.TestItemLeaf testItemLeaf = ITEM_TREE.get().getTestItems().get(createItemTreeKey(method));
-			if (testItemLeaf != null) {
-				testItemLeaf.setFinishResponse(finishResponse);
-			}
+			updateTestItemTree(method, finishResponse);
+		}
+	}
+
+	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {
+		TestItemTree.TestItemLeaf testItemLeaf = ITEM_TREE.get().getTestItems().get(createItemTreeKey(method));
+		if (testItemLeaf != null) {
+			testItemLeaf.setFinishResponse(finishResponse);
 		}
 	}
 
