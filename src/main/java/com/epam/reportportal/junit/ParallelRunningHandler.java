@@ -21,10 +21,7 @@ import com.epam.reportportal.listeners.Statuses;
 import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.tree.TestItemTree;
-import com.epam.ta.reportportal.ws.model.FinishExecutionRQ;
-import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
-import com.epam.ta.reportportal.ws.model.ParameterResource;
-import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
+import com.epam.ta.reportportal.ws.model.*;
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
 import com.epam.ta.reportportal.ws.model.issue.Issue;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
@@ -158,7 +155,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public void stopTestMethod(FrameworkMethod method, Object runner) {
 		String status = context.getStatusOfTestMethod(method, runner);
 		FinishTestItemRQ rq = buildFinishStepRq(method, status);
-		launch.get().finishTestItem(context.getItemIdOfTestMethod(method, runner), rq);
+		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(context.getItemIdOfTestMethod(method, runner), rq);
+		TestItemTree.TestItemLeaf testItemLeaf = ITEM_TREE.get().getTestItems().get(createItemTreeKey(method));
+		if (testItemLeaf != null) {
+			testItemLeaf.setFinishResponse(finishResponse);
+		}
 	}
 
 	/**
