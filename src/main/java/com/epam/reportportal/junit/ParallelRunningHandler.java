@@ -20,6 +20,7 @@ import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.Statuses;
 import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
+import com.epam.reportportal.service.tree.TestItemTree;
 import com.epam.ta.reportportal.ws.model.FinishExecutionRQ;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.ParameterResource;
@@ -49,6 +50,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Map.Entry;
 
+import static com.epam.reportportal.junit.JUnitProvider.ITEM_TREE;
+import static com.epam.reportportal.junit.utils.ItemTreeUtils.createItemTreeKey;
 import static rp.com.google.common.base.Strings.isNullOrEmpty;
 import static rp.com.google.common.base.Throwables.getStackTraceAsString;
 
@@ -90,7 +93,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Override
 	public void startLaunch() {
-		launch.get().start();
+		Maybe<String> launchId = launch.get().start();
+		ITEM_TREE.get().setLaunchId(launchId);
 	}
 
 	/**
@@ -141,7 +145,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public void startTestMethod(FrameworkMethod method, Object runner) {
 		StartTestItemRQ rq = buildStartStepRq(method);
 		rq.setParameters(createStepParameters(method, runner));
-		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), rq);
+		Maybe<String> parentId = context.getItemIdOfTestRunner(runner);
+		Maybe<String> itemId = launch.get().startTestItem(parentId, rq);
+		ITEM_TREE.get().getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
 		context.setItemIdOfTestMethod(method, runner, itemId);
 	}
 

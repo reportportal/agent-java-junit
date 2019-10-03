@@ -16,6 +16,7 @@
 package com.epam.reportportal.junit;
 
 import com.epam.reportportal.service.ReportPortal;
+import com.epam.reportportal.service.tree.TestItemTree;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import org.apache.commons.lang3.ClassUtils;
@@ -32,21 +33,23 @@ public class JUnitProvider implements Provider<IListenerHandler> {
 	@Inject
 	private ParallelRunningContext parallelRunningContext;
 
-	private ReportPortal reportPortalService;
-
-	@Inject
-	public void setReportPortalService() {
-		this.reportPortalService = ReportPortal.builder().build();
-	}
+	public static ReportPortal REPORT_PORTAL = ReportPortal.builder().build();
+	public static ThreadLocal<TestItemTree> ITEM_TREE = new InheritableThreadLocal<TestItemTree>() {
+		@Override
+		protected TestItemTree initialValue() {
+			return new TestItemTree();
+		}
+	};
 
 	@Override
 	public IListenerHandler get() {
-		if (reportPortalService.getParameters().getEnable()) {
-			return new ParallelRunningHandler(parallelRunningContext, reportPortalService);
+		if (REPORT_PORTAL.getParameters().getEnable()) {
+			return new ParallelRunningHandler(parallelRunningContext, REPORT_PORTAL);
 		}
 
 		return (IListenerHandler) Proxy.newProxyInstance(this.getClass().getClassLoader(),
-				new Class[] { IListenerHandler.class }, new InvocationHandler() {
+				new Class[] { IListenerHandler.class },
+				new InvocationHandler() {
 					@Override
 					public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 						Class<?> returnType = method.getReturnType();
@@ -57,6 +60,7 @@ public class JUnitProvider implements Provider<IListenerHandler> {
 
 						return null;
 					}
-				});
+				}
+		);
 	}
 }
