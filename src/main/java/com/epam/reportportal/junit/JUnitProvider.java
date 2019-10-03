@@ -33,8 +33,8 @@ public class JUnitProvider implements Provider<IListenerHandler> {
 	@Inject
 	private ParallelRunningContext parallelRunningContext;
 
-	public static ReportPortal REPORT_PORTAL = ReportPortal.builder().build();
-	public static ThreadLocal<TestItemTree> ITEM_TREE = new InheritableThreadLocal<TestItemTree>() {
+	public static final ReportPortal REPORT_PORTAL = ReportPortal.builder().build();
+	public static final ThreadLocal<TestItemTree> ITEM_TREE = new InheritableThreadLocal<TestItemTree>() {
 		@Override
 		protected TestItemTree initialValue() {
 			return new TestItemTree();
