@@ -15,6 +15,7 @@
  */
 package com.epam.reportportal.junit;
 
+import com.epam.reportportal.annotations.TestCaseIdKey;
 import com.epam.reportportal.annotations.UniqueID;
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.Statuses;
@@ -141,6 +142,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public void startTestMethod(FrameworkMethod method, Object runner) {
 		StartTestItemRQ rq = buildStartStepRq(method);
 		rq.setParameters(createStepParameters(method, runner));
+		getTestCaseId(method, runner, rq.getCodeRef()).ifPresent(rq::setTestCaseId);
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), rq);
 		context.setItemIdOfTestMethod(method, runner, itemId);
 	}
@@ -169,6 +171,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void handleTestSkip(FrameworkMethod method, Object runner) {
 		StartTestItemRQ startRQ = buildStartStepRq(method);
+		getTestCaseId(method, runner, startRQ.getCodeRef()).ifPresent(startRQ::setTestCaseId);
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), startRQ);
 		FinishTestItemRQ finishRQ = buildFinishStepRq(method, Statuses.SKIPPED);
 		launch.get().finishTestItem(itemId, finishRQ);
@@ -375,6 +378,40 @@ public class ParallelRunningHandler implements IListenerHandler {
 	protected List<ParameterResource> createStepParameters(FrameworkMethod method, Object runner) {
 		List<ParameterResource> parameters = createMethodParameters(method, runner);
 		return parameters.isEmpty() ? null : parameters;
+	}
+
+	protected Optional<Integer> getTestCaseId(FrameworkMethod method, Object runner, String codeRef) {
+		if (!(method.isStatic() || isIgnored(method))) {
+			Object target = LifecycleHooks.getTargetForRunner(runner);
+			if (target instanceof ArtifactParams) {
+				com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
+				if (params.isPresent()) {
+					return Arrays.stream(target.getClass().getDeclaredFields())
+							.filter(field -> params.get().containsKey(field.getName())
+									&& field.getDeclaredAnnotation(TestCaseIdKey.class) != null)
+							.findFirst()
+							.map(testCaseIdField -> {
+								TestCaseIdKey testCaseIdKeyAnnotation = testCaseIdField.getDeclaredAnnotation(TestCaseIdKey.class);
+								try {
+									Object testCaseId = testCaseIdField.get(target);
+									if (testCaseIdKeyAnnotation.isInteger()) {
+										try {
+											return Integer.parseInt(String.valueOf(testCaseId));
+										} catch (NumberFormatException ex) {
+											return Arrays.deepHashCode(new Object[] { testCaseId });
+										}
+									}
+								} catch (IllegalAccessException e) {
+									//do nothing
+								}
+								return Objects.hashCode(codeRef);
+							});
+				}
+			} else {
+				return Optional.of(Objects.hashCode(codeRef));
+			}
+		}
+		return Optional.empty();
 	}
 
 	/**
