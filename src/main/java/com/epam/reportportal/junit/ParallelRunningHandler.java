@@ -22,6 +22,7 @@ import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.Statuses;
 import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
+import com.epam.reportportal.utils.reflect.Accessible;
 import com.epam.ta.reportportal.ws.model.FinishExecutionRQ;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.ParameterResource;
@@ -407,7 +408,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 					.map(testCaseIdField -> {
 						TestCaseIdKey testCaseIdKeyAnnotation = testCaseIdField.getDeclaredAnnotation(TestCaseIdKey.class);
 						try {
-							Object testCaseId = testCaseIdField.get(target);
+							Object testCaseId = Accessible.on(target).field(testCaseIdField).getValue();
 							if (testCaseIdKeyAnnotation.isInteger()) {
 								try {
 									return Integer.parseInt(String.valueOf(testCaseId));
@@ -416,7 +417,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 								}
 							}
 							return Arrays.deepHashCode(new Object[] { testCaseId });
-						} catch (IllegalAccessException e) {
+						} catch (IllegalAccessError e) {
 							//do nothing
 						}
 						return Objects.hashCode(codeRef);
