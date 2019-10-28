@@ -412,9 +412,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 								try {
 									return Integer.parseInt(String.valueOf(testCaseId));
 								} catch (NumberFormatException ex) {
-									return Arrays.deepHashCode(new Object[] { testCaseId });
+									//do nothing
 								}
 							}
+							return Arrays.deepHashCode(new Object[] { testCaseId });
 						} catch (IllegalAccessException e) {
 							//do nothing
 						}
