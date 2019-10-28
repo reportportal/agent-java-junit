@@ -15,6 +15,7 @@
  */
 package com.epam.reportportal.junit;
 
+import com.epam.reportportal.annotations.TestCaseId;
 import com.epam.reportportal.annotations.TestCaseIdKey;
 import com.epam.reportportal.annotations.UniqueID;
 import com.epam.reportportal.listeners.ListenerParameters;
@@ -50,6 +51,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Map.Entry;
 
+import static java.util.Optional.ofNullable;
 import static rp.com.google.common.base.Strings.isNullOrEmpty;
 import static rp.com.google.common.base.Throwables.getStackTraceAsString;
 
@@ -360,7 +362,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setEndTime(Calendar.getInstance().getTime());
 		rq.setStatus((status == null || status.equals("")) ? Statuses.PASSED : status);
 		// Allows indicate that SKIPPED is not to investigate items for WS
-		if (Statuses.SKIPPED.equals(status) && !Optional.ofNullable(launch.get().getParameters().getSkippedAnIssue()).orElse(false)) {
+		if (Statuses.SKIPPED.equals(status) && !ofNullable(launch.get().getParameters().getSkippedAnIssue()).orElse(false)) {
 			Issue issue = new Issue();
 			issue.setIssueType("NOT_ISSUE");
 			rq.setIssue(issue);
@@ -383,33 +385,41 @@ public class ParallelRunningHandler implements IListenerHandler {
 	protected Optional<Integer> getTestCaseId(FrameworkMethod method, Object runner, String codeRef) {
 		if (!(method.isStatic() || isIgnored(method))) {
 			Object target = LifecycleHooks.getTargetForRunner(runner);
-			if (target instanceof ArtifactParams) {
-				com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
-				if (params.isPresent()) {
-					return Arrays.stream(target.getClass().getDeclaredFields())
-							.filter(field -> params.get().containsKey(field.getName())
-									&& field.getDeclaredAnnotation(TestCaseIdKey.class) != null)
-							.findFirst()
-							.map(testCaseIdField -> {
-								TestCaseIdKey testCaseIdKeyAnnotation = testCaseIdField.getDeclaredAnnotation(TestCaseIdKey.class);
-								try {
-									Object testCaseId = testCaseIdField.get(target);
-									if (testCaseIdKeyAnnotation.isInteger()) {
-										try {
-											return Integer.parseInt(String.valueOf(testCaseId));
-										} catch (NumberFormatException ex) {
-											return Arrays.deepHashCode(new Object[] { testCaseId });
-										}
-									}
-								} catch (IllegalAccessException e) {
-									//do nothing
-								}
-								return Objects.hashCode(codeRef);
-							});
+			return ofNullable(method.getMethod().getDeclaredAnnotation(TestCaseId.class)).flatMap(annotation -> {
+				if (annotation.isParameterized() && target instanceof ArtifactParams) {
+					return getParameterizedTestCaseId(target, codeRef);
+				} else {
+					return Optional.of(annotation.value());
 				}
-			} else {
-				return Optional.of(Objects.hashCode(codeRef));
-			}
+			});
+
+		}
+		return Optional.of(Objects.hashCode(codeRef));
+	}
+
+	protected Optional<Integer> getParameterizedTestCaseId(Object target, String codeRef) {
+
+		com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
+		if (params.isPresent()) {
+			return Arrays.stream(target.getClass().getDeclaredFields())
+					.filter(field -> params.get().containsKey(field.getName()) && field.getDeclaredAnnotation(TestCaseIdKey.class) != null)
+					.findFirst()
+					.map(testCaseIdField -> {
+						TestCaseIdKey testCaseIdKeyAnnotation = testCaseIdField.getDeclaredAnnotation(TestCaseIdKey.class);
+						try {
+							Object testCaseId = testCaseIdField.get(target);
+							if (testCaseIdKeyAnnotation.isInteger()) {
+								try {
+									return Integer.parseInt(String.valueOf(testCaseId));
+								} catch (NumberFormatException ex) {
+									return Arrays.deepHashCode(new Object[] { testCaseId });
+								}
+							}
+						} catch (IllegalAccessException e) {
+							//do nothing
+						}
+						return Objects.hashCode(codeRef);
+					});
 		}
 		return Optional.empty();
 	}
