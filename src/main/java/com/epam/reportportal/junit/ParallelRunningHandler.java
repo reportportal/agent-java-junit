@@ -92,7 +92,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void startLaunch() {
 		Maybe<String> launchId = launch.get().start();
-		ITEM_TREE.get().setLaunchId(launchId);
+		ITEM_TREE.setLaunchId(launchId);
 	}
 
 	/**
@@ -146,7 +146,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		Maybe<String> parentId = context.getItemIdOfTestRunner(runner);
 		Maybe<String> itemId = launch.get().startTestItem(parentId, rq);
 		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
-			ITEM_TREE.get().getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
+			ITEM_TREE.getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
 		}
 		context.setItemIdOfTestMethod(method, runner, itemId);
 	}
@@ -187,7 +187,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {
-		TestItemTree.TestItemLeaf testItemLeaf = retrieveLeaf(method, ITEM_TREE.get());
+		TestItemTree.TestItemLeaf testItemLeaf = retrieveLeaf(method, ITEM_TREE);
 		if (testItemLeaf != null) {
 			testItemLeaf.setFinishResponse(finishResponse);
 		}
