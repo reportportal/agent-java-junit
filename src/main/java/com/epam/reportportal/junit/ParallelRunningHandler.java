@@ -51,6 +51,7 @@ import rp.com.google.common.base.Function;
 import rp.com.google.common.base.Supplier;
 
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Map.Entry;
@@ -415,17 +416,26 @@ public class ParallelRunningHandler implements IListenerHandler {
 			return Arrays.stream(target.getClass().getDeclaredFields())
 					.filter(field -> params.get().containsKey(field.getName()) && field.getDeclaredAnnotation(TestCaseIdKey.class) != null)
 					.findFirst()
-					.map(testCaseIdField -> {
-						try {
-							Object testCaseId = Accessible.on(target).field(testCaseIdField).getValue();
-							return new TestCaseIdEntry(String.valueOf(testCaseId), Objects.hashCode(testCaseId));
-						} catch (IllegalAccessError e) {
-							//do nothing
-						}
-						return new TestCaseIdEntry(codeRef, Arrays.deepHashCode(new Object[] { codeRef, params.get().values().toArray() }));
-					});
+					.map(testCaseIdField -> retrieveTestCaseId(target, testCaseIdField, codeRef, params.get().values().toArray()));
 		}
 		return Optional.empty();
+	}
+
+	/**
+	 * @param target          Current entity
+	 * @param testCaseIdField Field marked by {@link TestCaseIdKey}
+	 * @param codeRef         Location of the current target entity in the code
+	 * @param arguments       Arguments of the parametrized test
+	 * @return {@link TestCaseIdEntry}
+	 */
+	private TestCaseIdEntry retrieveTestCaseId(Object target, Field testCaseIdField, String codeRef, Object[] arguments) {
+		try {
+			Object testCaseId = Accessible.on(target).field(testCaseIdField).getValue();
+			return new TestCaseIdEntry(String.valueOf(testCaseId), Objects.hashCode(testCaseId));
+		} catch (IllegalAccessError e) {
+			//do nothing
+		}
+		return new TestCaseIdEntry(codeRef, Objects.hashCode(codeRef));
 	}
 
 	/**
