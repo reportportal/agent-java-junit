@@ -18,11 +18,13 @@ package com.epam.reportportal.junit;
 import com.epam.reportportal.annotations.TestCaseId;
 import com.epam.reportportal.annotations.TestCaseIdKey;
 import com.epam.reportportal.annotations.UniqueID;
+import com.epam.reportportal.annotations.attribute.Attributes;
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.Statuses;
 import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.utils.reflect.Accessible;
+import com.epam.reportportal.utils.AttributeParser;
 import com.epam.ta.reportportal.ws.model.FinishExecutionRQ;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.ParameterResource;
@@ -317,6 +319,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(method.getName());
 		rq.setCodeRef(getCodeRef(method));
+		rq.setAttributes(getAttributes(method));
 		rq.setDescription(createStepDescription(method));
 		rq.setUniqueId(extractUniqueID(method));
 		rq.setStartTime(Calendar.getInstance().getTime());
@@ -543,6 +546,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Nullable
 	private String getCodeRef(FrameworkMethod frameworkMethod) {
 		return frameworkMethod.getDeclaringClass().getCanonicalName() + "." + frameworkMethod.getName();
+	}
+
+	private Set<ItemAttributesRQ> getAttributes(FrameworkMethod frameworkMethod) {
+		return ofNullable(frameworkMethod.getMethod()).map(m -> ofNullable(m.getAnnotation(Attributes.class)).map(AttributeParser::retrieveAttributes)
+				.orElseGet(Collections::emptySet)).orElseGet(Collections::emptySet);
 	}
 
 	/**

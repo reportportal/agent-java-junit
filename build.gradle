@@ -43,8 +43,8 @@ dependencies {
         compile 'com.epam.reportportal:client-java:5.0.0-BETA-4'
         compile 'com.epam.reportportal:commons-model:5.0.0-BETA-11'
     } else {
-        compile 'com.github.reportportal:client-java:6eff635b'
-        compile 'com.github.reportportal:commons-model:4e24149d'
+        compile 'com.github.reportportal:client-java:281e3f8d'
+        compile 'com.github.reportportal:commons-model:feec39f3'
     }
 
     compile('com.nordstrom.tools:junit-foundation:11.0.1') {
