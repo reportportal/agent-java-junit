@@ -23,8 +23,9 @@ import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.Statuses;
 import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
-import com.epam.reportportal.utils.reflect.Accessible;
+import com.epam.reportportal.service.item.TestCaseIdEntry;
 import com.epam.reportportal.utils.AttributeParser;
+import com.epam.reportportal.utils.reflect.Accessible;
 import com.epam.ta.reportportal.ws.model.FinishExecutionRQ;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.ParameterResource;
@@ -147,7 +148,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public void startTestMethod(FrameworkMethod method, Object runner) {
 		StartTestItemRQ rq = buildStartStepRq(method);
 		rq.setParameters(createStepParameters(method, runner));
-		getTestCaseId(method, runner, rq.getCodeRef()).ifPresent(rq::setTestCaseId);
+		getTestCaseId(method, runner, rq.getCodeRef()).ifPresent(entry -> {
+			rq.setTestCaseId(entry.getId());
+			rq.setTestCaseHash(entry.getHash());
+		});
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), rq);
 		context.setItemIdOfTestMethod(method, runner, itemId);
 	}
@@ -176,7 +180,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void handleTestSkip(FrameworkMethod method, Object runner) {
 		StartTestItemRQ startRQ = buildStartStepRq(method);
-		getTestCaseId(method, runner, startRQ.getCodeRef()).ifPresent(startRQ::setTestCaseId);
+		getTestCaseId(method, runner, startRQ.getCodeRef()).ifPresent(entry -> {
+			startRQ.setTestCaseId(entry.getId());
+			startRQ.setTestCaseHash(entry.getHash());
+		});
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), startRQ);
 		FinishTestItemRQ finishRQ = buildFinishStepRq(method, Statuses.SKIPPED);
 		launch.get().finishTestItem(itemId, finishRQ);
@@ -386,22 +393,22 @@ public class ParallelRunningHandler implements IListenerHandler {
 		return parameters.isEmpty() ? null : parameters;
 	}
 
-	protected Optional<Integer> getTestCaseId(FrameworkMethod method, Object runner, String codeRef) {
+	protected Optional<TestCaseIdEntry> getTestCaseId(FrameworkMethod method, Object runner, String codeRef) {
 		if (!(method.isStatic() || isIgnored(method))) {
 			Object target = LifecycleHooks.getTargetForRunner(runner);
 			return ofNullable(method.getMethod().getDeclaredAnnotation(TestCaseId.class)).flatMap(annotation -> {
-				if (annotation.isParameterized() && target instanceof ArtifactParams) {
+				if (annotation.parametrized() && target instanceof ArtifactParams) {
 					return getParameterizedTestCaseId(target, codeRef);
 				} else {
-					return Optional.of(annotation.value());
+					return Optional.of(annotation.value()).map(value -> new TestCaseIdEntry(value, value.hashCode()));
 				}
 			});
 
 		}
-		return Optional.of(Objects.hashCode(codeRef));
+		return Optional.of(new TestCaseIdEntry(codeRef, Objects.hashCode(codeRef)));
 	}
 
-	protected Optional<Integer> getParameterizedTestCaseId(Object target, String codeRef) {
+	protected Optional<TestCaseIdEntry> getParameterizedTestCaseId(Object target, String codeRef) {
 
 		com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
 		if (params.isPresent()) {
@@ -409,21 +416,13 @@ public class ParallelRunningHandler implements IListenerHandler {
 					.filter(field -> params.get().containsKey(field.getName()) && field.getDeclaredAnnotation(TestCaseIdKey.class) != null)
 					.findFirst()
 					.map(testCaseIdField -> {
-						TestCaseIdKey testCaseIdKeyAnnotation = testCaseIdField.getDeclaredAnnotation(TestCaseIdKey.class);
 						try {
 							Object testCaseId = Accessible.on(target).field(testCaseIdField).getValue();
-							if (testCaseIdKeyAnnotation.isInteger()) {
-								try {
-									return Integer.parseInt(String.valueOf(testCaseId));
-								} catch (NumberFormatException ex) {
-									//do nothing
-								}
-							}
-							return Arrays.deepHashCode(new Object[] { testCaseId });
+							return new TestCaseIdEntry(String.valueOf(testCaseId), Objects.hashCode(testCaseId));
 						} catch (IllegalAccessError e) {
 							//do nothing
 						}
-						return Objects.hashCode(codeRef);
+						return new TestCaseIdEntry(codeRef, Arrays.deepHashCode(new Object[] { codeRef, params.get().values().toArray() }));
 					});
 		}
 		return Optional.empty();
