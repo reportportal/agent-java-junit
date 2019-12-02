@@ -13,11 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-plugins {
-    id 'net.researchgate.release' version '2.8.0'
-    id 'com.jfrog.bintray' version '1.8.4'
-}
 apply plugin: 'java'
 apply from: 'quality.gradle'
 apply from: 'https://raw.githubusercontent.com/reportportal/gradle-scripts/master/release-commons.gradle'
