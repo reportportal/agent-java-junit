@@ -15,11 +15,10 @@
  */
 
 plugins {
-    id 'net.researchgate.release' version '2.8.0'
-    id 'com.jfrog.bintray' version '1.8.4'
+    id 'java'
 }
-apply plugin: 'java'
-apply from: 'quality.gradle'
+
+apply from: 'https://raw.githubusercontent.com/reportportal/gradle-scripts/master/build-quality.gradle'
 apply from: 'https://raw.githubusercontent.com/reportportal/gradle-scripts/master/release-commons.gradle'
 
 sourceCompatibility = 1.8
@@ -29,14 +28,14 @@ project.ext {
     releaseMode = project.hasProperty('releaseMode')
 }
 
-description = 'ReportPortal JUnit 4 client'
-
 repositories {
     mavenLocal()
     mavenCentral()
     jcenter()
-    maven { url 'https://jitpack.io' }
     maven { url "http://dl.bintray.com/epam/reportportal" }
+    if (!releaseMode) {
+        maven { url 'https://jitpack.io' }
+    }
 }
 dependencies {
     if (releaseMode) {
