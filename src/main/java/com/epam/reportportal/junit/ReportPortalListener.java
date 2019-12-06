@@ -16,6 +16,7 @@
 package com.epam.reportportal.junit;
 
 import com.epam.reportportal.listeners.Statuses;
+import com.epam.reportportal.service.ReportPortal;
 import com.nordstrom.automation.junit.AtomicTest;
 import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.MethodWatcher;
@@ -39,11 +40,11 @@ import org.junit.runners.model.FrameworkMethod;
  */
 public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher, MethodWatcher {
 
-    private static volatile IListenerHandler handler;
+    private static final IListenerHandler HANDLER;
 
     static {
-        handler = JUnitInjectorProvider.getInstance().getInstance(IListenerHandler.class);
-        handler.startLaunch();
+        HANDLER = new ParallelRunningHandler(new ParallelRunningContext(), ReportPortal.builder().build());
+        HANDLER.startLaunch();
     }
     
     /**
@@ -51,18 +52,18 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void onShutdown() {
-        handler.stopLaunch();
+        HANDLER.stopLaunch();
     }
 
     @Override
     public void runStarted(Object runner) {
         boolean isSuite = (runner instanceof Suite);
-        handler.startRunner(runner, isSuite);
+        HANDLER.startRunner(runner, isSuite);
     }
 
     @Override
     public void runFinished(Object runner) {
-        handler.stopRunner(runner);
+        HANDLER.stopRunner(runner);
     }
     
     /**
@@ -70,7 +71,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void testStarted(AtomicTest atomicTest) {
-        handler.startTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
+        HANDLER.startTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
     }
 
     /**
@@ -78,7 +79,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void testFinished(AtomicTest atomicTest) {
-        handler.stopTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
+        HANDLER.stopTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
     }
 
     /**
@@ -102,7 +103,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void testIgnored(AtomicTest atomicTest) {
-        handler.handleTestSkip(atomicTest.getIdentity(), atomicTest.getRunner());
+        HANDLER.handleTestSkip(atomicTest.getIdentity(), atomicTest.getRunner());
     }
     
     /**
@@ -110,8 +111,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void beforeInvocation(Object runner, Object target, FrameworkMethod method, Object... params) {
-        if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
-            handler.startTestMethod(method, runner);
+        if ((null == method.getAnnotation(Test.class)) && HANDLER.isReportable(method)) {
+            HANDLER.startTestMethod(method, runner);
         }
     }
 
@@ -120,7 +121,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void afterInvocation(Object runner, Object target, FrameworkMethod method, Throwable thrown) {
-        if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
+        if ((null == method.getAnnotation(Test.class)) && HANDLER.isReportable(method)) {
             if (thrown != null) {
                 Class<? extends Throwable> expected = None.class;
                 
@@ -135,7 +136,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
                 }
             }
 
-            handler.stopTestMethod(method, runner);
+            HANDLER.stopTestMethod(method, runner);
         }
     }
 
@@ -143,11 +144,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * Report failure of the indicated "particle" method.
      * 
      * @param method {@link FrameworkMethod} object for the "particle" method
-     * @throws RestEndpointIOException is something goes wrong
      */
     public void reportTestFailure(FrameworkMethod method, Object runner, Throwable thrown) {
-        handler.sendReportPortalMsg(method, runner, thrown);
-        handler.markCurrentTestMethod(method, runner, Statuses.FAILED);
+        HANDLER.sendReportPortalMsg(method, runner, thrown);
+        HANDLER.markCurrentTestMethod(method, runner, Statuses.FAILED);
     }
-
 }
