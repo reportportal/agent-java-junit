@@ -78,7 +78,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Constructor: Instantiate a parallel running handler
 	 *
-	 * @param suitesKeeper           test collection hierarchy processor
 	 * @param parallelRunningContext test execution context manager
 	 * @param reportPortalService    Report Portal web service client
 	 */
