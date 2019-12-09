@@ -16,10 +16,16 @@
 package com.epam.reportportal.junit;
 
 import com.epam.reportportal.annotations.UniqueID;
+import com.epam.reportportal.annotations.attribute.Attributes;
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.Statuses;
 import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
+import com.epam.reportportal.utils.AttributeParser;
+import com.epam.ta.reportportal.ws.model.FinishExecutionRQ;
+import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
+import com.epam.ta.reportportal.ws.model.ParameterResource;
+import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import com.epam.reportportal.service.tree.TestItemTree;
 import com.epam.ta.reportportal.ws.model.*;
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
@@ -51,6 +57,7 @@ import static com.epam.reportportal.junit.JUnitProvider.ITEM_TREE;
 import static com.epam.reportportal.junit.JUnitProvider.REPORT_PORTAL;
 import static com.epam.reportportal.junit.utils.ItemTreeUtils.createItemTreeKey;
 import static com.epam.reportportal.junit.utils.ItemTreeUtils.retrieveLeaf;
+import static java.util.Optional.ofNullable;
 import static rp.com.google.common.base.Strings.isNullOrEmpty;
 import static rp.com.google.common.base.Throwables.getStackTraceAsString;
 
@@ -330,6 +337,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(method.getName());
 		rq.setCodeRef(getCodeRef(method));
+		rq.setAttributes(getAttributes(method));
 		rq.setDescription(createStepDescription(method));
 		rq.setUniqueId(extractUniqueID(method));
 		rq.setStartTime(Calendar.getInstance().getTime());
@@ -376,7 +384,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setEndTime(Calendar.getInstance().getTime());
 		rq.setStatus((status == null || status.equals("")) ? Statuses.PASSED : status);
 		// Allows indicate that SKIPPED is not to investigate items for WS
-		if (Statuses.SKIPPED.equals(status) && !Optional.ofNullable(launch.get().getParameters().getSkippedAnIssue()).orElse(false)) {
+		if (Statuses.SKIPPED.equals(status) && !ofNullable(launch.get().getParameters().getSkippedAnIssue()).orElse(false)) {
 			Issue issue = new Issue();
 			issue.setIssueType("NOT_ISSUE");
 			rq.setIssue(issue);
@@ -513,6 +521,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Nullable
 	private String getCodeRef(FrameworkMethod frameworkMethod) {
 		return frameworkMethod.getDeclaringClass().getCanonicalName() + "." + frameworkMethod.getName();
+	}
+
+	private Set<ItemAttributesRQ> getAttributes(FrameworkMethod frameworkMethod) {
+		return ofNullable(frameworkMethod.getMethod()).map(m -> ofNullable(m.getAnnotation(Attributes.class)).map(AttributeParser::retrieveAttributes)
+				.orElseGet(Collections::emptySet)).orElseGet(Collections::emptySet);
 	}
 
 	/**
