@@ -28,7 +28,6 @@ import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import com.epam.ta.reportportal.ws.model.issue.Issue;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
-import com.google.inject.Inject;
 import com.nordstrom.automation.junit.ArtifactParams;
 import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.RetriedTest;
@@ -81,7 +80,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param parallelRunningContext test execution context manager
 	 * @param reportPortalService    Report Portal web service client
 	 */
-	@Inject
 	public ParallelRunningHandler(final ParallelRunningContext parallelRunningContext, final ReportPortal reportPortalService) {
 
 		context = parallelRunningContext;
