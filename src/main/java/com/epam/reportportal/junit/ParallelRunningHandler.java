@@ -15,13 +15,17 @@
  */
 package com.epam.reportportal.junit;
 
+import com.epam.reportportal.annotations.TestCaseId;
+import com.epam.reportportal.annotations.TestCaseIdKey;
 import com.epam.reportportal.annotations.UniqueID;
 import com.epam.reportportal.annotations.attribute.Attributes;
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.Statuses;
 import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
+import com.epam.reportportal.service.item.TestCaseIdEntry;
 import com.epam.reportportal.utils.AttributeParser;
+import com.epam.reportportal.utils.reflect.Accessible;
 import com.epam.ta.reportportal.ws.model.FinishExecutionRQ;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.ParameterResource;
@@ -47,6 +51,7 @@ import rp.com.google.common.base.Function;
 import rp.com.google.common.base.Supplier;
 
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Map.Entry;
@@ -144,6 +149,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public void startTestMethod(FrameworkMethod method, Object runner) {
 		StartTestItemRQ rq = buildStartStepRq(method);
 		rq.setParameters(createStepParameters(method, runner));
+		getTestCaseId(method, runner, rq.getCodeRef()).ifPresent(entry -> {
+			rq.setTestCaseId(entry.getId());
+			rq.setTestCaseHash(entry.getHash());
+		});
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), rq);
 		context.setItemIdOfTestMethod(method, runner, itemId);
 	}
@@ -172,6 +181,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void handleTestSkip(FrameworkMethod method, Object runner) {
 		StartTestItemRQ startRQ = buildStartStepRq(method);
+		getTestCaseId(method, runner, startRQ.getCodeRef()).ifPresent(entry -> {
+			startRQ.setTestCaseId(entry.getId());
+			startRQ.setTestCaseHash(entry.getHash());
+		});
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), startRQ);
 		FinishTestItemRQ finishRQ = buildFinishStepRq(method, Statuses.SKIPPED);
 		launch.get().finishTestItem(itemId, finishRQ);
@@ -379,6 +392,50 @@ public class ParallelRunningHandler implements IListenerHandler {
 	protected List<ParameterResource> createStepParameters(FrameworkMethod method, Object runner) {
 		List<ParameterResource> parameters = createMethodParameters(method, runner);
 		return parameters.isEmpty() ? null : parameters;
+	}
+
+	protected Optional<TestCaseIdEntry> getTestCaseId(FrameworkMethod method, Object runner, String codeRef) {
+		if (!(method.isStatic() || isIgnored(method))) {
+			Object target = LifecycleHooks.getTargetForRunner(runner);
+			return ofNullable(method.getMethod().getDeclaredAnnotation(TestCaseId.class)).flatMap(annotation -> {
+				if (annotation.parametrized() && target instanceof ArtifactParams) {
+					return getParameterizedTestCaseId(target, codeRef);
+				} else {
+					return Optional.of(annotation.value()).map(value -> new TestCaseIdEntry(value, value.hashCode()));
+				}
+			});
+
+		}
+		return Optional.of(new TestCaseIdEntry(codeRef, Objects.hashCode(codeRef)));
+	}
+
+	protected Optional<TestCaseIdEntry> getParameterizedTestCaseId(Object target, String codeRef) {
+
+		com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
+		if (params.isPresent()) {
+			return Arrays.stream(target.getClass().getDeclaredFields())
+					.filter(field -> params.get().containsKey(field.getName()) && field.getDeclaredAnnotation(TestCaseIdKey.class) != null)
+					.findFirst()
+					.map(testCaseIdField -> retrieveTestCaseId(target, testCaseIdField, codeRef, params.get().values().toArray()));
+		}
+		return Optional.empty();
+	}
+
+	/**
+	 * @param target          Current entity
+	 * @param testCaseIdField Field marked by {@link TestCaseIdKey}
+	 * @param codeRef         Location of the current target entity in the code
+	 * @param arguments       Arguments of the parametrized test
+	 * @return {@link TestCaseIdEntry}
+	 */
+	private TestCaseIdEntry retrieveTestCaseId(Object target, Field testCaseIdField, String codeRef, Object[] arguments) {
+		try {
+			Object testCaseId = Accessible.on(target).field(testCaseIdField).getValue();
+			return new TestCaseIdEntry(String.valueOf(testCaseId), Objects.hashCode(testCaseId));
+		} catch (IllegalAccessError e) {
+			//do nothing
+		}
+		return new TestCaseIdEntry(codeRef, Objects.hashCode(codeRef));
 	}
 
 	/**
