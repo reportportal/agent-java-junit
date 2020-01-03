@@ -69,8 +69,6 @@ import static rp.com.google.common.base.Throwables.getStackTraceAsString;
  */
 public class ParallelRunningHandler implements IListenerHandler {
 
-	public static final String API_BASE = "/reportportal-ws/api/v1";
-
 	private ParallelRunningContext context;
 	private MemoizingSupplier<Launch> launch;
 
@@ -78,14 +76,13 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * Constructor: Instantiate a parallel running handler
 	 *
 	 * @param parallelRunningContext test execution context manager
-	 * @param reportPortalService    Report Portal web service client
 	 */
-	public ParallelRunningHandler(final ParallelRunningContext parallelRunningContext, final ReportPortal reportPortalService) {
-
+	public ParallelRunningHandler(final ParallelRunningContext parallelRunningContext) {
 		context = parallelRunningContext;
 		launch = new MemoizingSupplier<>(() -> {
-			StartLaunchRQ rq = buildStartLaunchRq(reportPortalService.getParameters());
-			return reportPortalService.newLaunch(rq);
+			final ReportPortal reportPortal = ReportPortal.builder().build();
+			StartLaunchRQ rq = buildStartLaunchRq(reportPortal.getParameters());
+			return reportPortal.newLaunch(rq);
 		});
 	}
 

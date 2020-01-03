@@ -16,14 +16,7 @@
 package com.epam.reportportal.junit;
 
 import com.epam.reportportal.listeners.Statuses;
-import com.epam.reportportal.service.ReportPortal;
-import com.nordstrom.automation.junit.AtomicTest;
-import com.nordstrom.automation.junit.LifecycleHooks;
-import com.nordstrom.automation.junit.MethodWatcher;
-import com.nordstrom.automation.junit.RunWatcher;
-import com.nordstrom.automation.junit.RunnerWatcher;
-import com.nordstrom.automation.junit.ShutdownListener;
-
+import com.nordstrom.automation.junit.*;
 import org.junit.Test;
 import org.junit.Test.None;
 import org.junit.internal.AssumptionViolatedException;
@@ -43,10 +36,10 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
     private static final IListenerHandler HANDLER;
 
     static {
-        HANDLER = new ParallelRunningHandler(new ParallelRunningContext(), ReportPortal.builder().build());
+        HANDLER = new ParallelRunningHandler(new ParallelRunningContext());
         HANDLER.startLaunch();
     }
-    
+
     /**
      * {@inheritDoc}
      */
