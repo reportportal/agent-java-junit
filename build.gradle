@@ -17,19 +17,29 @@ repositories {
     maven { url 'https://jitpack.io' }
     maven { url "http://dl.bintray.com/epam/reportportal" }
 }
+
 dependencies {
     compile 'com.epam.reportportal:client-java:4.0.19'
     compile 'com.epam.reportportal:commons-model:4.2.0'
     compile 'com.nordstrom.tools:junit-foundation:9.4.3'
 }
+
 ext {
     junitFoundation = configurations.compile.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
 }
+
 test.doFirst {
     jvmArgs "-javaagent:${junitFoundation.file}"
 }
+
 test {
 //  debug true
     testLogging.showStandardStreams = true
     exclude 'com/epam/reportportal/junit/ExpectToFail.class'
+}
+
+release {
+    git {
+        requireBranch = 'v4-hotfix'
+    }
 }
