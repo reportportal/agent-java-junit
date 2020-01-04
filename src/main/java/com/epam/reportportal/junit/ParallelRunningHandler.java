@@ -29,6 +29,7 @@ import com.epam.ta.reportportal.ws.model.issue.Issue;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import com.nordstrom.automation.junit.ArtifactParams;
+import com.nordstrom.automation.junit.AtomicTest;
 import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.RetriedTest;
 import io.reactivex.Maybe;
@@ -44,6 +45,7 @@ import rp.com.google.common.base.Optional;
 import rp.com.google.common.base.Supplier;
 
 import java.io.Serializable;
+import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -60,7 +62,7 @@ import static rp.com.google.common.base.Strings.isNullOrEmpty;
 import static rp.com.google.common.base.Throwables.getStackTraceAsString;
 
 /**
- * MultyThread realization of IListenerHandler. This realization support
+ * MultiThread realization of IListenerHandler. This realization support
  * parallel running of tests and test methods. Main constraint: All test classes
  * in current launch should be unique. (User shouldn't run the same classes
  * twice/or more times in the one launch)
@@ -68,7 +70,6 @@ import static rp.com.google.common.base.Throwables.getStackTraceAsString;
  * @author Aliaksey_Makayed (modified by Andrei_Ramanchuk)
  */
 public class ParallelRunningHandler implements IListenerHandler {
-
 	private ParallelRunningContext context;
 	private MemoizingSupplier<Launch> launch;
 
@@ -109,13 +110,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void startRunner(Object runner, boolean isSuite) {
-		StartTestItemRQ rq;
-		if (isSuite) {
-			rq = buildStartSuiteRq(runner);
-		} else {
-			rq = buildStartTestItemRq(runner);
-		}
+	public void startRunner(Object runner) {
+		StartTestItemRQ rq = buildStartSuiteRq(runner);
 		Maybe<String> containerId = getContainerId(runner);
 		Maybe<String> itemId;
 		if (containerId == null) {
@@ -131,8 +127,21 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Override
 	public void stopRunner(Object runner) {
-		FinishTestItemRQ rq = buildFinishTestRq(null);
+		FinishTestItemRQ rq = buildFinishTestItemRq();
 		launch.get().finishTestItem(context.getItemIdOfTestRunner(runner), rq);
+	}
+
+	@Override
+	public void startTest(AtomicTest testContext) {
+		StartTestItemRQ rq = buildStartTestItemRq(testContext);
+		Maybe<String> testID = launch.get().startTestItem(context.getItemIdOfTestRunner(testContext.getRunner()), rq);
+		context.setTestIdOfTest(testContext, testID);
+	}
+
+	@Override
+	public void finishTest(AtomicTest testContext) {
+		FinishTestItemRQ rq = buildFinishTestRq(testContext);
+		launch.get().finishTestItem(context.getItemIdOfTest(testContext), rq);
 	}
 
 	/**
@@ -142,7 +151,16 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public void startTestMethod(FrameworkMethod method, Object runner) {
 		StartTestItemRQ rq = buildStartStepRq(method);
 		rq.setParameters(createStepParameters(method, runner));
-		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), rq);
+		AtomicTest test = LifecycleHooks.getAtomicTestOf(runner);
+		Maybe<String> itemId;
+		if(test == null || MethodType.AFTER_CLASS.equals(MethodType.detect(method))) {
+			// BeforeClass and AfterClass run independently in JUnit
+			itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), rq);
+		}
+		else {
+			// Before and After run within test context in JUnit
+			itemId = launch.get().startTestItem(context.getItemIdOfTest(test), rq);
+		}
 		context.setItemIdOfTestMethod(method, runner, itemId);
 	}
 
@@ -168,10 +186,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void handleTestSkip(FrameworkMethod method, Object runner) {
-		StartTestItemRQ startRQ = buildStartStepRq(method);
-		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), startRQ);
-		FinishTestItemRQ finishRQ = buildFinishStepRq(method, Statuses.SKIPPED);
+	public void handleTestSkip(AtomicTest testContext) {
+		StartTestItemRQ startRQ = buildStartTestItemRq(testContext);
+		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(testContext.getRunner()), startRQ);
+		FinishTestItemRQ finishRQ = buildFinishStepRq(testContext.getIdentity(), Statuses.SKIPPED);
 		launch.get().finishTestItem(itemId, finishRQ);
 	}
 
@@ -202,28 +220,33 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Override
 	public boolean isReportable(FrameworkMethod method) {
-		return !detectMethodType(method).isEmpty();
+		return MethodType.detect(method) != null;
 	}
 
-	/**
-	 * Detect the type of the specified JUnit method.
-	 *
-	 * @param method {@FrameworkMethod} object
-	 * @return method type string; empty string for unsupported types
-	 */
-	private String detectMethodType(FrameworkMethod method) {
-		if (null != method.getAnnotation(Test.class)) {
-			return "STEP";
-		} else if (null != method.getAnnotation(Before.class)) {
-			return "BEFORE_METHOD";
-		} else if (null != method.getAnnotation(After.class)) {
-			return "AFTER_METHOD";
-		} else if (null != method.getAnnotation(BeforeClass.class)) {
-			return "BEFORE_CLASS";
-		} else if (null != method.getAnnotation(AfterClass.class)) {
-			return "AFTER_CLASS";
+
+	private enum MethodType {
+		STEP(Test.class), BEFORE_METHOD(Before.class), AFTER_METHOD(After.class), BEFORE_CLASS(BeforeClass.class), AFTER_CLASS(AfterClass.class);
+
+		private Class<? extends Annotation> clazz;
+
+		MethodType(Class<? extends Annotation> markerAnnotation) {
+			clazz = markerAnnotation;
 		}
-		return "";
+
+		/**
+		 * Detect the type of the specified JUnit method.
+		 *
+		 * @param method {@link FrameworkMethod} object
+		 * @return an instance of this or null
+		 */
+		static MethodType detect(FrameworkMethod method) {
+			for (MethodType type:values()) {
+				if(null != method.getAnnotation(type.clazz)){
+					return type;
+				}
+			}
+			return null;
+		}
 	}
 
 	/**
@@ -276,15 +299,15 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize test creation event/request
 	 *
-	 * @param runner JUnit test context
+	 * @param test JUnit test context
 	 * @return Request to ReportPortal
 	 */
-	protected StartTestItemRQ buildStartTestItemRq(Object runner) {
+	protected StartTestItemRQ buildStartTestItemRq(AtomicTest test) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(getName(runner));
+		rq.setName(test.getDescription().getDisplayName());
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("TEST");
-		rq.setTags(getAnnotationTags(LifecycleHooks.getTestClassOf(runner)));
+		rq.setTags(getAnnotationTags(LifecycleHooks.getTestClassOf(test.getRunner())));
 		return rq;
 	}
 
@@ -301,7 +324,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setDescription(createStepDescription(method));
 		rq.setUniqueId(extractUniqueID(method));
 		rq.setStartTime(Calendar.getInstance().getTime());
-		rq.setType(detectMethodType(method));
+		MethodType type = MethodType.detect(method);
+		rq.setType(type == null?"":type.name());
 		rq.setTags(getAnnotationTags(method));
 
 		rq.setRetry(isRetry(method));
@@ -368,11 +392,18 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize test on it's finish
 	 *
-	 * @param testClass JUnit test context
+	 * @param testContext JUnit test context
 	 * @return Request to ReportPortal
 	 */
 	@SuppressWarnings("squid:S4144")
-	protected FinishTestItemRQ buildFinishTestRq(TestClass testClass) {
+	protected FinishTestItemRQ buildFinishTestRq(AtomicTest testContext) {
+		FinishTestItemRQ rq = buildFinishTestItemRq();
+		String status = testContext.getThrowable() == null ? Statuses.PASSED : Statuses.FAILED;
+		rq.setStatus(status);
+		return rq;
+	}
+
+	protected FinishTestItemRQ buildFinishTestItemRq() {
 		FinishTestItemRQ rq = new FinishTestItemRQ();
 		rq.setEndTime(Calendar.getInstance().getTime());
 		return rq;

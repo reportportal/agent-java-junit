@@ -17,6 +17,8 @@ package com.epam.reportportal.junit;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.nordstrom.automation.junit.AtomicTest;
 import org.junit.runners.model.FrameworkMethod;
 
 import com.nordstrom.automation.junit.RunReflectiveCall;
@@ -30,6 +32,9 @@ public class ParallelRunningContext {
 
 	/** {@code ParentRunner} object => RP test item ID */
 	private final Map<Object, Maybe<String>> itemIdOfTestRunner;
+
+	/** {@code AtomicTest} object => RP test item ID */
+	private final Map<AtomicTest, Maybe<String>> itemIdOfTests;
 	
 	/** hash of runner/method pair => RP test item ID */
 	private final Map<Integer, Maybe<String>> itemIdOfTestMethod;
@@ -39,6 +44,7 @@ public class ParallelRunningContext {
 
 	public ParallelRunningContext() {
 		itemIdOfTestRunner = new ConcurrentHashMap<>();
+		itemIdOfTests = new ConcurrentHashMap<>();
 		itemIdOfTestMethod = new ConcurrentHashMap<>();
 		statusOfTestMethod = new ConcurrentHashMap<>();
 	}
@@ -62,6 +68,27 @@ public class ParallelRunningContext {
 	public Maybe<String> getItemIdOfTestRunner(Object runner) {
 		return itemIdOfTestRunner.get(runner);
 	}
+
+	/**
+	 * Set the test item ID for the indicated container object (test or suite).
+	 *
+	 * @param test JUnit test
+	 * @param itemId Report Portal test item ID for container object
+	 */
+	public void setTestIdOfTest(AtomicTest test, Maybe<String> itemId) {
+		itemIdOfTests.put(test, itemId);
+	}
+
+	/**
+	 * Get the test item ID for the indicated container object (test or suite).
+	 *
+	 * @param test JUnit test
+	 * @return Report Portal test item ID for container object
+	 */
+	public Maybe<String> getItemIdOfTest(AtomicTest test) {
+		return itemIdOfTests.get(test);
+	}
+
 
 	/**
 	 * Set the test item ID for the specified test method.

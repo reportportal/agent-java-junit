@@ -20,7 +20,6 @@ import com.nordstrom.automation.junit.*;
 import org.junit.Test;
 import org.junit.Test.None;
 import org.junit.internal.AssumptionViolatedException;
-import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
 
 /**
@@ -50,8 +49,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 
     @Override
     public void runStarted(Object runner) {
-        boolean isSuite = (runner instanceof Suite);
-        HANDLER.startRunner(runner, isSuite);
+        HANDLER.startRunner(runner);
     }
 
     @Override
@@ -64,7 +62,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void testStarted(AtomicTest atomicTest) {
-        HANDLER.startTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
+        HANDLER.startTest(atomicTest);
     }
 
     /**
@@ -72,7 +70,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void testFinished(AtomicTest atomicTest) {
-        HANDLER.stopTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
+        HANDLER.finishTest(atomicTest);
     }
 
     /**
@@ -96,7 +94,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void testIgnored(AtomicTest atomicTest) {
-        HANDLER.handleTestSkip(atomicTest.getIdentity(), atomicTest.getRunner());
+        HANDLER.handleTestSkip(atomicTest);
     }
     
     /**
@@ -104,7 +102,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void beforeInvocation(Object runner, Object target, FrameworkMethod method, Object... params) {
-        if ((null == method.getAnnotation(Test.class)) && HANDLER.isReportable(method)) {
+        if (HANDLER.isReportable(method)) {
             HANDLER.startTestMethod(method, runner);
         }
     }
@@ -114,7 +112,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void afterInvocation(Object runner, Object target, FrameworkMethod method, Throwable thrown) {
-        if ((null == method.getAnnotation(Test.class)) && HANDLER.isReportable(method)) {
+        if (HANDLER.isReportable(method)) {
             if (thrown != null) {
                 Class<? extends Throwable> expected = None.class;
                 
