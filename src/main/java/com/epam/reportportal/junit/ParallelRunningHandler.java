@@ -30,6 +30,8 @@ import com.epam.ta.reportportal.ws.model.FinishExecutionRQ;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.ParameterResource;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
+import com.epam.reportportal.service.tree.TestItemTree;
+import com.epam.ta.reportportal.ws.model.*;
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
 import com.epam.ta.reportportal.ws.model.issue.Issue;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
@@ -56,6 +58,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Map.Entry;
 
+import static com.epam.reportportal.junit.JUnitProvider.ITEM_TREE;
+import static com.epam.reportportal.junit.JUnitProvider.REPORT_PORTAL;
+import static com.epam.reportportal.junit.utils.ItemTreeUtils.createItemTreeKey;
+import static com.epam.reportportal.junit.utils.ItemTreeUtils.retrieveLeaf;
 import static java.util.Optional.ofNullable;
 import static rp.com.google.common.base.Strings.isNullOrEmpty;
 import static rp.com.google.common.base.Throwables.getStackTraceAsString;
@@ -79,7 +85,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Constructor: Instantiate a parallel running handler
 	 *
-	 * @param suitesKeeper           test collection hierarchy processor
 	 * @param parallelRunningContext test execution context manager
 	 * @param reportPortalService    Report Portal web service client
 	 */
@@ -98,7 +103,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Override
 	public void startLaunch() {
-		launch.get().start();
+		Maybe<String> launchId = launch.get().start();
+		ITEM_TREE.setLaunchId(launchId);
 	}
 
 	/**
@@ -149,11 +155,15 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public void startTestMethod(FrameworkMethod method, Object runner) {
 		StartTestItemRQ rq = buildStartStepRq(method);
 		rq.setParameters(createStepParameters(method, runner));
+		Maybe<String> parentId = context.getItemIdOfTestRunner(runner);
 		getTestCaseId(method, runner, rq.getCodeRef()).ifPresent(entry -> {
 			rq.setTestCaseId(entry.getId());
 			rq.setTestCaseHash(entry.getHash());
 		});
-		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), rq);
+		Maybe<String> itemId = launch.get().startTestItem(parentId, rq);
+		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
+			ITEM_TREE.getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
+		}
 		context.setItemIdOfTestMethod(method, runner, itemId);
 	}
 
@@ -164,7 +174,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public void stopTestMethod(FrameworkMethod method, Object runner) {
 		String status = context.getStatusOfTestMethod(method, runner);
 		FinishTestItemRQ rq = buildFinishStepRq(method, status);
-		launch.get().finishTestItem(context.getItemIdOfTestMethod(method, runner), rq);
+		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(context.getItemIdOfTestMethod(method, runner), rq);
+		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
+			updateTestItemTree(method, finishResponse);
+		}
 	}
 
 	/**
@@ -187,7 +200,17 @@ public class ParallelRunningHandler implements IListenerHandler {
 		});
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(runner), startRQ);
 		FinishTestItemRQ finishRQ = buildFinishStepRq(method, Statuses.SKIPPED);
-		launch.get().finishTestItem(itemId, finishRQ);
+		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(itemId, finishRQ);
+		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
+			updateTestItemTree(method, finishResponse);
+		}
+	}
+
+	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {
+		TestItemTree.TestItemLeaf testItemLeaf = retrieveLeaf(method, ITEM_TREE);
+		if (testItemLeaf != null) {
+			testItemLeaf.setFinishResponse(finishResponse);
+		}
 	}
 
 	/**
