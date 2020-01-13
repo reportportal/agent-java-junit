@@ -42,46 +42,45 @@ import org.junit.runners.model.FrameworkMethod;
  */
 public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher<FrameworkMethod>, MethodWatcher<FrameworkMethod> {
 
-    private static volatile IListenerHandler handler;
+    private static final IListenerHandler HANDLER;
 
     static {
-        handler = JUnitInjectorProvider.getInstance().getInstance(IListenerHandler.class);
-        handler.startLaunch();
+        HANDLER = new ParallelRunningHandler(new ParallelRunningContext());
+        HANDLER.startLaunch();
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void onShutdown() {
-        handler.stopLaunch();
+        HANDLER.stopLaunch();
     }
 
     @Override
     public void runStarted(Object runner) {
-        boolean isSuite = (runner instanceof Suite);
-        handler.startRunner(runner, isSuite);
+        HANDLER.startRunner(runner);
     }
 
     @Override
     public void runFinished(Object runner) {
-        handler.stopRunner(runner);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void testStarted(AtomicTest<FrameworkMethod> atomicTest) {
-        handler.startTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
+        HANDLER.stopRunner(runner);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void testFinished(AtomicTest<FrameworkMethod> atomicTest) {
-        handler.stopTestMethod(atomicTest.getIdentity(), atomicTest.getRunner());
+    public void testStarted(AtomicTest atomicTest) {
+        HANDLER.startTest(atomicTest);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void testFinished(AtomicTest atomicTest) {
+        HANDLER.finishTest(atomicTest);
     }
 
     /**
@@ -99,23 +98,23 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
     public void testAssumptionFailure(AtomicTest<FrameworkMethod> atomicTest, AssumptionViolatedException thrown) {
         reportTestFailure(atomicTest.getIdentity(), atomicTest.getRunner(), thrown);
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void testIgnored(AtomicTest<FrameworkMethod> atomicTest) {
-        handler.handleTestSkip(atomicTest.getIdentity(), atomicTest.getRunner());
+        HANDLER.handleTestSkip(atomicTest);
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void beforeInvocation(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
         // if this is a JUnit configuration method
-        if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
-            handler.startTestMethod(method, runner);
+        if (HANDLER.isReportable(method)) {
+            HANDLER.startTestMethod(method, runner);
         }
     }
 
@@ -125,15 +124,15 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
     @Override
     public void afterInvocation(Object runner, FrameworkMethod method, ReflectiveCallable callable, Throwable thrown) {
         // if this is a JUnit configuration method
-        if ((null == method.getAnnotation(Test.class)) && handler.isReportable(method)) {
+        if (HANDLER.isReportable(method)) {
             // if has exception
             if (thrown != null) {
                 Class<? extends Throwable> expected = None.class;
-                
+
                 // if this is not a class-level configuration method
-                if ((null == method.getAnnotation(BeforeClass.class)) && 
+                if ((null == method.getAnnotation(BeforeClass.class)) &&
                     (null == method.getAnnotation(AfterClass.class))) {
-                    
+
                     AtomicTest<FrameworkMethod> atomicTest = LifecycleHooks.getAtomicTestOf(runner);
                     FrameworkMethod identity = atomicTest.getIdentity();
                     Test annotation = identity.getAnnotation(Test.class);
@@ -141,25 +140,24 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
                         expected = annotation.expected();
                     }
                 }
-                
+
                 if (!expected.isInstance(thrown)) {
                     reportTestFailure(method, runner, thrown);
                 }
             }
 
-            handler.stopTestMethod(method, runner);
+            HANDLER.stopTestMethod(method, runner);
         }
     }
 
     /**
      * Report failure of the indicated "particle" method.
-     * 
-     * @param method {@code FrameworkMethod} object for the "particle" method
-     * @throws RestEndpointIOException is something goes wrong
+     *
+     * @param method {@link FrameworkMethod} object for the "particle" method
      */
     public void reportTestFailure(FrameworkMethod method, Object runner, Throwable thrown) {
-        handler.sendReportPortalMsg(method, runner, thrown);
-        handler.markCurrentTestMethod(method, runner, Statuses.FAILED);
+        HANDLER.sendReportPortalMsg(method, runner, thrown);
+        HANDLER.markCurrentTestMethod(method, runner, Statuses.FAILED);
     }
 
     @Override
