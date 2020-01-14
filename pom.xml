@@ -26,14 +26,14 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.epam.reportportal</groupId>
+            <groupId>com.github.reportportal</groupId>
             <artifactId>client-java</artifactId>
-            <version>5.0.0-BETA-4</version>
+            <version>281e3f8d</version>
         </dependency>
         <dependency>
-            <groupId>com.epam.reportportal</groupId>
+            <groupId>com.github.reportportal</groupId>
             <artifactId>commons-model</artifactId>
-            <version>5.0.0-BETA-11</version>
+            <version>feec39f3</version>
         </dependency>
         <dependency>
             <groupId>com.nordstrom.tools</groupId>
