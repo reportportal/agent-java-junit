@@ -50,8 +50,6 @@ dependencies {
         exclude group: 'commons-beanutils', module: 'commons-beanutils'
     }
     compile 'commons-beanutils:commons-beanutils:1.9.4'
-
-    compile 'com.google.inject:guice:4.1.0'
 }
 ext {
     junitFoundation = configurations.compile.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }

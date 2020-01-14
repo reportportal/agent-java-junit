@@ -32,7 +32,6 @@ import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
 import com.epam.ta.reportportal.ws.model.issue.Issue;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
-import com.google.inject.Inject;
 import com.nordstrom.automation.junit.*;
 import io.reactivex.Maybe;
 import io.reactivex.annotations.Nullable;
