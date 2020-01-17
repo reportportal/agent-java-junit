@@ -525,7 +525,7 @@ public class MyTests {
 *Example:*
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="WARN">
+<Configuration packages="com.epam.ta.reportportal.log4j.appender" status="WARN">
     <Appenders>
         <Console name="ConsoleAppender" target="SYSTEM_OUT">
             <PatternLayout
