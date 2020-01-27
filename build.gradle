@@ -18,29 +18,25 @@ plugins {
     id 'java'
 }
 
-apply from: 'https://raw.githubusercontent.com/reportportal/gradle-scripts/master/build-quality.gradle'
-apply from: 'https://raw.githubusercontent.com/reportportal/gradle-scripts/master/release-commons.gradle'
+project.ext.releaseMode = project.hasProperty('releaseMode')
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+def branch = releaseMode ? '5.0.0' : 'develop'
+apply from: "https://raw.githubusercontent.com/reportportal/gradle-scripts/$branch/build-quality.gradle"
+apply from: "https://raw.githubusercontent.com/reportportal/gradle-scripts/$branch/release-commons.gradle"
 
-project.ext {
-    releaseMode = project.hasProperty('releaseMode')
-}
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
     mavenLocal()
     mavenCentral()
     jcenter()
-    maven { url "http://dl.bintray.com/epam/reportportal" }
-    if (!releaseMode) {
-        maven { url 'https://jitpack.io' }
-    }
+    releaseMode ? maven { url "http://dl.bintray.com/epam/reportportal" } : maven { url 'https://jitpack.io' }
 }
 dependencies {
     if (releaseMode) {
-        compile 'com.epam.reportportal:client-java:5.0.0-BETA-4'
-        compile 'com.epam.reportportal:commons-model:5.0.0-BETA-11'
+        compile 'com.epam.reportportal:client-java:5.0.0-BETA-7'
+        compile 'com.epam.reportportal:commons-model:5.0.0'
     } else {
         compile 'com.github.reportportal:client-java:281e3f8d'
         compile 'com.github.reportportal:commons-model:feec39f3'
@@ -65,3 +61,5 @@ test {
 wrapper {
     gradleVersion = '5.4.1'
 }
+
+afterReleaseBuild.dependsOn bintrayUpload
