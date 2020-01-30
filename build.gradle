@@ -35,14 +35,14 @@ repositories {
 }
 dependencies {
     if (releaseMode) {
-        compile 'com.epam.reportportal:client-java:5.0.0-BETA-7'
+        compile 'com.epam.reportportal:client-java:5.0.0-BETA-8'
         compile 'com.epam.reportportal:commons-model:5.0.0'
     } else {
-        compile 'com.github.reportportal:client-java:281e3f8d'
-        compile 'com.github.reportportal:commons-model:feec39f3'
+        compile 'com.github.reportportal:client-java:8934ff9'
+        compile 'com.github.reportportal:commons-model:e608d19'
     }
 
-    compile('com.nordstrom.tools:junit-foundation:11.0.1') {
+    compile('com.nordstrom.tools:junit-foundation:11.0.2') {
         exclude group: 'commons-beanutils', module: 'commons-beanutils'
     }
     compile 'commons-beanutils:commons-beanutils:1.9.4'

@@ -28,12 +28,12 @@
         <dependency>
             <groupId>com.github.reportportal</groupId>
             <artifactId>client-java</artifactId>
-            <version>281e3f8d</version>
+            <version>8934ff9</version>
         </dependency>
         <dependency>
             <groupId>com.github.reportportal</groupId>
             <artifactId>commons-model</artifactId>
-            <version>feec39f3</version>
+            <version>e608d19</version>
         </dependency>
         <dependency>
             <groupId>com.nordstrom.tools</groupId>
