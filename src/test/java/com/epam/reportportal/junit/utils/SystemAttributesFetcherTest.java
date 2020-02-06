@@ -18,7 +18,7 @@ import static org.junit.Assert.*;
  */
 public class SystemAttributesFetcherTest {
 
-	private static List<String> expectedKeys = Lists.newArrayList("os", "agent", "skippedIssue");
+	private static List<String> expectedKeys = Lists.newArrayList("jvm", "os", "agent", "skippedIssue");
 
 	@Test
 	public void systemAttributesFetchingTest() {
