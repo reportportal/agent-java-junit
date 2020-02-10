@@ -46,6 +46,7 @@ dependencies {
         exclude group: 'commons-beanutils', module: 'commons-beanutils'
     }
     compile 'commons-beanutils:commons-beanutils:1.9.4'
+    testCompile 'org.mockito:mockito-core:3.2.4'
 }
 ext {
     junitFoundation = configurations.compile.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
