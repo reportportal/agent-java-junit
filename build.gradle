@@ -38,7 +38,7 @@ dependencies {
         compile 'com.epam.reportportal:client-java:5.0.0-BETA-8'
         compile 'com.epam.reportportal:commons-model:5.0.0'
     } else {
-        compile 'com.github.reportportal:client-java:8934ff9'
+        compile 'com.github.reportportal:client-java:2689300'
         compile 'com.github.reportportal:commons-model:e608d19'
     }
 
@@ -46,9 +46,15 @@ dependencies {
         exclude group: 'commons-beanutils', module: 'commons-beanutils'
     }
     compile 'commons-beanutils:commons-beanutils:1.9.4'
+    testCompile 'org.mockito:mockito-core:3.2.4'
 }
 ext {
     junitFoundation = configurations.compile.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
+}
+processResources {
+    filesMatching('agent.properties') {
+        expand(project.properties)
+    }
 }
 test.doFirst {
     jvmArgs "-javaagent:${junitFoundation.file}"

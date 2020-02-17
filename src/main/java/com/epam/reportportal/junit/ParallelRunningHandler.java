@@ -19,6 +19,7 @@ import com.epam.reportportal.annotations.TestCaseId;
 import com.epam.reportportal.annotations.TestCaseIdKey;
 import com.epam.reportportal.annotations.UniqueID;
 import com.epam.reportportal.annotations.attribute.Attributes;
+import com.epam.reportportal.junit.utils.SystemAttributesFetcher;
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.Statuses;
 import com.epam.reportportal.service.Launch;
@@ -69,8 +70,6 @@ import static rp.com.google.common.base.Throwables.getStackTraceAsString;
 public class ParallelRunningHandler implements IListenerHandler {
 
 	public static final ReportPortal REPORT_PORTAL = ReportPortal.builder().build();
-
-	private static final String SKIPPED_ISSUE_KEY = "skippedIssue";
 
 	private ParallelRunningContext context;
 	private MemoizingSupplier<Launch> launch;
@@ -311,13 +310,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setAttributes(parameters.getAttributes());
 		rq.setMode(parameters.getLaunchRunningMode());
-
-		Boolean skippedAnIssue = parameters.getSkippedAnIssue();
-		ItemAttributesRQ skippedIssueAttr = new ItemAttributesRQ();
-		skippedIssueAttr.setKey(SKIPPED_ISSUE_KEY);
-		skippedIssueAttr.setValue(skippedAnIssue == null ? "true" : skippedAnIssue.toString());
-		skippedIssueAttr.setSystem(true);
-		rq.getAttributes().add(skippedIssueAttr);
+		rq.getAttributes().addAll(SystemAttributesFetcher.collectSystemAttributes(parameters.getSkippedAnIssue()));
 
 		rq.setRerun(parameters.isRerun());
 		if (!isNullOrEmpty(parameters.getRerunOf())) {
