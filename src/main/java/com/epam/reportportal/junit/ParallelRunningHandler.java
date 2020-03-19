@@ -440,7 +440,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	protected TestCaseIdEntry getTestCaseId(Method method, Object target, String codeRef) {
 		if (target instanceof ArtifactParams) {
 			com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
-			if (params.isPresent()) {
+			boolean isParametrizedMethod = ofNullable(method.getDeclaredAnnotation(TestCaseId.class)).map(TestCaseId::parametrized)
+					.orElse(true);
+			if (params.isPresent() && isParametrizedMethod) {
 				return Arrays.stream(target.getClass().getDeclaredFields())
 						.filter(field -> params.get().containsKey(field.getName())
 								&& field.getDeclaredAnnotation(TestCaseIdKey.class) != null)
@@ -451,13 +453,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 								params.get().get(testCaseIdField.getName())
 						))
 						.orElseGet(() -> new TestCaseIdEntry(codeRef));
-			} else {
-				return new TestCaseIdEntry(codeRef);
 			}
-		} else {
-			return ofNullable(method.getDeclaredAnnotation(TestCaseId.class)).flatMap(annotation -> Optional.of(annotation.value())
-					.map(TestCaseIdEntry::new)).orElseGet(() -> new TestCaseIdEntry(codeRef));
 		}
+		return ofNullable(method.getDeclaredAnnotation(TestCaseId.class)).flatMap(annotation -> Optional.of(annotation.value())
+				.map(TestCaseIdEntry::new)).orElseGet(() -> new TestCaseIdEntry(codeRef));
 
 	}
 
