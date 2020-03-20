@@ -443,21 +443,20 @@ public class ParallelRunningHandler implements IListenerHandler {
 			boolean isParametrizedMethod = ofNullable(method.getDeclaredAnnotation(TestCaseId.class)).map(TestCaseId::parametrized)
 					.orElse(true);
 			if (params.isPresent() && isParametrizedMethod) {
-				return Arrays.stream(target.getClass().getDeclaredFields())
-						.filter(field -> params.get().containsKey(field.getName())
-								&& field.getDeclaredAnnotation(TestCaseIdKey.class) != null)
-						.findFirst()
-						.flatMap(testCaseIdField -> retrieveTestCaseId(target,
-								testCaseIdField,
-								codeRef,
-								params.get().get(testCaseIdField.getName())
-						))
-						.orElseGet(() -> new TestCaseIdEntry(codeRef));
+				return retrieveParametrizedTestCaseId(target, params.get(), codeRef);
 			}
 		}
 		return ofNullable(method.getDeclaredAnnotation(TestCaseId.class)).flatMap(annotation -> Optional.of(annotation.value())
 				.map(TestCaseIdEntry::new)).orElseGet(() -> new TestCaseIdEntry(codeRef));
 
+	}
+
+	protected TestCaseIdEntry retrieveParametrizedTestCaseId(Object target, Map<String, Object> params, String codeRef) {
+		return Arrays.stream(target.getClass().getDeclaredFields())
+				.filter(field -> params.containsKey(field.getName()) && field.getDeclaredAnnotation(TestCaseIdKey.class) != null)
+				.findFirst()
+				.flatMap(testCaseIdField -> retrieveTestCaseId(target, testCaseIdField, codeRef, params.get(testCaseIdField.getName())))
+				.orElseGet(() -> new TestCaseIdEntry(codeRef));
 	}
 
 	/**

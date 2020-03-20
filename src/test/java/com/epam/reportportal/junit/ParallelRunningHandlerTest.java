@@ -100,6 +100,34 @@ public class ParallelRunningHandlerTest {
 		assertEquals(codeRef, testCaseId.getId());
 	}
 
+	@Test
+	public void retrieveParametrizedTestCaseIdTestWithKey() {
+
+		DummyTest dummyTest = new DummyTest();
+		String codeRef = "simpleCodeRef";
+
+		TestCaseIdEntry testCaseId = parallelRunningHandler.retrieveParametrizedTestCaseId(dummyTest,
+				dummyTest.getParameters().get(),
+				codeRef
+		);
+
+		assertEquals("I am test id", testCaseId.getId());
+	}
+
+	@Test
+	public void retrieveParametrizedTestCaseIdTestWithoutKey() {
+
+		DummyTestWithoutKey dummyTestWithoutKey = new DummyTestWithoutKey();
+		String codeRef = "simpleCodeRef";
+
+		TestCaseIdEntry testCaseId = parallelRunningHandler.retrieveParametrizedTestCaseId(dummyTestWithoutKey,
+				dummyTestWithoutKey.getParameters().get(),
+				codeRef
+		);
+
+		assertEquals(codeRef, testCaseId.getId());
+	}
+
 	@TestCaseId(value = "testId")
 	public void methodForTesting() {
 
