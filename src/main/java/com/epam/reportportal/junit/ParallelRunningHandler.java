@@ -83,7 +83,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public ParallelRunningHandler(final ParallelRunningContext parallelRunningContext) {
 
 		context = parallelRunningContext;
-		launch = new MemoizingSupplier<>(() -> {
+		launch = createLaunch();
+	}
+
+	protected MemoizingSupplier<Launch> createLaunch() {
+		return new MemoizingSupplier<>(() -> {
 			final ReportPortal reportPortal = ReportPortal.builder().build();
 			StartLaunchRQ rq = buildStartLaunchRq(reportPortal.getParameters());
 			return reportPortal.newLaunch(rq);
@@ -159,7 +163,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 		Maybe<String> parentId;
 		Maybe<String> itemId;
-		AtomicTest test = LifecycleHooks.getAtomicTestOf(runner);
+		AtomicTest test = getAtomicTest(runner);
 		if (test == null || MethodType.AFTER_CLASS.equals(MethodType.detect(method))) {
 			// BeforeClass and AfterClass run independently in JUnit
 			parentId = context.getItemIdOfTestRunner(runner);
@@ -173,6 +177,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 			ITEM_TREE.getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
 		}
 		context.setItemIdOfTestMethod(method, runner, itemId);
+	}
+
+	protected AtomicTest getAtomicTest(Object runner) {
+		return LifecycleHooks.getAtomicTestOf(runner);
 	}
 
 	/**
@@ -433,7 +441,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	protected TestCaseIdEntry getTestCaseId(FrameworkMethod method, Object runner, String codeRef) {
-		Object target = LifecycleHooks.getTargetForRunner(runner);
+		Object target = getTargetForRunner(runner);
 		return getTestCaseId(method.getMethod(), target, codeRef);
 	}
 
@@ -490,7 +498,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	private List<ParameterResource> createMethodParameters(FrameworkMethod method, Object runner) {
 		List<ParameterResource> result = new ArrayList<>();
 		if (!(method.isStatic() || isIgnored(method))) {
-			Object target = LifecycleHooks.getTargetForRunner(runner);
+			Object target = getTargetForRunner(runner);
 			if (target instanceof ArtifactParams) {
 				com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
 				if (params.isPresent()) {
@@ -504,6 +512,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 			}
 		}
 		return result;
+	}
+
+	protected Object getTargetForRunner(Object runner) {
+		return LifecycleHooks.getTargetForRunner(runner);
 	}
 
 	/**

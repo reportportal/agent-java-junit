@@ -133,7 +133,7 @@ public class ParallelRunningHandlerTest {
 
 	}
 
-	public class DummyTest implements ArtifactParams {
+	public static class DummyTest implements ArtifactParams {
 
 		@TestCaseIdKey
 		private String testId = "I am test id";
@@ -149,9 +149,14 @@ public class ParallelRunningHandlerTest {
 			map.put("testId", testId);
 			return Optional.of(map);
 		}
+
+		@Test
+		public void method() {
+
+		}
 	}
 
-	public class DummyTestWithoutKey implements ArtifactParams {
+	public static class DummyTestWithoutKey implements ArtifactParams {
 
 		private String testId = "I am test id";
 
@@ -165,6 +170,11 @@ public class ParallelRunningHandlerTest {
 			Map<String, Object> map = new HashMap<>();
 			map.put("testId", testId);
 			return Optional.of(map);
+		}
+
+		@Test
+		public void method() {
+
 		}
 	}
 }
