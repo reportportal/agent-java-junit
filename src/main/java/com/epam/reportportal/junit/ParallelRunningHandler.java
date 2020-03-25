@@ -19,6 +19,7 @@ import com.epam.reportportal.annotations.TestCaseId;
 import com.epam.reportportal.annotations.TestCaseIdKey;
 import com.epam.reportportal.annotations.UniqueID;
 import com.epam.reportportal.annotations.attribute.Attributes;
+import com.epam.reportportal.aspect.StepAspect;
 import com.epam.reportportal.junit.utils.SystemAttributesFetcher;
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.Statuses;
@@ -100,6 +101,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void startLaunch() {
 		Maybe<String> launchId = launch.get().start();
+		StepAspect.addLaunch("default", this.launch.get());
 		ITEM_TREE.setLaunchId(launchId);
 	}
 
@@ -128,6 +130,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 			itemId = launch.get().startTestItem(containerId, rq);
 		}
 		context.setTestIdOfTestRunner(runner, itemId);
+		StepAspect.setParentId(itemId);
 	}
 
 	/**
@@ -144,6 +147,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		StartTestItemRQ rq = buildStartTestItemRq(testContext);
 		Maybe<String> testID = launch.get().startTestItem(context.getItemIdOfTestRunner(testContext.getRunner()), rq);
 		context.setTestIdOfTest(testContext, testID);
+		StepAspect.setParentId(testID);
 	}
 
 	@Override
@@ -177,6 +181,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 			ITEM_TREE.getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
 		}
 		context.setItemIdOfTestMethod(method, runner, itemId);
+		StepAspect.setParentId(itemId);
 	}
 
 	protected AtomicTest getAtomicTest(Object runner) {
@@ -217,6 +222,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
 			updateTestItemTree(testContext.getIdentity(), finishResponse);
 		}
+		StepAspect.setParentId(itemId);
 	}
 
 	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {

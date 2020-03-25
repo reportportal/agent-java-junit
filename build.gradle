@@ -46,6 +46,8 @@ dependencies {
         exclude group: 'commons-beanutils', module: 'commons-beanutils'
     }
     compile 'commons-beanutils:commons-beanutils:1.9.4'
+
+    testCompile "org.aspectj:aspectjweaver:1.9.2"
     testCompile 'org.mockito:mockito-core:3.2.4'
 }
 ext {
@@ -57,7 +59,9 @@ processResources {
     }
 }
 test.doFirst {
-    jvmArgs "-javaagent:${junitFoundation.file}"
+    def weaver = configurations.compile.find { it.name.contains("aspectjweaver") }
+    jvmArgs += "-javaagent:$weaver"
+    jvmArgs += "-javaagent:${junitFoundation.file}"
 }
 test {
 //  debug true
