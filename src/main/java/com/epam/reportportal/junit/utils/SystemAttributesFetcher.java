@@ -26,7 +26,9 @@ public class SystemAttributesFetcher {
 	}
 
 	public static Set<ItemAttributesRQ> collectSystemAttributes(Boolean skippedAnIssue) {
-		Set<ItemAttributesRQ> systemAttributes = SystemAttributesExtractor.extract(PROPS_FILE);
+		Set<ItemAttributesRQ> systemAttributes = SystemAttributesExtractor.extract(PROPS_FILE,
+				SystemAttributesFetcher.class.getClassLoader()
+		);
 		systemAttributes.add(skippedIssue(skippedAnIssue));
 		return systemAttributes;
 	}
