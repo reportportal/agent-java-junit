@@ -19,6 +19,7 @@ import com.epam.reportportal.annotations.TestCaseId;
 import com.epam.reportportal.annotations.TestCaseIdKey;
 import com.epam.reportportal.annotations.UniqueID;
 import com.epam.reportportal.annotations.attribute.Attributes;
+import com.epam.reportportal.aspect.StepAspect;
 import com.epam.reportportal.junit.utils.SystemAttributesFetcher;
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.Statuses;
@@ -49,6 +50,7 @@ import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -82,7 +84,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public ParallelRunningHandler(final ParallelRunningContext parallelRunningContext) {
 
 		context = parallelRunningContext;
-		launch = new MemoizingSupplier<>(() -> {
+		launch = createLaunch();
+	}
+
+	protected MemoizingSupplier<Launch> createLaunch() {
+		return new MemoizingSupplier<>(() -> {
 			final ReportPortal reportPortal = ReportPortal.builder().build();
 			StartLaunchRQ rq = buildStartLaunchRq(reportPortal.getParameters());
 			return reportPortal.newLaunch(rq);
@@ -95,6 +101,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void startLaunch() {
 		Maybe<String> launchId = launch.get().start();
+		StepAspect.addLaunch("default", this.launch.get());
 		ITEM_TREE.setLaunchId(launchId);
 	}
 
@@ -123,6 +130,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 			itemId = launch.get().startTestItem(containerId, rq);
 		}
 		context.setTestIdOfTestRunner(runner, itemId);
+		StepAspect.setParentId(itemId);
 	}
 
 	/**
@@ -139,6 +147,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		StartTestItemRQ rq = buildStartTestItemRq(testContext);
 		Maybe<String> testID = launch.get().startTestItem(context.getItemIdOfTestRunner(testContext.getRunner()), rq);
 		context.setTestIdOfTest(testContext, testID);
+		StepAspect.setParentId(testID);
 	}
 
 	@Override
@@ -154,15 +163,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public void startTestMethod(FrameworkMethod method, Object runner) {
 		StartTestItemRQ rq = buildStartStepRq(method);
 		rq.setParameters(createStepParameters(method, runner));
-
-		getTestCaseId(method, runner, rq.getCodeRef()).ifPresent(entry -> {
-			rq.setTestCaseId(entry.getId());
-			rq.setTestCaseHash(entry.getHash());
-		});
+		rq.setTestCaseId(getTestCaseId(method, runner, rq.getCodeRef()).getId());
 
 		Maybe<String> parentId;
 		Maybe<String> itemId;
-		AtomicTest test = LifecycleHooks.getAtomicTestOf(runner);
+		AtomicTest test = getAtomicTest(runner);
 		if (test == null || MethodType.AFTER_CLASS.equals(MethodType.detect(method))) {
 			// BeforeClass and AfterClass run independently in JUnit
 			parentId = context.getItemIdOfTestRunner(runner);
@@ -176,6 +181,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 			ITEM_TREE.getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
 		}
 		context.setItemIdOfTestMethod(method, runner, itemId);
+		StepAspect.setParentId(itemId);
+	}
+
+	protected AtomicTest getAtomicTest(Object runner) {
+		return LifecycleHooks.getAtomicTestOf(runner);
 	}
 
 	/**
@@ -205,16 +215,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void handleTestSkip(AtomicTest<FrameworkMethod> testContext) {
 		StartTestItemRQ startRQ = buildStartStepRq(testContext.getIdentity());
-		getTestCaseId(testContext.getIdentity(), testContext.getRunner(), startRQ.getCodeRef()).ifPresent(entry -> {
-			startRQ.setTestCaseId(entry.getId());
-			startRQ.setTestCaseHash(entry.getHash());
-		});
+		startRQ.setTestCaseId(getTestCaseId(testContext.getIdentity(), testContext.getRunner(), startRQ.getCodeRef()).getId());
 		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(testContext.getRunner()), startRQ);
 		FinishTestItemRQ finishRQ = buildFinishStepRq(testContext.getIdentity(), Statuses.SKIPPED);
 		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(itemId, finishRQ);
 		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
 			updateTestItemTree(testContext.getIdentity(), finishResponse);
 		}
+		StepAspect.setParentId(itemId);
 	}
 
 	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {
@@ -438,31 +446,31 @@ public class ParallelRunningHandler implements IListenerHandler {
 		return parameters.isEmpty() ? null : parameters;
 	}
 
-	protected Optional<TestCaseIdEntry> getTestCaseId(FrameworkMethod method, Object runner, String codeRef) {
-		if (!(method.isStatic() || isIgnored(method))) {
-			Object target = LifecycleHooks.getTargetForRunner(runner);
-			return ofNullable(method.getMethod().getDeclaredAnnotation(TestCaseId.class)).flatMap(annotation -> {
-				if (annotation.parametrized() && target instanceof ArtifactParams) {
-					return getParameterizedTestCaseId(target, codeRef);
-				} else {
-					return Optional.of(annotation.value()).map(value -> new TestCaseIdEntry(value, value.hashCode()));
-				}
-			});
-
-		}
-		return Optional.of(new TestCaseIdEntry(codeRef, Objects.hashCode(codeRef)));
+	protected TestCaseIdEntry getTestCaseId(FrameworkMethod method, Object runner, String codeRef) {
+		Object target = getTargetForRunner(runner);
+		return getTestCaseId(method.getMethod(), target, codeRef);
 	}
 
-	protected Optional<TestCaseIdEntry> getParameterizedTestCaseId(Object target, String codeRef) {
-
-		com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
-		if (params.isPresent()) {
-			return Arrays.stream(target.getClass().getDeclaredFields())
-					.filter(field -> params.get().containsKey(field.getName()) && field.getDeclaredAnnotation(TestCaseIdKey.class) != null)
-					.findFirst()
-					.map(testCaseIdField -> retrieveTestCaseId(target, testCaseIdField, codeRef, params.get().values().toArray()));
+	protected TestCaseIdEntry getTestCaseId(Method method, Object target, String codeRef) {
+		if (target instanceof ArtifactParams) {
+			com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
+			boolean isParametrizedMethod = ofNullable(method.getDeclaredAnnotation(TestCaseId.class)).map(TestCaseId::parametrized)
+					.orElse(true);
+			if (params.isPresent() && isParametrizedMethod) {
+				return retrieveParametrizedTestCaseId(target, params.get(), codeRef);
+			}
 		}
-		return Optional.empty();
+		return ofNullable(method.getDeclaredAnnotation(TestCaseId.class)).flatMap(annotation -> Optional.of(annotation.value())
+				.map(TestCaseIdEntry::new)).orElseGet(() -> new TestCaseIdEntry(codeRef));
+
+	}
+
+	protected TestCaseIdEntry retrieveParametrizedTestCaseId(Object target, Map<String, Object> params, String codeRef) {
+		return Arrays.stream(target.getClass().getDeclaredFields())
+				.filter(field -> params.containsKey(field.getName()) && field.getDeclaredAnnotation(TestCaseIdKey.class) != null)
+				.findFirst()
+				.flatMap(testCaseIdField -> retrieveTestCaseId(target, testCaseIdField, codeRef, params.get(testCaseIdField.getName())))
+				.orElseGet(() -> new TestCaseIdEntry(codeRef));
 	}
 
 	/**
@@ -472,14 +480,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param arguments       Arguments of the parametrized test
 	 * @return {@link TestCaseIdEntry}
 	 */
-	private TestCaseIdEntry retrieveTestCaseId(Object target, Field testCaseIdField, String codeRef, Object[] arguments) {
+	private Optional<TestCaseIdEntry> retrieveTestCaseId(Object target, Field testCaseIdField, String codeRef, Object... arguments) {
 		try {
 			Object testCaseId = Accessible.on(target).field(testCaseIdField).getValue();
-			return new TestCaseIdEntry(String.valueOf(testCaseId), Objects.hashCode(testCaseId));
+			return Optional.of(new TestCaseIdEntry(String.valueOf(testCaseId)));
 		} catch (IllegalAccessError e) {
 			//do nothing
 		}
-		return new TestCaseIdEntry(codeRef, Objects.hashCode(codeRef));
+		return Optional.empty();
 	}
 
 	/**
@@ -496,7 +504,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	private List<ParameterResource> createMethodParameters(FrameworkMethod method, Object runner) {
 		List<ParameterResource> result = new ArrayList<>();
 		if (!(method.isStatic() || isIgnored(method))) {
-			Object target = LifecycleHooks.getTargetForRunner(runner);
+			Object target = getTargetForRunner(runner);
 			if (target instanceof ArtifactParams) {
 				com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
 				if (params.isPresent()) {
@@ -510,6 +518,10 @@ public class ParallelRunningHandler implements IListenerHandler {
 			}
 		}
 		return result;
+	}
+
+	protected Object getTargetForRunner(Object runner) {
+		return LifecycleHooks.getTargetForRunner(runner);
 	}
 
 	/**

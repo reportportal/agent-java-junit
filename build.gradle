@@ -38,11 +38,12 @@ dependencies {
         compile 'com.epam.reportportal:client-java:5.0.0-BETA-8'
         compile 'com.epam.reportportal:commons-model:5.0.0'
     } else {
-        compile 'com.github.reportportal:client-java:2689300'
+        compile 'com.github.reportportal:client-java:493a382b'
         compile 'com.github.reportportal:commons-model:e608d19'
     }
 
     compile 'com.nordstrom.tools:junit-foundation:11.2.0'
+    testCompile "org.aspectj:aspectjweaver:1.9.2"
     testCompile 'org.mockito:mockito-core:3.2.4'
 }
 ext {
@@ -54,7 +55,9 @@ processResources {
     }
 }
 test.doFirst {
-    jvmArgs "-javaagent:${junitFoundation.file}"
+    def weaver = configurations.compile.find { it.name.contains("aspectjweaver") }
+    jvmArgs += "-javaagent:$weaver"
+    jvmArgs += "-javaagent:${junitFoundation.file}"
 }
 test {
 //  debug true
