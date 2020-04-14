@@ -54,14 +54,14 @@ public interface IListenerHandler {
 	 *
 	 * @param test {@link FrameworkMethod} object for test
 	 */
-	void startTest(AtomicTest test);
+	void startTest(AtomicTest<FrameworkMethod> test);
 
 	/**
 	 * Send a <b>finish test item</b> request for the indicated test to Report Portal.
 	 *
 	 * @param test {@link FrameworkMethod} object for test
 	 */
-	void finishTest(AtomicTest test);
+	void finishTest(AtomicTest<FrameworkMethod> test);
 
 	/**
 	 * Send a <b>start test item</b> request for the indicated test method to Report Portal.

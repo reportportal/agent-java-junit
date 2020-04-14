@@ -16,6 +16,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.Description;
 import org.junit.runner.RunWith;
+import org.junit.runners.model.FrameworkMethod;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -26,7 +27,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * @author <a href="mailto:ihar_kahadouski@epam.com">Ihar Kahadouski</a>
@@ -66,7 +66,8 @@ public class ParallelRunningHandlerTest {
 
 		Method methodForTesting = this.getClass().getDeclaredMethod("methodForTesting");
 
-		AtomicTest test = mock(AtomicTest.class);
+		@SuppressWarnings("unchecked")
+		AtomicTest<FrameworkMethod> test = mock(AtomicTest.class);
 		String codeRef = "simpleCodeRef";
 
 		TestCaseIdEntry testCaseId = parallelRunningHandler.getTestCaseId(methodForTesting, test, codeRef);

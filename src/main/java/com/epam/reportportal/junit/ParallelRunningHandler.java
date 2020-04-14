@@ -143,7 +143,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	@Override
-	public void startTest(AtomicTest testContext) {
+	public void startTest(AtomicTest<FrameworkMethod> testContext) {
 		StartTestItemRQ rq = buildStartTestItemRq(testContext);
 		Maybe<String> testID = launch.get().startTestItem(context.getItemIdOfTestRunner(testContext.getRunner()), rq);
 		context.setTestIdOfTest(testContext, testID);
@@ -151,7 +151,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	@Override
-	public void finishTest(AtomicTest testContext) {
+	public void finishTest(AtomicTest<FrameworkMethod> testContext) {
 		FinishTestItemRQ rq = buildFinishTestRq(testContext);
 		launch.get().finishTestItem(context.getItemIdOfTest(testContext), rq);
 	}
@@ -167,7 +167,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 		Maybe<String> parentId;
 		Maybe<String> itemId;
-		AtomicTest test = getAtomicTest(runner);
+		AtomicTest<FrameworkMethod> test = getAtomicTest(runner);
 		if (test == null || MethodType.AFTER_CLASS.equals(MethodType.detect(method))) {
 			// BeforeClass and AfterClass run independently in JUnit
 			parentId = context.getItemIdOfTestRunner(runner);
@@ -184,7 +184,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		StepAspect.setParentId(itemId);
 	}
 
-	protected AtomicTest getAtomicTest(Object runner) {
+	protected AtomicTest<FrameworkMethod> getAtomicTest(Object runner) {
 		return LifecycleHooks.getAtomicTestOf(runner);
 	}
 
@@ -352,7 +352,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param test JUnit test context
 	 * @return Request to ReportPortal
 	 */
-	protected StartTestItemRQ buildStartTestItemRq(AtomicTest test) {
+	protected StartTestItemRQ buildStartTestItemRq(AtomicTest<FrameworkMethod> test) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(test.getDescription().getDisplayName());
 		rq.setCodeRef(getCodeRef(test.getRunner()));
@@ -401,7 +401,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return Request to ReportPortal
 	 */
 	@SuppressWarnings("squid:S4144")
-	protected FinishTestItemRQ buildFinishTestRq(AtomicTest testContext) {
+	protected FinishTestItemRQ buildFinishTestRq(AtomicTest<FrameworkMethod> testContext) {
 		FinishTestItemRQ rq = buildFinishTestItemRq();
 		String status = testContext.getThrowable() == null ? Statuses.PASSED : Statuses.FAILED;
 		rq.setStatus(status);

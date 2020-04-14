@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.tree.TestItemTree;
 import com.nordstrom.automation.junit.AtomicTest;
 import org.junit.runners.model.FrameworkMethod;
@@ -37,7 +36,7 @@ public class ParallelRunningContext {
 	private final Map<Object, Maybe<String>> itemIdOfTestRunner;
 
 	/** {@code AtomicTest} object => RP test item ID */
-	private final Map<AtomicTest, Maybe<String>> itemIdOfTests;
+	private final Map<AtomicTest<FrameworkMethod>, Maybe<String>> itemIdOfTests;
 	
 	/** hash of runner/method pair => RP test item ID */
 	private final Map<Integer, Maybe<String>> itemIdOfTestMethod;
@@ -78,7 +77,7 @@ public class ParallelRunningContext {
 	 * @param test JUnit test
 	 * @param itemId Report Portal test item ID for container object
 	 */
-	public void setTestIdOfTest(AtomicTest test, Maybe<String> itemId) {
+	public void setTestIdOfTest(AtomicTest<FrameworkMethod> test, Maybe<String> itemId) {
 		itemIdOfTests.put(test, itemId);
 	}
 
@@ -88,7 +87,7 @@ public class ParallelRunningContext {
 	 * @param test JUnit test
 	 * @return Report Portal test item ID for container object
 	 */
-	public Maybe<String> getItemIdOfTest(AtomicTest test) {
+	public Maybe<String> getItemIdOfTest(AtomicTest<FrameworkMethod> test) {
 		return itemIdOfTests.get(test);
 	}
 

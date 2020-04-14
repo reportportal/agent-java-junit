@@ -26,7 +26,8 @@ public class TestCaseIdTest {
 	private final ThreadLocal<Object> runner = new ThreadLocal<>();
 	private final ThreadLocal<Object> target = new ThreadLocal<>();
 
-	private final AtomicTest atomicTest = mock(AtomicTest.class);
+	@SuppressWarnings("unchecked")
+	private final AtomicTest<FrameworkMethod> atomicTest = mock(AtomicTest.class);
 
 	private TestCaseIdParallelRunningHandler parallelRunningHandler;
 
@@ -52,7 +53,7 @@ public class TestCaseIdTest {
 		}
 
 		@Override
-		protected AtomicTest getAtomicTest(Object runner) {
+		protected AtomicTest<FrameworkMethod> getAtomicTest(Object runner) {
 			return atomicTest;
 		}
 	}
@@ -131,8 +132,6 @@ public class TestCaseIdTest {
 
 		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 
-		AtomicTest<FrameworkMethod> atomicTest = mock(AtomicTest.class);
-
 		when(atomicTest.getIdentity()).thenReturn(frameworkMethod);
 
 		parallelRunningHandler.handleTestSkip(atomicTest);
@@ -154,8 +153,6 @@ public class TestCaseIdTest {
 		FrameworkMethod parametrizedFrameworkMethod = new FrameworkMethod(ParallelRunningHandlerTest.DummyTest.class.getDeclaredMethod(
 				"method"));
 
-		AtomicTest<FrameworkMethod> atomicTest = mock(AtomicTest.class);
-
 		when(atomicTest.getIdentity()).thenReturn(parametrizedFrameworkMethod);
 
 		parallelRunningHandler.handleTestSkip(atomicTest);
@@ -176,8 +173,6 @@ public class TestCaseIdTest {
 
 		FrameworkMethod parametrizedFrameworkMethod = new FrameworkMethod(ParallelRunningHandlerTest.DummyTest.class.getDeclaredMethod(
 				"method"));
-
-		AtomicTest<FrameworkMethod> atomicTest = mock(AtomicTest.class);
 
 		when(atomicTest.getIdentity()).thenReturn(parametrizedFrameworkMethod);
 

@@ -29,7 +29,6 @@ import org.junit.Test;
 import org.junit.Test.None;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.internal.runners.model.ReflectiveCallable;
-import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
 
 /**
@@ -71,7 +70,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void testStarted(AtomicTest atomicTest) {
+    public void testStarted(AtomicTest<FrameworkMethod> atomicTest) {
         HANDLER.startTest(atomicTest);
     }
 
@@ -79,7 +78,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * {@inheritDoc}
      */
     @Override
-    public void testFinished(AtomicTest atomicTest) {
+    public void testFinished(AtomicTest<FrameworkMethod> atomicTest) {
         HANDLER.finishTest(atomicTest);
     }
 
@@ -154,6 +153,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      * Report failure of the indicated "particle" method.
      *
      * @param method {@link FrameworkMethod} object for the "particle" method
+     * @param runner JUnit test runner
+     * @param thrown exception thrown by method
      */
     public void reportTestFailure(FrameworkMethod method, Object runner, Throwable thrown) {
         HANDLER.sendReportPortalMsg(method, runner, thrown);

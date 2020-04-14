@@ -32,7 +32,8 @@ public class NestedStepsTest {
 	private final ThreadLocal<Object> runner = new ThreadLocal<>();
 	private final ThreadLocal<Object> target = new ThreadLocal<>();
 
-	private final AtomicTest atomicTest = mock(AtomicTest.class);
+	@SuppressWarnings("unchecked")
+	private final AtomicTest<FrameworkMethod> atomicTest = mock(AtomicTest.class);
 
 	private NestedStepsTest.NestedStepsParallelRunningHandler parallelRunningHandler;
 
@@ -58,7 +59,7 @@ public class NestedStepsTest {
 		}
 
 		@Override
-		protected AtomicTest getAtomicTest(Object runner) {
+		protected AtomicTest<FrameworkMethod> getAtomicTest(Object runner) {
 			return atomicTest;
 		}
 
