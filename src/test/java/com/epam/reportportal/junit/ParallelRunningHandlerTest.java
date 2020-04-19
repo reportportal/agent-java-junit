@@ -9,10 +9,12 @@ import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.nordstrom.automation.junit.ArtifactParams;
+import com.nordstrom.automation.junit.AtomIdentity;
 import com.nordstrom.automation.junit.AtomicTest;
 import org.apache.commons.collections.CollectionUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.Description;
 import org.junit.runner.RunWith;
@@ -135,13 +137,21 @@ public class ParallelRunningHandlerTest {
 	}
 
 	public static class DummyTest implements ArtifactParams {
+		
+		@Rule
+		public final AtomIdentity identity = new AtomIdentity(this);
 
 		@TestCaseIdKey
 		private String testId = "I am test id";
 
+	    @Override
+	    public AtomIdentity getAtomIdentity() {
+	    	return identity;
+	    }
+	    
 		@Override
 		public Description getDescription() {
-			return null;
+			return identity.getDescription();
 		}
 
 		@Override
@@ -159,11 +169,19 @@ public class ParallelRunningHandlerTest {
 
 	public static class DummyTestWithoutKey implements ArtifactParams {
 
+		@Rule
+		public final AtomIdentity identity = new AtomIdentity(this);
+
 		private String testId = "I am test id";
 
+	    @Override
+	    public AtomIdentity getAtomIdentity() {
+	    	return identity;
+	    }
+	    
 		@Override
 		public Description getDescription() {
-			return null;
+			return identity.getDescription();
 		}
 
 		@Override

@@ -33,6 +33,11 @@ public class ParameterizedTest implements ArtifactParams {
         return new Object[] { "first test", "second test" };
     }
     
+    @Override
+    public AtomIdentity getAtomIdentity() {
+    	return identity;
+    }
+    
 	@Override
 	public Description getDescription() {
 		return identity.getDescription();
