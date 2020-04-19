@@ -144,11 +144,11 @@ public class ParallelRunningHandlerTest {
 		@TestCaseIdKey
 		private String testId = "I am test id";
 
-	    @Override
-	    public AtomIdentity getAtomIdentity() {
-	    	return identity;
-	    }
-	    
+		@Override
+		public AtomIdentity getAtomIdentity() {
+			return identity;
+		}
+
 		@Override
 		public Description getDescription() {
 			return identity.getDescription();
@@ -174,11 +174,11 @@ public class ParallelRunningHandlerTest {
 
 		private String testId = "I am test id";
 
-	    @Override
-	    public AtomIdentity getAtomIdentity() {
-	    	return identity;
-	    }
-	    
+		@Override
+		public AtomIdentity getAtomIdentity() {
+			return identity;
+		}
+
 		@Override
 		public Description getDescription() {
 			return identity.getDescription();
