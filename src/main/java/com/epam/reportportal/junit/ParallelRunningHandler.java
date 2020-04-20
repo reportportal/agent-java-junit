@@ -597,7 +597,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		TestClass testClass = LifecycleHooks.getTestClassOf(runner);
 		Class<?> javaClass = testClass.getJavaClass();
 		if (javaClass != null) {
-			javaClass.getCanonicalName();
+			return javaClass.getCanonicalName();
 		}
 		return null;
 	}
