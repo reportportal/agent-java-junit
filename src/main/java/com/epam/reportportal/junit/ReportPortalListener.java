@@ -87,7 +87,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void testFailure(AtomicTest<FrameworkMethod> atomicTest, Throwable thrown) {
-        reportTestFailure(atomicTest.getIdentity(), atomicTest.getRunner(), thrown);
+        HANDLER.finishTest(atomicTest);
     }
 
     /**
@@ -95,7 +95,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
      */
     @Override
     public void testAssumptionFailure(AtomicTest<FrameworkMethod> atomicTest, AssumptionViolatedException thrown) {
-        reportTestFailure(atomicTest.getIdentity(), atomicTest.getRunner(), thrown);
+        HANDLER.finishTest(atomicTest);
     }
 
     /**
@@ -113,7 +113,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
     public void beforeInvocation(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
         // if this is a JUnit configuration method
         if (HANDLER.isReportable(method)) {
-            HANDLER.startTestMethod(method, runner);
+            HANDLER.startTestMethod(runner, method, callable);
         }
     }
 
@@ -141,24 +141,23 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
                 }
 
                 if (!expected.isInstance(thrown)) {
-                    reportTestFailure(method, runner, thrown);
+                    reportTestFailure(callable, thrown);
                 }
             }
 
-            HANDLER.stopTestMethod(method, runner);
+            HANDLER.stopTestMethod(runner, method, callable);
         }
     }
 
     /**
      * Report failure of the indicated "particle" method.
      *
-     * @param method {@link FrameworkMethod} object for the "particle" method
-     * @param runner JUnit test runner
+     * @param callable {@link ReflectiveCallable} object being intercepted
      * @param thrown exception thrown by method
      */
-    public void reportTestFailure(FrameworkMethod method, Object runner, Throwable thrown) {
-        HANDLER.sendReportPortalMsg(method, runner, thrown);
-        HANDLER.markCurrentTestMethod(method, runner, Statuses.FAILED);
+    public void reportTestFailure(ReflectiveCallable callable, Throwable thrown) {
+        HANDLER.sendReportPortalMsg(callable, thrown);
+        HANDLER.markCurrentTestMethod(callable, Statuses.FAILED);
     }
 
     @Override

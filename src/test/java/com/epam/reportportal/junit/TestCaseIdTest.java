@@ -8,6 +8,7 @@ import com.nordstrom.automation.junit.AtomicTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runners.model.FrameworkMethod;
 import org.mockito.ArgumentCaptor;
 
@@ -23,6 +24,7 @@ public class TestCaseIdTest {
 	private final Launch launch = mock(Launch.class);
 
 	private FrameworkMethod frameworkMethod;
+	private ReflectiveCallable callable;
 	private final ThreadLocal<Object> runner = new ThreadLocal<>();
 	private final ThreadLocal<Object> target = new ThreadLocal<>();
 
@@ -51,16 +53,17 @@ public class TestCaseIdTest {
 		protected Object getTargetForRunner(Object runner) {
 			return target.get();
 		}
-
-		@Override
-		protected AtomicTest<FrameworkMethod> getAtomicTest(Object runner) {
-			return atomicTest;
-		}
 	}
 
 	@Before
 	public void init() throws NoSuchMethodException {
 		frameworkMethod = new FrameworkMethod(this.getClass().getDeclaredMethod("methodForTesting"));
+		callable = new ReflectiveCallable() {
+			@Override
+			protected Object runReflectiveCall() throws Throwable {
+				return target.get();
+			}
+		};
 		parallelRunningHandler = new TestCaseIdParallelRunningHandler(parallelRunningContext);
 
 		when(launch.getParameters()).thenReturn(new ListenerParameters());
@@ -78,7 +81,7 @@ public class TestCaseIdTest {
 
 		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 
-		parallelRunningHandler.startTestMethod(frameworkMethod, runner.get());
+		parallelRunningHandler.startTestMethod(runner.get(), frameworkMethod, callable);
 
 		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
 
@@ -97,7 +100,7 @@ public class TestCaseIdTest {
 		FrameworkMethod parametrizedFrameworkMethod = new FrameworkMethod(ParallelRunningHandlerTest.DummyTest.class.getDeclaredMethod(
 				"method"));
 
-		parallelRunningHandler.startTestMethod(parametrizedFrameworkMethod, runner.get());
+		parallelRunningHandler.startTestMethod(runner.get(), parametrizedFrameworkMethod, callable);
 
 		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
 
@@ -116,7 +119,7 @@ public class TestCaseIdTest {
 		FrameworkMethod parametrizedFrameworkMethod = new FrameworkMethod(ParallelRunningHandlerTest.DummyTest.class.getDeclaredMethod(
 				"method"));
 
-		parallelRunningHandler.startTestMethod(parametrizedFrameworkMethod, runner.get());
+		parallelRunningHandler.startTestMethod(runner.get(), parametrizedFrameworkMethod, callable);
 
 		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
 

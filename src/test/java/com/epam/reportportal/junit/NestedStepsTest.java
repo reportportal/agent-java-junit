@@ -11,6 +11,7 @@ import io.reactivex.Maybe;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runners.model.FrameworkMethod;
 import org.mockito.ArgumentCaptor;
 
@@ -29,11 +30,9 @@ public class NestedStepsTest {
 	private final Launch launch = mock(Launch.class);
 
 	private FrameworkMethod frameworkMethod;
+	private ReflectiveCallable callable;
 	private final ThreadLocal<Object> runner = new ThreadLocal<>();
 	private final ThreadLocal<Object> target = new ThreadLocal<>();
-
-	@SuppressWarnings("unchecked")
-	private final AtomicTest<FrameworkMethod> atomicTest = mock(AtomicTest.class);
 
 	private NestedStepsTest.NestedStepsParallelRunningHandler parallelRunningHandler;
 
@@ -57,17 +56,17 @@ public class NestedStepsTest {
 		protected Object getTargetForRunner(Object runner) {
 			return target.get();
 		}
-
-		@Override
-		protected AtomicTest<FrameworkMethod> getAtomicTest(Object runner) {
-			return atomicTest;
-		}
-
 	}
 
 	@Before
 	public void init() throws NoSuchMethodException {
 		frameworkMethod = new FrameworkMethod(this.getClass().getDeclaredMethod("shouldSendNestedStepRequest"));
+		callable = new ReflectiveCallable() {
+			@Override
+			protected Object runReflectiveCall() throws Throwable {
+				return target.get();
+			}
+		};
 		parallelRunningHandler = new NestedStepsParallelRunningHandler(parallelRunningContext);
 
 		when(launch.getParameters()).thenReturn(new ListenerParameters());
@@ -80,7 +79,7 @@ public class NestedStepsTest {
 		when(launch.startTestItem(any(), any())).thenReturn(testMethodId);
 		ArgumentCaptor<StartTestItemRQ> nestedStepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 
-		parallelRunningHandler.startTestMethod(frameworkMethod, runner);
+		parallelRunningHandler.startTestMethod(runner, frameworkMethod, callable);
 		step();
 
 		verify(launch, times(1)).startTestItem(eq(testMethodId), nestedStepCaptor.capture());
@@ -101,7 +100,7 @@ public class NestedStepsTest {
 		ArgumentCaptor<StartTestItemRQ> nestedStepStartCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		ArgumentCaptor<FinishTestItemRQ> nestedStepFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
 
-		parallelRunningHandler.startTestMethod(frameworkMethod, runner);
+		parallelRunningHandler.startTestMethod(runner, frameworkMethod, callable);
 		try {
 			failedStep();
 		} catch (Exception ex) {
@@ -127,7 +126,7 @@ public class NestedStepsTest {
 		when(launch.startTestItem(eq(testMethodId), any())).thenReturn(stepWithStepInsideId);
 		ArgumentCaptor<StartTestItemRQ> nestedStepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 
-		parallelRunningHandler.startTestMethod(frameworkMethod, runner);
+		parallelRunningHandler.startTestMethod(runner, frameworkMethod, callable);
 		stepWithStepInside();
 
 		verify(launch, times(1)).startTestItem(eq(testMethodId), nestedStepCaptor.capture());

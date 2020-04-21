@@ -42,7 +42,7 @@ dependencies {
         compile 'com.github.reportportal:commons-model:e608d19'
     }
 
-    compile 'com.nordstrom.tools:junit-foundation:12.0.0'
+    compile 'com.nordstrom.tools:junit-foundation:12.0.1'
     testCompile "org.aspectj:aspectjweaver:1.9.2"
     testCompile 'org.mockito:mockito-core:3.2.4'
 }

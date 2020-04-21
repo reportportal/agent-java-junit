@@ -39,6 +39,7 @@ import io.reactivex.Maybe;
 import io.reactivex.annotations.Nullable;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.*;
+import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.TestClass;
@@ -160,14 +161,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void startTestMethod(FrameworkMethod method, Object runner) {
+	public void startTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
 		StartTestItemRQ rq = buildStartStepRq(method);
 		rq.setParameters(createStepParameters(method, runner));
 		rq.setTestCaseId(getTestCaseId(method, runner, rq.getCodeRef()).getId());
 
 		Maybe<String> parentId;
 		Maybe<String> itemId;
-		AtomicTest<FrameworkMethod> test = getAtomicTest(runner);
+		AtomicTest<FrameworkMethod> test = LifecycleHooks.getAtomicTestOf(runner);
 		if (test == null || MethodType.AFTER_CLASS.equals(MethodType.detect(method))) {
 			// BeforeClass and AfterClass run independently in JUnit
 			parentId = context.getItemIdOfTestRunner(runner);
@@ -180,22 +181,18 @@ public class ParallelRunningHandler implements IListenerHandler {
 		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
 			ITEM_TREE.getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
 		}
-		context.setItemIdOfTestMethod(method, runner, itemId);
+		context.setItemIdOfTestMethod(callable, itemId);
 		StepAspect.setParentId(itemId);
-	}
-
-	protected AtomicTest<FrameworkMethod> getAtomicTest(Object runner) {
-		return LifecycleHooks.getAtomicTestOf(runner);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void stopTestMethod(FrameworkMethod method, Object runner) {
-		String status = context.getStatusOfTestMethod(method, runner);
+	public void stopTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
+		String status = context.getStatusOfTestMethod(callable);
 		FinishTestItemRQ rq = buildFinishStepRq(method, status);
-		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(context.getItemIdOfTestMethod(method, runner), rq);
+		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(context.getItemIdOfTestMethod(callable), rq);
 		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
 			updateTestItemTree(method, finishResponse);
 		}
@@ -205,8 +202,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void markCurrentTestMethod(FrameworkMethod method, Object runner, String status) {
-		context.setStatusOfTestMethod(method, runner, status);
+	public void markCurrentTestMethod(ReflectiveCallable callable, String status) {
+		context.setStatusOfTestMethod(callable, status);
 	}
 
 	/**
@@ -236,7 +233,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void sendReportPortalMsg(final FrameworkMethod method, Object runner, final Throwable thrown) {
+	public void sendReportPortalMsg(ReflectiveCallable callable, final Throwable thrown) {
 		Function<String, SaveLogRQ> function = itemUuid -> {
 			SaveLogRQ rq = new SaveLogRQ();
 			rq.setItemUuid(itemUuid);

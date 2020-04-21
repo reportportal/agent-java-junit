@@ -16,11 +16,11 @@
 package com.epam.reportportal.junit;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.epam.reportportal.service.tree.TestItemTree;
 import com.nordstrom.automation.junit.AtomicTest;
+import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runners.model.FrameworkMethod;
 
 import io.reactivex.Maybe;
@@ -39,10 +39,10 @@ public class ParallelRunningContext {
 	private final Map<AtomicTest<FrameworkMethod>, Maybe<String>> itemIdOfTests;
 	
 	/** hash of runner/method pair => RP test item ID */
-	private final Map<Integer, Maybe<String>> itemIdOfTestMethod;
+	private final Map<ReflectiveCallable, Maybe<String>> itemIdOfTestMethod;
 	
 	/** hash of runner/method pair => status */
-	private final Map<Integer, String> statusOfTestMethod;
+	private final Map<ReflectiveCallable, String> statusOfTestMethod;
 
 	public ParallelRunningContext() {
 		itemIdOfTestRunner = new ConcurrentHashMap<>();
@@ -93,45 +93,41 @@ public class ParallelRunningContext {
 
 	/**
 	 * Set the test item ID for the specified test method.
-	 * 
-	 * @param method {@link FrameworkMethod} object for test method
-	 * @param runner JUnit test runner
+	 *
+	 * @param callable {@link ReflectiveCallable} object being intercepted
 	 * @param itemId Report Portal test item ID for test method
 	 */
-	public void setItemIdOfTestMethod(Object method, Object runner, Maybe<String> itemId) {
-		itemIdOfTestMethod.put(Objects.hash(Thread.currentThread(), runner, method), itemId);
+	public void setItemIdOfTestMethod(ReflectiveCallable callable, Maybe<String> itemId) {
+		itemIdOfTestMethod.put(callable, itemId);
 	}
 
 	/**
 	 * Get the test item ID for the specified test method.
-	 * 
-	 * @param method {@link FrameworkMethod} object for test method
-	 * @param runner JUnit test runner
+	 *
+	 * @param callable {@link ReflectiveCallable} object being intercepted
 	 * @return Report Portal test item ID for test method
 	 */
-	public Maybe<String> getItemIdOfTestMethod(Object method, Object runner) {
-		return itemIdOfTestMethod.get(Objects.hash(Thread.currentThread(), runner, method));
+	public Maybe<String> getItemIdOfTestMethod(ReflectiveCallable callable) {
+		return itemIdOfTestMethod.get(callable);
 	}
 
 	/**
 	 * Set the status for the specified test method.
-	 * 
-	 * @param method {@link FrameworkMethod} object for test method
-	 * @param runner JUnit test runner
+	 *
+	 * @param callable {@link ReflectiveCallable} object being intercepted
 	 * @param status status for test method
 	 */
-	public void setStatusOfTestMethod(Object method, Object runner, String status) {
-		statusOfTestMethod.put(Objects.hash(Thread.currentThread(), runner, method), status);
+	public void setStatusOfTestMethod(ReflectiveCallable callable, String status) {
+		statusOfTestMethod.put(callable, status);
 	}
 
 	/**
 	 * Get the status for the specified test method.
-	 * 
-	 * @param method {@link FrameworkMethod} object for test method
-	 * @param runner JUnit test runner
+	 *
+	 * @param callable {@link ReflectiveCallable} object being intercepted
 	 * @return status for test method
 	 */
-	public String getStatusOfTestMethod(Object method, Object runner) {
-		return statusOfTestMethod.get(Objects.hash(Thread.currentThread(), runner, method));
+	public String getStatusOfTestMethod(ReflectiveCallable callable) {
+		return statusOfTestMethod.get(callable);
 	}
 }
