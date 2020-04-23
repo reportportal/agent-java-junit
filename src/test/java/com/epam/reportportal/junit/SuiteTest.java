@@ -5,7 +5,7 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({ com.epam.reportportal.junit.DummyTest.class })
+@SuiteClasses({ SleepyTest.class })
 public class SuiteTest {
 
 	static {

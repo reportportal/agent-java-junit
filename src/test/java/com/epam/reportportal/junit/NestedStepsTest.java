@@ -6,7 +6,7 @@ import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.service.Launch;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
-import com.nordstrom.automation.junit.AtomicTest;
+import com.nordstrom.automation.junit.LifecycleHooks;
 import io.reactivex.Maybe;
 import org.junit.Assert;
 import org.junit.Before;
@@ -61,12 +61,7 @@ public class NestedStepsTest {
 	@Before
 	public void init() throws NoSuchMethodException {
 		frameworkMethod = new FrameworkMethod(this.getClass().getDeclaredMethod("shouldSendNestedStepRequest"));
-		callable = new ReflectiveCallable() {
-			@Override
-			protected Object runReflectiveCall() throws Throwable {
-				return target.get();
-			}
-		};
+		callable = LifecycleHooks.encloseCallable(frameworkMethod.getMethod(), target.get());
 		parallelRunningHandler = new NestedStepsParallelRunningHandler(parallelRunningContext);
 
 		when(launch.getParameters()).thenReturn(new ListenerParameters());
@@ -101,6 +96,7 @@ public class NestedStepsTest {
 		ArgumentCaptor<FinishTestItemRQ> nestedStepFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
 
 		parallelRunningHandler.startTestMethod(runner, frameworkMethod, callable);
+
 		try {
 			failedStep();
 		} catch (Exception ex) {

@@ -14,7 +14,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Unit test for simple App.
  */
-public class DummyTest {
+public class SleepyTest {
 
 	@BeforeClass
 	public static void beforeClass() throws InterruptedException {

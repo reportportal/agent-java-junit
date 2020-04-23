@@ -209,17 +209,35 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * {@inheritDoc}
 	 */
+	//TODO Finish fixes here
 	@Override
 	public void handleTestSkip(AtomicTest<FrameworkMethod> testContext) {
-		StartTestItemRQ startRQ = buildStartStepRq(testContext.getIdentity());
-		startRQ.setTestCaseId(getTestCaseId(testContext.getIdentity(), testContext.getRunner(), startRQ.getCodeRef()).getId());
-		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(testContext.getRunner()), startRQ);
-		FinishTestItemRQ finishRQ = buildFinishStepRq(testContext.getIdentity(), Statuses.SKIPPED);
-		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(itemId, finishRQ);
-		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
-			updateTestItemTree(testContext.getIdentity(), finishResponse);
+		Maybe<String> itemId = null;
+		Object runner = testContext.getRunner();
+		FrameworkMethod identity = testContext.getIdentity();
+		Method method = identity.getMethod();
+		ReflectiveCallable callable;
+
+		// determine if retrying a failed invocation
+		Maybe<String> parentId = context.getItemIdOfTest(testContext);
+
+		// if actually ignored
+		if (parentId == null) {
+			// start ignored test
+			startTest(testContext);
+			// get test class instance
+			Object target = getTargetForRunner(runner);
+			// synthesize 'callable' object
+			callable = LifecycleHooks.encloseCallable(method, target);
+			// start ignored test identity method
+			startTestMethod(runner, identity, callable);
+		} else {
+			// retrieve 'callable' from failed invocation
+			callable = LifecycleHooks.getCallableOf(runner, method);
 		}
-		StepAspect.setParentId(itemId);
+
+		markCurrentTestMethod(callable, Statuses.SKIPPED);
+		stopTestMethod(runner, identity, callable);
 	}
 
 	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {
@@ -517,6 +535,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 		return result;
 	}
 
+	/**
+	 * Get the JUnit test class instance for the specified class runner.
+	 * <p>
+	 * <b>NOTE</b>: This shim enables subclasses of this handler to supply custom instances.
+	 *
+	 * @param runner JUnit class runner
+	 * @return JUnit test class instance for specified runner
+	 */
 	protected Object getTargetForRunner(Object runner) {
 		return LifecycleHooks.getTargetForRunner(runner);
 	}
