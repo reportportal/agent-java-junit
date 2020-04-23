@@ -6,11 +6,12 @@ import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.service.Launch;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
-import com.nordstrom.automation.junit.AtomicTest;
+import com.nordstrom.automation.junit.LifecycleHooks;
 import io.reactivex.Maybe;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runners.model.FrameworkMethod;
 import org.mockito.ArgumentCaptor;
 
@@ -29,10 +30,9 @@ public class NestedStepsTest {
 	private final Launch launch = mock(Launch.class);
 
 	private FrameworkMethod frameworkMethod;
+	private ReflectiveCallable callable;
 	private final ThreadLocal<Object> runner = new ThreadLocal<>();
 	private final ThreadLocal<Object> target = new ThreadLocal<>();
-
-	private final AtomicTest atomicTest = mock(AtomicTest.class);
 
 	private NestedStepsTest.NestedStepsParallelRunningHandler parallelRunningHandler;
 
@@ -56,17 +56,12 @@ public class NestedStepsTest {
 		protected Object getTargetForRunner(Object runner) {
 			return target.get();
 		}
-
-		@Override
-		protected AtomicTest getAtomicTest(Object runner) {
-			return atomicTest;
-		}
-
 	}
 
 	@Before
 	public void init() throws NoSuchMethodException {
 		frameworkMethod = new FrameworkMethod(this.getClass().getDeclaredMethod("shouldSendNestedStepRequest"));
+		callable = LifecycleHooks.encloseCallable(frameworkMethod.getMethod(), target.get());
 		parallelRunningHandler = new NestedStepsParallelRunningHandler(parallelRunningContext);
 
 		when(launch.getParameters()).thenReturn(new ListenerParameters());
@@ -79,7 +74,7 @@ public class NestedStepsTest {
 		when(launch.startTestItem(any(), any())).thenReturn(testMethodId);
 		ArgumentCaptor<StartTestItemRQ> nestedStepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 
-		parallelRunningHandler.startTestMethod(frameworkMethod, runner);
+		parallelRunningHandler.startTestMethod(runner, frameworkMethod, callable);
 		step();
 
 		verify(launch, times(1)).startTestItem(eq(testMethodId), nestedStepCaptor.capture());
@@ -100,7 +95,8 @@ public class NestedStepsTest {
 		ArgumentCaptor<StartTestItemRQ> nestedStepStartCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		ArgumentCaptor<FinishTestItemRQ> nestedStepFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
 
-		parallelRunningHandler.startTestMethod(frameworkMethod, runner);
+		parallelRunningHandler.startTestMethod(runner, frameworkMethod, callable);
+
 		try {
 			failedStep();
 		} catch (Exception ex) {
@@ -126,7 +122,7 @@ public class NestedStepsTest {
 		when(launch.startTestItem(eq(testMethodId), any())).thenReturn(stepWithStepInsideId);
 		ArgumentCaptor<StartTestItemRQ> nestedStepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 
-		parallelRunningHandler.startTestMethod(frameworkMethod, runner);
+		parallelRunningHandler.startTestMethod(runner, frameworkMethod, callable);
 		stepWithStepInside();
 
 		verify(launch, times(1)).startTestItem(eq(testMethodId), nestedStepCaptor.capture());

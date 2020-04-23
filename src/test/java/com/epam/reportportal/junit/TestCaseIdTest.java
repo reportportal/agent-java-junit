@@ -5,11 +5,22 @@ import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.service.Launch;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import com.nordstrom.automation.junit.AtomicTest;
+import com.nordstrom.automation.junit.LifecycleHooks;
+import com.nordstrom.automation.junit.RunAnnouncer;
+import com.nordstrom.common.base.UncheckedThrow;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.internal.runners.model.ReflectiveCallable;
+import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.model.FrameworkMethod;
+import org.junit.runners.model.InitializationError;
 import org.mockito.ArgumentCaptor;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
@@ -22,11 +33,11 @@ public class TestCaseIdTest {
 	private final ParallelRunningContext parallelRunningContext = mock(ParallelRunningContext.class);
 	private final Launch launch = mock(Launch.class);
 
-	private FrameworkMethod frameworkMethod;
 	private final ThreadLocal<Object> runner = new ThreadLocal<>();
-	private final ThreadLocal<Object> target = new ThreadLocal<>();
-
-	private final AtomicTest atomicTest = mock(AtomicTest.class);
+	private Object target;
+	private FrameworkMethod frameworkMethod;
+	private ReflectiveCallable callable;
+	private AtomicTest<FrameworkMethod> atomicTest;
 
 	private TestCaseIdParallelRunningHandler parallelRunningHandler;
 
@@ -45,41 +56,53 @@ public class TestCaseIdTest {
 		protected ParallelRunningHandler.MemoizingSupplier<Launch> createLaunch() {
 			return new MemoizingSupplier<>(() -> launch);
 		}
-
-		@Override
-		protected Object getTargetForRunner(Object runner) {
-			return target.get();
-		}
-
-		@Override
-		protected AtomicTest getAtomicTest(Object runner) {
-			return atomicTest;
-		}
 	}
 
 	@Before
-	public void init() throws NoSuchMethodException {
-		frameworkMethod = new FrameworkMethod(this.getClass().getDeclaredMethod("methodForTesting"));
+	public void init() {
 		parallelRunningHandler = new TestCaseIdParallelRunningHandler(parallelRunningContext);
-
 		when(launch.getParameters()).thenReturn(new ListenerParameters());
 	}
 
-	@TestCaseId(value = "testId")
-	public void methodForTesting() {
+	@SuppressWarnings("unchecked")
+	private void setupFor(Class<?> testClass) {
+		try {
+			BlockJUnit4ClassRunner classRunner = new BlockJUnit4ClassRunner(testClass);
+			runner.set(classRunner);
 
+			List<FrameworkMethod> methods = invoke(classRunner, "getChildren");
+			frameworkMethod = methods.get(0);
+
+			Method newAtomicTest = RunAnnouncer.class.getDeclaredMethod("newAtomicTest", Object.class, Object.class);
+			newAtomicTest.setAccessible(true);
+			atomicTest = (AtomicTest<FrameworkMethod>) newAtomicTest.invoke(null, classRunner, frameworkMethod);
+
+			target = invoke(classRunner,"createTest");
+			callable = LifecycleHooks.encloseCallable(frameworkMethod.getMethod(), target);
+		} catch (InitializationError | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+			throw UncheckedThrow.throwUnchecked(e);
+		}
+	}
+
+	public static class ClassWithTestCaseIdMethod {
+		@Test
+		@TestCaseId(value = "testId")
+		public void methodForTesting() {
+
+		}
 	}
 
 	@Test
 	public void shouldReturnProvidedIdWhenNotParametrized() {
 
-		target.set(this);
+		setupFor(ClassWithTestCaseIdMethod.class);
 
 		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 
-		parallelRunningHandler.startTestMethod(frameworkMethod, runner.get());
+		parallelRunningHandler.startTest(atomicTest);
+		parallelRunningHandler.startTestMethod(runner.get(), frameworkMethod, callable);
 
-		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
+		verify(launch, times(2)).startTestItem(any(), argumentCaptor.capture());
 
 		StartTestItemRQ request = argumentCaptor.getValue();
 
@@ -87,18 +110,16 @@ public class TestCaseIdTest {
 	}
 
 	@Test
-	public void retrieveParametrizedTestCaseIdTestWithKey() throws NoSuchMethodException {
+	public void retrieveParametrizedTestCaseIdTestWithKey() {
 
-		target.set(new ParallelRunningHandlerTest.DummyTest());
+		setupFor(ParallelRunningHandlerTest.DummyTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 
-		FrameworkMethod parametrizedFrameworkMethod = new FrameworkMethod(ParallelRunningHandlerTest.DummyTest.class.getDeclaredMethod(
-				"method"));
+		parallelRunningHandler.startTest(atomicTest);
+		parallelRunningHandler.startTestMethod(runner.get(), frameworkMethod, callable);
 
-		parallelRunningHandler.startTestMethod(parametrizedFrameworkMethod, runner.get());
-
-		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
+		verify(launch, times(2)).startTestItem(any(), argumentCaptor.capture());
 
 		StartTestItemRQ request = argumentCaptor.getValue();
 
@@ -106,38 +127,32 @@ public class TestCaseIdTest {
 	}
 
 	@Test
-	public void retrieveParametrizedTestCaseIdTestWithoutKey() throws NoSuchMethodException {
+	public void retrieveParametrizedTestCaseIdTestWithoutKey() {
 
-		target.set(new ParallelRunningHandlerTest.DummyTestWithoutKey());
+		setupFor(ParallelRunningHandlerTest.DummyTestWithoutKey.class);
 
 		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 
-		FrameworkMethod parametrizedFrameworkMethod = new FrameworkMethod(ParallelRunningHandlerTest.DummyTest.class.getDeclaredMethod(
-				"method"));
+		parallelRunningHandler.startTest(atomicTest);
+		parallelRunningHandler.startTestMethod(runner.get(), frameworkMethod, callable);
 
-		parallelRunningHandler.startTestMethod(parametrizedFrameworkMethod, runner.get());
-
-		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
+		verify(launch, times(2)).startTestItem(any(), argumentCaptor.capture());
 
 		StartTestItemRQ request = argumentCaptor.getValue();
 
-		assertEquals("com.epam.reportportal.junit.ParallelRunningHandlerTest.DummyTest.method", request.getTestCaseId());
+		assertEquals("com.epam.reportportal.junit.ParallelRunningHandlerTest.DummyTestWithoutKey.method", request.getTestCaseId());
 	}
 
 	@Test
 	public void shouldReturnProvidedIdWhenNotParametrizedSkipped() {
 
-		target.set(this);
+		setupFor(ClassWithTestCaseIdMethod.class);
 
 		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 
-		AtomicTest<FrameworkMethod> atomicTest = mock(AtomicTest.class);
-
-		when(atomicTest.getIdentity()).thenReturn(frameworkMethod);
-
 		parallelRunningHandler.handleTestSkip(atomicTest);
 
-		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
+		verify(launch, times(2)).startTestItem(any(), argumentCaptor.capture());
 
 		StartTestItemRQ request = argumentCaptor.getValue();
 
@@ -145,22 +160,15 @@ public class TestCaseIdTest {
 	}
 
 	@Test
-	public void retrieveParametrizedTestCaseIdTestWithKeySkipped() throws NoSuchMethodException {
+	public void retrieveParametrizedTestCaseIdTestWithKeySkipped() {
 
-		target.set(new ParallelRunningHandlerTest.DummyTest());
+		setupFor(ParallelRunningHandlerTest.DummyTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 
-		FrameworkMethod parametrizedFrameworkMethod = new FrameworkMethod(ParallelRunningHandlerTest.DummyTest.class.getDeclaredMethod(
-				"method"));
-
-		AtomicTest<FrameworkMethod> atomicTest = mock(AtomicTest.class);
-
-		when(atomicTest.getIdentity()).thenReturn(parametrizedFrameworkMethod);
-
 		parallelRunningHandler.handleTestSkip(atomicTest);
 
-		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
+		verify(launch, times(2)).startTestItem(any(), argumentCaptor.capture());
 
 		StartTestItemRQ request = argumentCaptor.getValue();
 
@@ -168,25 +176,28 @@ public class TestCaseIdTest {
 	}
 
 	@Test
-	public void retrieveParametrizedTestCaseIdTestWithoutKeySkipped() throws NoSuchMethodException {
+	public void retrieveParametrizedTestCaseIdTestWithoutKeySkipped() {
 
-		target.set(new ParallelRunningHandlerTest.DummyTestWithoutKey());
+		setupFor(ParallelRunningHandlerTest.DummyTestWithoutKey.class);
 
 		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 
-		FrameworkMethod parametrizedFrameworkMethod = new FrameworkMethod(ParallelRunningHandlerTest.DummyTest.class.getDeclaredMethod(
-				"method"));
-
-		AtomicTest<FrameworkMethod> atomicTest = mock(AtomicTest.class);
-
-		when(atomicTest.getIdentity()).thenReturn(parametrizedFrameworkMethod);
-
 		parallelRunningHandler.handleTestSkip(atomicTest);
 
-		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
+		verify(launch, times(2)).startTestItem(any(), argumentCaptor.capture());
 
 		StartTestItemRQ request = argumentCaptor.getValue();
 
-		assertEquals("com.epam.reportportal.junit.ParallelRunningHandlerTest.DummyTest.method", request.getTestCaseId());
+		assertEquals("com.epam.reportportal.junit.ParallelRunningHandlerTest.DummyTestWithoutKey.method", request.getTestCaseId());
 	}
+
+	@SuppressWarnings("unchecked")
+	private static <T> T invoke(Object target, String methodName, Object... parameters) {
+		try {
+			return (T) MethodUtils.invokeMethod(target, true, methodName, parameters);
+		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+			throw UncheckedThrow.throwUnchecked(e);
+		}
+	}
+
 }

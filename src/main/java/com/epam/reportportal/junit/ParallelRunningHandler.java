@@ -39,6 +39,7 @@ import io.reactivex.Maybe;
 import io.reactivex.annotations.Nullable;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.*;
+import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.TestClass;
@@ -143,7 +144,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	@Override
-	public void startTest(AtomicTest testContext) {
+	public void startTest(AtomicTest<FrameworkMethod> testContext) {
 		StartTestItemRQ rq = buildStartTestItemRq(testContext);
 		Maybe<String> testID = launch.get().startTestItem(context.getItemIdOfTestRunner(testContext.getRunner()), rq);
 		context.setTestIdOfTest(testContext, testID);
@@ -151,7 +152,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	@Override
-	public void finishTest(AtomicTest testContext) {
+	public void finishTest(AtomicTest<FrameworkMethod> testContext) {
 		FinishTestItemRQ rq = buildFinishTestRq(testContext);
 		launch.get().finishTestItem(context.getItemIdOfTest(testContext), rq);
 	}
@@ -160,14 +161,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void startTestMethod(FrameworkMethod method, Object runner) {
+	public void startTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
 		StartTestItemRQ rq = buildStartStepRq(method);
 		rq.setParameters(createStepParameters(method, runner));
 		rq.setTestCaseId(getTestCaseId(method, runner, rq.getCodeRef()).getId());
 
 		Maybe<String> parentId;
 		Maybe<String> itemId;
-		AtomicTest test = getAtomicTest(runner);
+		AtomicTest<FrameworkMethod> test = LifecycleHooks.getAtomicTestOf(runner);
 		if (test == null || MethodType.AFTER_CLASS.equals(MethodType.detect(method))) {
 			// BeforeClass and AfterClass run independently in JUnit
 			parentId = context.getItemIdOfTestRunner(runner);
@@ -180,22 +181,18 @@ public class ParallelRunningHandler implements IListenerHandler {
 		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
 			ITEM_TREE.getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
 		}
-		context.setItemIdOfTestMethod(method, runner, itemId);
+		context.setItemIdOfTestMethod(callable, itemId);
 		StepAspect.setParentId(itemId);
-	}
-
-	protected AtomicTest getAtomicTest(Object runner) {
-		return LifecycleHooks.getAtomicTestOf(runner);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void stopTestMethod(FrameworkMethod method, Object runner) {
-		String status = context.getStatusOfTestMethod(method, runner);
+	public void stopTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
+		String status = context.getStatusOfTestMethod(callable);
 		FinishTestItemRQ rq = buildFinishStepRq(method, status);
-		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(context.getItemIdOfTestMethod(method, runner), rq);
+		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(context.getItemIdOfTestMethod(callable), rq);
 		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
 			updateTestItemTree(method, finishResponse);
 		}
@@ -205,24 +202,42 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void markCurrentTestMethod(FrameworkMethod method, Object runner, String status) {
-		context.setStatusOfTestMethod(method, runner, status);
+	public void markCurrentTestMethod(ReflectiveCallable callable, String status) {
+		context.setStatusOfTestMethod(callable, status);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
+	//TODO Finish fixes here
 	@Override
 	public void handleTestSkip(AtomicTest<FrameworkMethod> testContext) {
-		StartTestItemRQ startRQ = buildStartStepRq(testContext.getIdentity());
-		startRQ.setTestCaseId(getTestCaseId(testContext.getIdentity(), testContext.getRunner(), startRQ.getCodeRef()).getId());
-		Maybe<String> itemId = launch.get().startTestItem(context.getItemIdOfTestRunner(testContext.getRunner()), startRQ);
-		FinishTestItemRQ finishRQ = buildFinishStepRq(testContext.getIdentity(), Statuses.SKIPPED);
-		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(itemId, finishRQ);
-		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
-			updateTestItemTree(testContext.getIdentity(), finishResponse);
+		Maybe<String> itemId = null;
+		Object runner = testContext.getRunner();
+		FrameworkMethod identity = testContext.getIdentity();
+		Method method = identity.getMethod();
+		ReflectiveCallable callable;
+
+		// determine if retrying a failed invocation
+		Maybe<String> parentId = context.getItemIdOfTest(testContext);
+
+		// if actually ignored
+		if (parentId == null) {
+			// start ignored test
+			startTest(testContext);
+			// get test class instance
+			Object target = getTargetForRunner(runner);
+			// synthesize 'callable' object
+			callable = LifecycleHooks.encloseCallable(method, target);
+			// start ignored test identity method
+			startTestMethod(runner, identity, callable);
+		} else {
+			// retrieve 'callable' from failed invocation
+			callable = LifecycleHooks.getCallableOf(runner, method);
 		}
-		StepAspect.setParentId(itemId);
+
+		markCurrentTestMethod(callable, Statuses.SKIPPED);
+		stopTestMethod(runner, identity, callable);
 	}
 
 	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {
@@ -236,7 +251,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void sendReportPortalMsg(final FrameworkMethod method, Object runner, final Throwable thrown) {
+	public void sendReportPortalMsg(ReflectiveCallable callable, final Throwable thrown) {
 		Function<String, SaveLogRQ> function = itemUuid -> {
 			SaveLogRQ rq = new SaveLogRQ();
 			rq.setItemUuid(itemUuid);
@@ -352,7 +367,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param test JUnit test context
 	 * @return Request to ReportPortal
 	 */
-	protected StartTestItemRQ buildStartTestItemRq(AtomicTest test) {
+	protected StartTestItemRQ buildStartTestItemRq(AtomicTest<FrameworkMethod> test) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(test.getDescription().getDisplayName());
 		rq.setCodeRef(getCodeRef(test.getRunner()));
@@ -401,7 +416,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return Request to ReportPortal
 	 */
 	@SuppressWarnings("squid:S4144")
-	protected FinishTestItemRQ buildFinishTestRq(AtomicTest testContext) {
+	protected FinishTestItemRQ buildFinishTestRq(AtomicTest<FrameworkMethod> testContext) {
 		FinishTestItemRQ rq = buildFinishTestItemRq();
 		String status = testContext.getThrowable() == null ? Statuses.PASSED : Statuses.FAILED;
 		rq.setStatus(status);
@@ -520,6 +535,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 		return result;
 	}
 
+	/**
+	 * Get the JUnit test class instance for the specified class runner.
+	 * <p>
+	 * <b>NOTE</b>: This shim enables subclasses of this handler to supply custom instances.
+	 *
+	 * @param runner JUnit class runner
+	 * @return JUnit test class instance for specified runner
+	 */
 	protected Object getTargetForRunner(Object runner) {
 		return LifecycleHooks.getTargetForRunner(runner);
 	}
@@ -597,7 +620,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		TestClass testClass = LifecycleHooks.getTestClassOf(runner);
 		Class<?> javaClass = testClass.getJavaClass();
 		if (javaClass != null) {
-			javaClass.getCanonicalName();
+			return javaClass.getCanonicalName();
 		}
 		return null;
 	}

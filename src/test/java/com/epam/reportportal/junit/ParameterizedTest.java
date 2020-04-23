@@ -18,9 +18,9 @@ import com.nordstrom.automation.junit.AtomIdentity;
 
 @RunWith(Parameterized.class)
 public class ParameterizedTest implements ArtifactParams {
-	
-	@Rule
-	public final AtomIdentity identity = new AtomIdentity(this);
+    
+    @Rule
+    public final AtomIdentity identity = new AtomIdentity(this);
 
     private String input;
     
@@ -33,10 +33,15 @@ public class ParameterizedTest implements ArtifactParams {
         return new Object[] { "first test", "second test" };
     }
     
-	@Override
-	public Description getDescription() {
-		return identity.getDescription();
-	}
+    @Override
+    public AtomIdentity getAtomIdentity() {
+        return identity;
+    }
+    
+    @Override
+    public Description getDescription() {
+        return identity.getDescription();
+    }
 
     @Override
     public Optional<Map<String, Object>> getParameters() {
@@ -45,9 +50,9 @@ public class ParameterizedTest implements ArtifactParams {
     
     @Test
     public void parameterized() {
-    	Optional<Map<String, Object>> params = identity.getParameters();
-    	assertTrue(params.isPresent());
-    	assertTrue(params.get().containsKey("input"));
+        Optional<Map<String, Object>> params = identity.getParameters();
+        assertTrue(params.isPresent());
+        assertTrue(params.get().containsKey("input"));
         assertEquals(input, params.get().get("input"));
     }
 }

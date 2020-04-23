@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>agent-java-junit</artifactId>
-    <version>4.1.10-SNAPSHOT</version>
+    <version>5.0.0-BETA-9-SNAPSHOT</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -28,7 +28,7 @@
         <dependency>
             <groupId>com.github.reportportal</groupId>
             <artifactId>client-java</artifactId>
-            <version>8934ff9</version>
+            <version>493a382b</version>
         </dependency>
         <dependency>
             <groupId>com.github.reportportal</groupId>
@@ -38,7 +38,19 @@
         <dependency>
             <groupId>com.nordstrom.tools</groupId>
             <artifactId>junit-foundation</artifactId>
-            <version>11.3.0</version>
+            <version>12.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>1.9.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>3.2.4</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -90,7 +102,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.22.0</version>
                 <configuration>
-                    <argLine>-javaagent:${com.nordstrom.tools:junit-foundation:jar}</argLine>
+                    <argLine>-javaagent:${org.aspectj:aspectjweaver:jar} -javaagent:${com.nordstrom.tools:junit-foundation:jar}</argLine>
                 </configuration>
             </plugin>
         </plugins>
