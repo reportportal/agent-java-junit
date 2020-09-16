@@ -21,8 +21,8 @@ import com.epam.reportportal.annotations.UniqueID;
 import com.epam.reportportal.annotations.attribute.Attributes;
 import com.epam.reportportal.aspect.StepAspect;
 import com.epam.reportportal.junit.utils.SystemAttributesFetcher;
+import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ListenerParameters;
-import com.epam.reportportal.listeners.Statuses;
 import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.item.TestCaseIdEntry;
@@ -74,8 +74,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	public static final ReportPortal REPORT_PORTAL = ReportPortal.builder().build();
 
-	private ParallelRunningContext context;
-	private MemoizingSupplier<Launch> launch;
+	private final ParallelRunningContext context;
+	private final MemoizingSupplier<Launch> launch;
 
 	/**
 	 * Constructor: Instantiate a parallel running handler
@@ -83,7 +83,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param parallelRunningContext test execution context manager
 	 */
 	public ParallelRunningHandler(final ParallelRunningContext parallelRunningContext) {
-
 		context = parallelRunningContext;
 		launch = createLaunch();
 	}
@@ -102,7 +101,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void startLaunch() {
 		Maybe<String> launchId = launch.get().start();
-		StepAspect.addLaunch("default", this.launch.get());
 		ITEM_TREE.setLaunchId(launchId);
 	}
 
@@ -139,7 +137,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Override
 	public void stopRunner(Object runner) {
-		FinishTestItemRQ rq = buildFinishTestItemRq();
+		FinishTestItemRQ rq = buildFinishSuiteRq(LifecycleHooks.getTestClassOf(runner));
 		launch.get().finishTestItem(context.getItemIdOfTestRunner(runner), rq);
 	}
 
@@ -172,12 +170,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 		if (test == null || MethodType.AFTER_CLASS.equals(MethodType.detect(method))) {
 			// BeforeClass and AfterClass run independently in JUnit
 			parentId = context.getItemIdOfTestRunner(runner);
-			itemId = launch.get().startTestItem(parentId, rq);
 		} else {
 			// Before and After run within test context in JUnit
 			parentId = context.getItemIdOfTest(test);
-			itemId = launch.get().startTestItem(parentId, rq);
 		}
+		itemId = launch.get().startTestItem(parentId, rq);
 		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
 			ITEM_TREE.getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
 		}
@@ -190,8 +187,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Override
 	public void stopTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
-		String status = context.getStatusOfTestMethod(callable);
-		FinishTestItemRQ rq = buildFinishStepRq(method, status);
+		ItemStatus status = context.getStatusOfTestMethod(callable);
+		FinishTestItemRQ rq = buildFinishStepRq(method, status.name());
 		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(context.getItemIdOfTestMethod(callable), rq);
 		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
 			updateTestItemTree(method, finishResponse);
@@ -203,6 +200,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Override
 	public void markCurrentTestMethod(ReflectiveCallable callable, String status) {
+		markCurrentTestMethod(callable, ItemStatus.valueOf(status));
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void markCurrentTestMethod(ReflectiveCallable callable, ItemStatus status) {
 		context.setStatusOfTestMethod(callable, status);
 	}
 
@@ -212,7 +217,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	//TODO Finish fixes here
 	@Override
 	public void handleTestSkip(AtomicTest<FrameworkMethod> testContext) {
-		Maybe<String> itemId = null;
 		Object runner = testContext.getRunner();
 		FrameworkMethod identity = testContext.getIdentity();
 		Method method = identity.getMethod();
@@ -236,7 +240,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 			callable = LifecycleHooks.getCallableOf(runner, method);
 		}
 
-		markCurrentTestMethod(callable, Statuses.SKIPPED);
+		markCurrentTestMethod(callable, ItemStatus.SKIPPED);
 		stopTestMethod(runner, identity, callable);
 	}
 
@@ -284,7 +288,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		BEFORE_CLASS(BeforeClass.class),
 		AFTER_CLASS(AfterClass.class);
 
-		private Class<? extends Annotation> clazz;
+		private final Class<? extends Annotation> clazz;
 
 		MethodType(Class<? extends Annotation> markerAnnotation) {
 			clazz = markerAnnotation;
@@ -418,7 +422,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@SuppressWarnings("squid:S4144")
 	protected FinishTestItemRQ buildFinishTestRq(AtomicTest<FrameworkMethod> testContext) {
 		FinishTestItemRQ rq = buildFinishTestItemRq();
-		String status = testContext.getThrowable() == null ? Statuses.PASSED : Statuses.FAILED;
+		String status = testContext.getThrowable() == null ? ItemStatus.PASSED.name() : ItemStatus.FAILED.name();
 		rq.setStatus(status);
 		return rq;
 	}
@@ -439,9 +443,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	protected FinishTestItemRQ buildFinishStepRq(FrameworkMethod method, String status) {
 		FinishTestItemRQ rq = new FinishTestItemRQ();
 		rq.setEndTime(Calendar.getInstance().getTime());
-		rq.setStatus((status == null || status.equals("")) ? Statuses.PASSED : status);
+		rq.setStatus((status == null || status.equals("")) ? ItemStatus.PASSED.name() : status);
 		// Allows indicate that SKIPPED is not to investigate items for WS
-		if (Statuses.SKIPPED.equals(status) && !ofNullable(launch.get().getParameters().getSkippedAnIssue()).orElse(false)) {
+		if (ItemStatus.SKIPPED.name().equals(status) && !ofNullable(launch.get().getParameters().getSkippedAnIssue()).orElse(false)) {
 			Issue issue = new Issue();
 			issue.setIssueType("NOT_ISSUE");
 			rq.setIssue(issue);
@@ -631,7 +635,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param frameworkMethod JUnit test method
 	 * @return code reference to the test method
 	 */
-	@Nullable
 	private String getCodeRef(FrameworkMethod frameworkMethod) {
 		return frameworkMethod.getDeclaringClass().getCanonicalName() + "." + frameworkMethod.getName();
 	}

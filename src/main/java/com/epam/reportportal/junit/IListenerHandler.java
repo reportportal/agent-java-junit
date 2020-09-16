@@ -15,6 +15,7 @@
  */
 package com.epam.reportportal.junit;
 
+import com.epam.reportportal.listeners.ItemStatus;
 import com.nordstrom.automation.junit.AtomicTest;
 import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runners.model.FrameworkMethod;
@@ -67,8 +68,8 @@ public interface IListenerHandler {
 	/**
 	 * Send a <b>start test item</b> request for the indicated test method to Report Portal.
 	 *
-	 * @param runner JUnit test runner
-	 * @param method {@link FrameworkMethod} object for test
+	 * @param runner   JUnit test runner
+	 * @param method   {@link FrameworkMethod} object for test
 	 * @param callable {@link ReflectiveCallable} object being intercepted
 	 */
 	void startTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable);
@@ -76,8 +77,8 @@ public interface IListenerHandler {
 	/**
 	 * Send a <b>finish test item</b> request for the indicated test method to Report Portal.
 	 *
-	 * @param runner JUnit test runner
-	 * @param method {@link FrameworkMethod} object for test
+	 * @param runner   JUnit test runner
+	 * @param method   {@link FrameworkMethod} object for test
 	 * @param callable {@link ReflectiveCallable} object being intercepted
 	 */
 	void stopTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable);
@@ -86,9 +87,21 @@ public interface IListenerHandler {
 	 * Record the status of the specified test method.
 	 *
 	 * @param callable {@link ReflectiveCallable} object being intercepted
-	 * @param status test completion status
+	 * @param status   test completion status
+	 * @deprecated
 	 */
+	@Deprecated
 	void markCurrentTestMethod(ReflectiveCallable callable, String status);
+
+	/**
+	 * Record the status of the specified test method.
+	 *
+	 * @param callable {@link ReflectiveCallable} object being intercepted
+	 * @param status   test completion status
+	 * @deprecated
+	 */
+	@Deprecated
+	void markCurrentTestMethod(ReflectiveCallable callable, ItemStatus status);
 
 	/**
 	 * Handle test skip action
@@ -101,7 +114,7 @@ public interface IListenerHandler {
 	 * Send message to report portal about appeared failure
 	 *
 	 * @param callable {@link ReflectiveCallable} object being intercepted
-	 * @param thrown {@link Throwable} object with details of the failure
+	 * @param thrown   {@link Throwable} object with details of the failure
 	 */
 	void sendReportPortalMsg(ReflectiveCallable callable, Throwable thrown);
 

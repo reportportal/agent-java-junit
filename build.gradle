@@ -15,7 +15,7 @@
  */
 
 plugins {
-    id 'java'
+    id 'java-library'
 }
 
 project.ext.releaseMode = project.hasProperty('releaseMode')
@@ -33,27 +33,37 @@ repositories {
     jcenter()
     releaseMode ? maven { url "http://dl.bintray.com/epam/reportportal" } : maven { url 'https://jitpack.io' }
 }
-dependencies {
-    if (releaseMode) {
-        compile 'com.epam.reportportal:client-java:5.0.1'
-        compile 'com.epam.reportportal:commons-model:5.0.0'
-    } else {
-        compile 'com.epam.reportportal:client-java:5.0.1'
-        compile 'com.epam.reportportal:commons-model:5.0.0'
-    }
 
-    compile 'com.nordstrom.tools:junit-foundation:12.1.0'
-    testCompile "org.aspectj:aspectjweaver:1.9.2"
-    testCompile 'org.mockito:mockito-core:3.2.4'
+project.ext.githubUserName = project.hasProperty('githubUserName') ? githubUserName : ""
+project.ext.githubToken = project.hasProperty('githubToken') ? githubToken : ""
+
+publishing {
+    repositories {
+        maven {
+            name = "JUnit 4 GitHub Packages"
+            url = uri("https://maven.pkg.github.com/reportportal/agent-java-junit")
+            credentials {
+                username = githubUserName
+                password = githubToken
+            }
+        }
+    }
 }
+
+dependencies {
+    api 'com.epam.reportportal:client-java:5.0.11'
+    api 'com.epam.reportportal:commons-model:5.0.0'
+    api 'com.google.code.findbugs:jsr305:3.0.2'
+    api 'com.nordstrom.tools:junit-foundation:12.1.0'
+
+    testImplementation "org.aspectj:aspectjweaver:1.9.2"
+    testImplementation 'org.mockito:mockito-core:3.2.4'
+}
+
 ext {
     junitFoundation = configurations.compile.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
 }
-processResources {
-    filesMatching('agent.properties') {
-        expand(project.properties)
-    }
-}
+
 test.doFirst {
     def weaver = configurations.compile.find { it.name.contains("aspectjweaver") }
     jvmArgs += "-javaagent:$weaver"
@@ -64,8 +74,17 @@ test {
     testLogging.showStandardStreams = true
     exclude 'com/epam/reportportal/junit/ExpectToFail.class'
 }
+
 wrapper {
     gradleVersion = '5.4.1'
 }
 
-afterReleaseBuild.dependsOn bintrayUpload
+processResources {
+    filesMatching('agent.properties') {
+        expand(project.properties)
+    }
+}
+
+def releaseDependencies = [bintrayUpload, publish]
+releaseDependencies.addAll(afterReleaseBuild.getDependsOn())
+afterReleaseBuild.setDependsOn(releaseDependencies)
