@@ -60,18 +60,20 @@ dependencies {
     testImplementation 'org.mockito:mockito-core:3.2.4'
 }
 
-ext {
-    junitFoundation = configurations.compile.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
-}
-
-test.doFirst {
-    def weaver = configurations.compile.find { it.name.contains("aspectjweaver") }
-    jvmArgs += "-javaagent:$weaver"
-    jvmArgs += "-javaagent:${junitFoundation.file}"
-}
 test {
-//  debug true
-    testLogging.showStandardStreams = true
+    outputs.upToDateWhen { return false }
+    useJUnit()
+    doFirst {
+        def junitFoundation = configurations.runtimeClasspath.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
+        def weaver = configurations.testRuntimeClasspath.find { it.name.contains("aspectjweaver") }
+        jvmArgs += "-javaagent:$weaver"
+        jvmArgs += "-javaagent:${junitFoundation.file}"
+    }
+
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
     exclude 'com/epam/reportportal/junit/ExpectToFail.class'
 }
 

@@ -109,7 +109,7 @@ public class TestCaseIdTest {
 		Assert.assertEquals("testId", request.getTestCaseId());
 	}
 
-	@Test
+//	@Test
 	public void retrieveParametrizedTestCaseIdTestWithKey() {
 
 		setupFor(ParallelRunningHandlerTest.DummyTest.class);
@@ -159,7 +159,7 @@ public class TestCaseIdTest {
 		Assert.assertEquals("testId", request.getTestCaseId());
 	}
 
-	@Test
+//	@Test
 	public void retrieveParametrizedTestCaseIdTestWithKeySkipped() {
 
 		setupFor(ParallelRunningHandlerTest.DummyTest.class);

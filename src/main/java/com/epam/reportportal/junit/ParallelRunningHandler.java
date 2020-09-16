@@ -19,7 +19,6 @@ import com.epam.reportportal.annotations.TestCaseId;
 import com.epam.reportportal.annotations.TestCaseIdKey;
 import com.epam.reportportal.annotations.UniqueID;
 import com.epam.reportportal.annotations.attribute.Attributes;
-import com.epam.reportportal.aspect.StepAspect;
 import com.epam.reportportal.junit.utils.SystemAttributesFetcher;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ListenerParameters;
@@ -129,7 +128,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 			itemId = launch.get().startTestItem(containerId, rq);
 		}
 		context.setTestIdOfTestRunner(runner, itemId);
-		StepAspect.setParentId(itemId);
 	}
 
 	/**
@@ -146,7 +144,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 		StartTestItemRQ rq = buildStartTestItemRq(testContext);
 		Maybe<String> testID = launch.get().startTestItem(context.getItemIdOfTestRunner(testContext.getRunner()), rq);
 		context.setTestIdOfTest(testContext, testID);
-		StepAspect.setParentId(testID);
 	}
 
 	@Override
@@ -179,7 +176,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 			ITEM_TREE.getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
 		}
 		context.setItemIdOfTestMethod(callable, itemId);
-		StepAspect.setParentId(itemId);
 	}
 
 	/**
@@ -188,7 +184,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void stopTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
 		ItemStatus status = context.getStatusOfTestMethod(callable);
-		FinishTestItemRQ rq = buildFinishStepRq(method, status.name());
+		FinishTestItemRQ rq = buildFinishStepRq(method, ofNullable(status).map(Enum::name).orElse(null));
 		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(context.getItemIdOfTestMethod(callable), rq);
 		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
 			updateTestItemTree(method, finishResponse);
