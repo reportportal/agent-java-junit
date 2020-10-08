@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2020 Epic Games, Inc. All Rights Reserved.
+ */
+
 package com.epam.reportportal.junit;
 
 import com.epam.reportportal.annotations.TestCaseId;
@@ -9,10 +13,10 @@ import com.nordstrom.automation.junit.LifecycleHooks;
 import com.nordstrom.automation.junit.RunAnnouncer;
 import com.nordstrom.common.base.UncheckedThrow;
 import org.apache.commons.lang3.reflect.MethodUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 import org.junit.internal.runners.model.ReflectiveCallable;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
@@ -58,7 +62,7 @@ public class TestCaseIdTest {
 		}
 	}
 
-	@Before
+	@BeforeEach
 	public void init() {
 		parallelRunningHandler = new TestCaseIdParallelRunningHandler(parallelRunningContext);
 		when(launch.getParameters()).thenReturn(new ListenerParameters());
@@ -85,7 +89,7 @@ public class TestCaseIdTest {
 	}
 
 	public static class ClassWithTestCaseIdMethod {
-		@Test
+		@org.junit.Test
 		@TestCaseId(value = "testId")
 		public void methodForTesting() {
 
@@ -102,11 +106,11 @@ public class TestCaseIdTest {
 		parallelRunningHandler.startTest(atomicTest);
 		parallelRunningHandler.startTestMethod(runner.get(), frameworkMethod, callable);
 
-		verify(launch, times(2)).startTestItem(any(), argumentCaptor.capture());
+		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
 
 		StartTestItemRQ request = argumentCaptor.getValue();
 
-		Assert.assertEquals("testId", request.getTestCaseId());
+		Assertions.assertEquals("testId", request.getTestCaseId());
 	}
 
 //	@Test
@@ -119,11 +123,11 @@ public class TestCaseIdTest {
 		parallelRunningHandler.startTest(atomicTest);
 		parallelRunningHandler.startTestMethod(runner.get(), frameworkMethod, callable);
 
-		verify(launch, times(2)).startTestItem(any(), argumentCaptor.capture());
+		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
 
 		StartTestItemRQ request = argumentCaptor.getValue();
 
-		Assert.assertEquals("I am test id", request.getTestCaseId());
+		Assertions.assertEquals("I am test id", request.getTestCaseId());
 	}
 
 	@Test
@@ -136,7 +140,7 @@ public class TestCaseIdTest {
 		parallelRunningHandler.startTest(atomicTest);
 		parallelRunningHandler.startTestMethod(runner.get(), frameworkMethod, callable);
 
-		verify(launch, times(2)).startTestItem(any(), argumentCaptor.capture());
+		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
 
 		StartTestItemRQ request = argumentCaptor.getValue();
 
@@ -152,11 +156,11 @@ public class TestCaseIdTest {
 
 		parallelRunningHandler.handleTestSkip(atomicTest);
 
-		verify(launch, times(2)).startTestItem(any(), argumentCaptor.capture());
+		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
 
 		StartTestItemRQ request = argumentCaptor.getValue();
 
-		Assert.assertEquals("testId", request.getTestCaseId());
+		Assertions.assertEquals("testId", request.getTestCaseId());
 	}
 
 //	@Test
@@ -168,11 +172,11 @@ public class TestCaseIdTest {
 
 		parallelRunningHandler.handleTestSkip(atomicTest);
 
-		verify(launch, times(2)).startTestItem(any(), argumentCaptor.capture());
+		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
 
 		StartTestItemRQ request = argumentCaptor.getValue();
 
-		Assert.assertEquals("I am test id", request.getTestCaseId());
+		Assertions.assertEquals("I am test id", request.getTestCaseId());
 	}
 
 	@Test
@@ -184,7 +188,7 @@ public class TestCaseIdTest {
 
 		parallelRunningHandler.handleTestSkip(atomicTest);
 
-		verify(launch, times(2)).startTestItem(any(), argumentCaptor.capture());
+		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
 
 		StartTestItemRQ request = argumentCaptor.getValue();
 

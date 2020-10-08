@@ -71,7 +71,7 @@ import static rp.com.google.common.base.Throwables.getStackTraceAsString;
  */
 public class ParallelRunningHandler implements IListenerHandler {
 
-	public static final ReportPortal REPORT_PORTAL = ReportPortal.builder().build();
+	private static volatile ReportPortal REPORT_PORTAL = ReportPortal.builder().build();
 
 	private final ParallelRunningContext context;
 	private final MemoizingSupplier<Launch> launch;
@@ -88,10 +88,18 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 	protected MemoizingSupplier<Launch> createLaunch() {
 		return new MemoizingSupplier<>(() -> {
-			final ReportPortal reportPortal = ReportPortal.builder().build();
+			final ReportPortal reportPortal = getReportPortal();
 			StartLaunchRQ rq = buildStartLaunchRq(reportPortal.getParameters());
 			return reportPortal.newLaunch(rq);
 		});
+	}
+
+	public static ReportPortal getReportPortal() {
+		return REPORT_PORTAL;
+	}
+
+	protected static void setReportPortal(ReportPortal reportPortal) {
+		REPORT_PORTAL = reportPortal;
 	}
 
 	/**
@@ -139,17 +147,19 @@ public class ParallelRunningHandler implements IListenerHandler {
 		launch.get().finishTestItem(context.getItemIdOfTestRunner(runner), rq);
 	}
 
+	// TODO: do we need it?
 	@Override
 	public void startTest(AtomicTest<FrameworkMethod> testContext) {
-		StartTestItemRQ rq = buildStartTestItemRq(testContext);
-		Maybe<String> testID = launch.get().startTestItem(context.getItemIdOfTestRunner(testContext.getRunner()), rq);
-		context.setTestIdOfTest(testContext, testID);
+//		StartTestItemRQ rq = buildStartTestItemRq(testContext);
+//		Maybe<String> testID = launch.get().startTestItem(context.getItemIdOfTestRunner(testContext.getRunner()), rq);
+//		context.setTestIdOfTest(testContext, testID);
 	}
 
+	// TODO: do we need it?
 	@Override
 	public void finishTest(AtomicTest<FrameworkMethod> testContext) {
-		FinishTestItemRQ rq = buildFinishTestRq(testContext);
-		launch.get().finishTestItem(context.getItemIdOfTest(testContext), rq);
+//		FinishTestItemRQ rq = buildFinishTestRq(testContext);
+//		launch.get().finishTestItem(context.getItemIdOfTest(testContext), rq);
 	}
 
 	/**
@@ -163,16 +173,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 
 		Maybe<String> parentId;
 		Maybe<String> itemId;
-		AtomicTest<FrameworkMethod> test = LifecycleHooks.getAtomicTestOf(runner);
-		if (test == null || MethodType.AFTER_CLASS.equals(MethodType.detect(method))) {
-			// BeforeClass and AfterClass run independently in JUnit
-			parentId = context.getItemIdOfTestRunner(runner);
-		} else {
-			// Before and After run within test context in JUnit
-			parentId = context.getItemIdOfTest(test);
-		}
+		parentId = context.getItemIdOfTestRunner(runner);
 		itemId = launch.get().startTestItem(parentId, rq);
-		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
+		if (getReportPortal().getParameters().isCallbackReportingEnabled()) {
 			ITEM_TREE.getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
 		}
 		context.setItemIdOfTestMethod(callable, itemId);
@@ -186,7 +189,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		ItemStatus status = context.getStatusOfTestMethod(callable);
 		FinishTestItemRQ rq = buildFinishStepRq(method, ofNullable(status).map(Enum::name).orElse(null));
 		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(context.getItemIdOfTestMethod(callable), rq);
-		if (REPORT_PORTAL.getParameters().isCallbackReportingEnabled()) {
+		if (getReportPortal().getParameters().isCallbackReportingEnabled()) {
 			updateTestItemTree(method, finishResponse);
 		}
 	}

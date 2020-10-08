@@ -1,7 +1,12 @@
+/*
+ * Copyright (C) 2020 Epic Games, Inc. All Rights Reserved.
+ */
+
 package com.epam.reportportal.junit;
 
 import com.epam.reportportal.annotations.TestCaseId;
 import com.epam.reportportal.annotations.TestCaseIdKey;
+import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.service.item.TestCaseIdEntry;
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
@@ -12,45 +17,27 @@ import com.nordstrom.automation.junit.ArtifactParams;
 import com.nordstrom.automation.junit.AtomIdentity;
 import com.nordstrom.automation.junit.AtomicTest;
 import org.apache.commons.collections.CollectionUtils;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.Description;
-import org.junit.runner.RunWith;
 import org.junit.runners.model.FrameworkMethod;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 /**
  * @author <a href="mailto:ihar_kahadouski@epam.com">Ihar Kahadouski</a>
  */
-@RunWith(MockitoJUnitRunner.class)
 public class ParallelRunningHandlerTest {
 
-	@Mock
-	private ParallelRunningContext parallelRunningContext;
-
-	@InjectMocks
-	private ParallelRunningHandler parallelRunningHandler;
-
-	private static ListenerParameters listenerParameters;
-
-	private static List<String> expectedKeys = Lists.newArrayList("jvm", "os", "agent", "skippedIssue");
-
-	@BeforeClass
-	public static void beforeClass() throws Exception {
-		listenerParameters = new ListenerParameters();
-		listenerParameters.setLaunchName("test-launch");
-	}
+	private static final List<String> EXPECTED_KEYS = Lists.newArrayList("jvm", "os", "agent", "skippedIssue");
+	private final ParallelRunningContext parallelRunningContext = mock(ParallelRunningContext.class);
+	private final ParallelRunningHandler parallelRunningHandler = new ParallelRunningHandler(parallelRunningContext);
+	private final ListenerParameters listenerParameters = TestUtils.standardParameters();
 
 	@Test
 	public void buildStartLaunchRqWithSystemAttributesTest() {
@@ -58,9 +45,9 @@ public class ParallelRunningHandlerTest {
 		Set<ItemAttributesRQ> systemAttributes = startLaunchRQ.getAttributes();
 		assertNotNull(systemAttributes);
 		assertTrue(CollectionUtils.isNotEmpty(systemAttributes));
-		systemAttributes.stream().map(ItemAttributesRQ::isSystem).forEach(Assert::assertTrue);
-		assertTrue(systemAttributes.stream().map(ItemAttributesRQ::getKey).collect(Collectors.toList()).containsAll(expectedKeys));
-		assertEquals(expectedKeys.size(), systemAttributes.stream().map(ItemAttributesRQ::getValue).filter(Objects::nonNull).count());
+		systemAttributes.stream().map(ItemAttributesRQ::isSystem).forEach(Assertions::assertTrue);
+		assertTrue(systemAttributes.stream().map(ItemAttributesRQ::getKey).collect(Collectors.toList()).containsAll(EXPECTED_KEYS));
+		assertEquals(EXPECTED_KEYS.size(), systemAttributes.stream().map(ItemAttributesRQ::getValue).filter(Objects::nonNull).count());
 	}
 
 	@Test
@@ -138,7 +125,7 @@ public class ParallelRunningHandlerTest {
 
 	public static class DummyTest implements ArtifactParams {
 		
-		@Rule
+		@org.junit.Rule
 		public final AtomIdentity identity = new AtomIdentity(this);
 
 		@TestCaseIdKey
@@ -161,7 +148,7 @@ public class ParallelRunningHandlerTest {
 			return Optional.of(map);
 		}
 
-		@Test
+		@org.junit.Test
 		public void method() {
 
 		}
@@ -169,7 +156,7 @@ public class ParallelRunningHandlerTest {
 
 	public static class DummyTestWithoutKey implements ArtifactParams {
 
-		@Rule
+		@org.junit.Rule
 		public final AtomIdentity identity = new AtomIdentity(this);
 
 		private String testId = "I am test id";
@@ -191,7 +178,7 @@ public class ParallelRunningHandlerTest {
 			return Optional.of(map);
 		}
 
-		@Test
+		@org.junit.Test
 		public void method() {
 
 		}
