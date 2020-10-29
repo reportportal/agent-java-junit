@@ -19,8 +19,10 @@ import com.epam.reportportal.annotations.TestCaseId;
 import com.epam.reportportal.annotations.TestCaseIdKey;
 import com.epam.reportportal.annotations.UniqueID;
 import com.epam.reportportal.annotations.attribute.Attributes;
+import com.epam.reportportal.junit.utils.ItemTreeUtils;
 import com.epam.reportportal.junit.utils.SystemAttributesFetcher;
 import com.epam.reportportal.listeners.ItemStatus;
+import com.epam.reportportal.listeners.ItemType;
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
@@ -35,10 +37,10 @@ import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import com.nordstrom.automation.junit.*;
 import io.reactivex.Maybe;
-import io.reactivex.annotations.Nullable;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.*;
 import org.junit.internal.runners.model.ReflectiveCallable;
+import org.junit.runner.Description;
 import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.TestClass;
@@ -46,6 +48,8 @@ import rp.com.google.common.annotations.VisibleForTesting;
 import rp.com.google.common.base.Function;
 import rp.com.google.common.base.Supplier;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -54,9 +58,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.Map.Entry;
 
-import static com.epam.reportportal.junit.ParallelRunningContext.ITEM_TREE;
 import static com.epam.reportportal.junit.utils.ItemTreeUtils.createItemTreeKey;
-import static com.epam.reportportal.junit.utils.ItemTreeUtils.retrieveLeaf;
 import static java.util.Optional.ofNullable;
 import static rp.com.google.common.base.Strings.isNullOrEmpty;
 import static rp.com.google.common.base.Throwables.getStackTraceAsString;
@@ -71,6 +73,8 @@ import static rp.com.google.common.base.Throwables.getStackTraceAsString;
  */
 public class ParallelRunningHandler implements IListenerHandler {
 
+	private static final String FINISH_REQUEST = "FINISH_REQUEST";
+	private static final String START_TIME = "START_TIME";
 	private static volatile ReportPortal REPORT_PORTAL = ReportPortal.builder().build();
 
 	private final ParallelRunningContext context;
@@ -108,7 +112,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void startLaunch() {
 		Maybe<String> launchId = launch.get().start();
-		ITEM_TREE.setLaunchId(launchId);
+		context.getItemTree().setLaunchId(launchId);
 	}
 
 	/**
@@ -122,20 +126,105 @@ public class ParallelRunningHandler implements IListenerHandler {
 		launch.reset();
 	}
 
+	private List<Object> getRunnerChain(Object runner) {
+		List<Object> chain = new ArrayList<>();
+		chain.add(runner);
+		Object parent;
+		Object current = runner;
+		while ((parent = LifecycleHooks.getParentOf(current)) != null) {
+			if (!getRunnerName(current).equals(getRunnerName(parent))) {
+				// skip duplicated runners in parameterized tests
+				chain.add(parent);
+			}
+			current = parent;
+		}
+		Collections.reverse(chain);
+		return chain;
+	}
+
+	@Nullable
+	private TestItemTree.TestItemLeaf retrieveLeaf(Object runner) {
+		List<Object> chain = getRunnerChain(runner);
+		Launch myLaunch = launch.get();
+		TestItemTree.TestItemLeaf leaf = null;
+		Map<TestItemTree.ItemTreeKey, TestItemTree.TestItemLeaf> children = context.getItemTree().getTestItems();
+		long currentDate = Calendar.getInstance().getTimeInMillis();
+		for (Object r : chain) {
+			StartTestItemRQ rq = buildStartSuiteRq(r, new Date(currentDate++));
+			Maybe<String> parentId = ofNullable(leaf).map(TestItemTree.TestItemLeaf::getItemId).orElse(null);
+			leaf = children.computeIfAbsent(TestItemTree.ItemTreeKey.of(rq.getName()), (k) -> {
+				TestItemTree.TestItemLeaf l = ofNullable(parentId).map(p -> TestItemTree.createTestItemLeaf(p,
+						myLaunch.startTestItem(p, rq)
+				)).orElseGet(() -> TestItemTree.createTestItemLeaf(myLaunch.startTestItem(rq)));
+				l.setType(ItemType.SUITE);
+				l.setAttribute(START_TIME, rq.getStartTime());
+				return l;
+			});
+			children = leaf.getChildItems();
+		}
+		return leaf;
+	}
+
+	@Nullable
+	private TestItemTree.TestItemLeaf getLeaf(Object runner) {
+		List<Object> chain = getRunnerChain(runner);
+		TestItemTree.TestItemLeaf leaf = null;
+		Map<TestItemTree.ItemTreeKey, TestItemTree.TestItemLeaf> children = context.getItemTree().getTestItems();
+		for (Object r : chain) {
+			leaf = children.get(TestItemTree.ItemTreeKey.of(getRunnerName(r)));
+			if (leaf != null) {
+				children = leaf.getChildItems();
+			}
+		}
+		return leaf;
+	}
+
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
 	public void startRunner(Object runner) {
-		StartTestItemRQ rq = buildStartSuiteRq(runner);
-		Maybe<String> containerId = getContainerId(runner);
-		Maybe<String> itemId;
-		if (containerId == null) {
-			itemId = launch.get().startTestItem(rq);
-		} else {
-			itemId = launch.get().startTestItem(containerId, rq);
+	}
+
+	@Nullable
+	private ItemStatus evaluateStatus(@Nullable ItemStatus currentStatus, @Nullable ItemStatus childStatus) {
+		if (childStatus == null) {
+			return currentStatus;
 		}
-		context.setTestIdOfTestRunner(runner, itemId);
+		ItemStatus status = ofNullable(currentStatus).orElse(ItemStatus.PASSED);
+		switch (childStatus) {
+			case PASSED:
+			case SKIPPED:
+			case STOPPED:
+			case INFO:
+			case WARN:
+				return status;
+			case CANCELLED:
+				switch (status) {
+					case PASSED:
+					case SKIPPED:
+					case STOPPED:
+					case INFO:
+					case WARN:
+						return ItemStatus.CANCELLED;
+					default:
+						return currentStatus;
+				}
+			case INTERRUPTED:
+				switch (status) {
+					case PASSED:
+					case SKIPPED:
+					case STOPPED:
+					case INFO:
+					case WARN:
+					case CANCELLED:
+						return ItemStatus.INTERRUPTED;
+					default:
+						return currentStatus;
+				}
+			default:
+				return childStatus;
+		}
 	}
 
 	/**
@@ -144,22 +233,48 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@Override
 	public void stopRunner(Object runner) {
 		FinishTestItemRQ rq = buildFinishSuiteRq(LifecycleHooks.getTestClassOf(runner));
-		launch.get().finishTestItem(context.getItemIdOfTestRunner(runner), rq);
+		Launch myLaunch = launch.get();
+		ofNullable(getLeaf(runner)).ifPresent(l -> {
+			l.setAttribute(FINISH_REQUEST, rq);
+			ItemStatus status = l.getStatus();
+			for (Map.Entry<TestItemTree.ItemTreeKey, TestItemTree.TestItemLeaf> entry : l.getChildItems().entrySet()) {
+				TestItemTree.TestItemLeaf value = entry.getValue();
+				if (value.getType() != ItemType.SUITE) {
+					continue;
+				}
+				ofNullable((FinishTestItemRQ) value.getAttribute(FINISH_REQUEST)).ifPresent(r -> {
+					myLaunch.finishTestItem(value.getItemId(), r);
+					value.clearAttribute(FINISH_REQUEST);
+				});
+				status = evaluateStatus(status, value.getStatus());
+			}
+			l.setStatus(status);
+			if (l.getParentId() == null) {
+				rq.setStatus(ofNullable(status).map(Enum::name).orElse(null));
+				myLaunch.finishTestItem(l.getItemId(), rq);
+			}
+		});
 	}
 
-	// TODO: do we need it?
+	@Nonnull
+	protected Date getDateForChild(@Nullable TestItemTree.TestItemLeaf leaf) {
+		return ofNullable(leaf).map(l -> l.<Date>getAttribute(START_TIME)).map(d -> {
+			Date currentDate = Calendar.getInstance().getTime();
+			if (currentDate.compareTo(d) > 0) {
+				return currentDate;
+			} else {
+				return new Date(d.getTime() + 1);
+			}
+		}).orElseGet(() -> Calendar.getInstance().getTime());
+	}
+
 	@Override
 	public void startTest(AtomicTest<FrameworkMethod> testContext) {
-//		StartTestItemRQ rq = buildStartTestItemRq(testContext);
-//		Maybe<String> testID = launch.get().startTestItem(context.getItemIdOfTestRunner(testContext.getRunner()), rq);
-//		context.setTestIdOfTest(testContext, testID);
+		context.setTestMethodDescription(testContext.getIdentity(), testContext.getDescription());
 	}
 
-	// TODO: do we need it?
 	@Override
 	public void finishTest(AtomicTest<FrameworkMethod> testContext) {
-//		FinishTestItemRQ rq = buildFinishTestRq(testContext);
-//		launch.get().finishTestItem(context.getItemIdOfTest(testContext), rq);
 	}
 
 	/**
@@ -167,18 +282,24 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	@Override
 	public void startTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
-		StartTestItemRQ rq = buildStartStepRq(method);
-		rq.setParameters(createStepParameters(method, runner));
-		rq.setTestCaseId(getTestCaseId(method, runner, rq.getCodeRef()).getId());
-
-		Maybe<String> parentId;
-		Maybe<String> itemId;
-		parentId = context.getItemIdOfTestRunner(runner);
-		itemId = launch.get().startTestItem(parentId, rq);
-		if (getReportPortal().getParameters().isCallbackReportingEnabled()) {
-			ITEM_TREE.getTestItems().put(createItemTreeKey(method), TestItemTree.createTestItemLeaf(parentId, itemId, 0));
-		}
-		context.setItemIdOfTestMethod(callable, itemId);
+		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
+		TestItemTree.TestItemLeaf testLeaf = ofNullable(retrieveLeaf(runner)).orElseGet(() -> context.getItemTree()
+				.getTestItems()
+				.get(myParentKey));
+		ofNullable(testLeaf).ifPresent(l -> {
+			Maybe<String> parentId = l.getItemId();
+			StartTestItemRQ rq = buildStartStepRq(context.getTestMethodDescription(method), method, getDateForChild(l));
+			rq.setParameters(createStepParameters(method, runner));
+			rq.setTestCaseId(getTestCaseId(method, runner, rq.getCodeRef()).getId());
+			Maybe<String> itemId = launch.get().startTestItem(parentId, rq);
+			TestItemTree.ItemTreeKey myKey = createItemTreeKey(method);
+			TestItemTree.TestItemLeaf myLeaf = TestItemTree.createTestItemLeaf(parentId, itemId);
+			myLeaf.setType(ItemType.STEP);
+			l.getChildItems().put(myKey, myLeaf);
+			if (getReportPortal().getParameters().isCallbackReportingEnabled()) {
+				context.getItemTree().getTestItems().put(myKey, myLeaf);
+			}
+		});
 	}
 
 	/**
@@ -188,10 +309,19 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public void stopTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
 		ItemStatus status = context.getStatusOfTestMethod(callable);
 		FinishTestItemRQ rq = buildFinishStepRq(method, ofNullable(status).map(Enum::name).orElse(null));
-		Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(context.getItemIdOfTestMethod(callable), rq);
-		if (getReportPortal().getParameters().isCallbackReportingEnabled()) {
-			updateTestItemTree(method, finishResponse);
-		}
+		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
+		TestItemTree.TestItemLeaf testLeaf = ofNullable(getLeaf(runner)).orElseGet(() -> context.getItemTree()
+				.getTestItems()
+				.get(myParentKey));
+		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method);
+		ofNullable(testLeaf).map(l -> l.getChildItems().get(myKey)).ifPresent(l -> {
+			Maybe<String> itemId = l.getItemId();
+			l.setStatus(status);
+			Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(itemId, rq);
+			if (getReportPortal().getParameters().isCallbackReportingEnabled()) {
+				updateTestItemTree(method, finishResponse);
+			}
+		});
 	}
 
 	/**
@@ -220,31 +350,32 @@ public class ParallelRunningHandler implements IListenerHandler {
 		FrameworkMethod identity = testContext.getIdentity();
 		Method method = identity.getMethod();
 		ReflectiveCallable callable;
-
-		// determine if retrying a failed invocation
-		Maybe<String> parentId = context.getItemIdOfTest(testContext);
-
-		// if actually ignored
-		if (parentId == null) {
-			// start ignored test
-			startTest(testContext);
-			// get test class instance
-			Object target = getTargetForRunner(runner);
-			// synthesize 'callable' object
-			callable = LifecycleHooks.encloseCallable(method, target);
-			// start ignored test identity method
-			startTestMethod(runner, identity, callable);
-		} else {
-			// retrieve 'callable' from failed invocation
-			callable = LifecycleHooks.getCallableOf(runner, method);
-		}
-
-		markCurrentTestMethod(callable, ItemStatus.SKIPPED);
-		stopTestMethod(runner, identity, callable);
+		// TODO: finish
+//
+//		// determine if retrying a failed invocation
+//		Maybe<String> parentId = context.getItemIdOfTest(testContext);
+//
+//		// if actually ignored
+//		if (parentId == null) {
+//			// start ignored test
+//			startTest(testContext);
+//			// get test class instance
+//			Object target = getTargetForRunner(runner);
+//			// synthesize 'callable' object
+//			callable = LifecycleHooks.encloseCallable(method, target);
+//			// start ignored test identity method
+//			startTestMethod(runner, identity, callable);
+//		} else {
+//			// retrieve 'callable' from failed invocation
+//			callable = LifecycleHooks.getCallableOf(runner, method);
+//		}
+//
+//		markCurrentTestMethod(callable, ItemStatus.SKIPPED);
+//		stopTestMethod(runner, identity, callable);
 	}
 
 	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {
-		TestItemTree.TestItemLeaf testItemLeaf = retrieveLeaf(method, ITEM_TREE);
+		TestItemTree.TestItemLeaf testItemLeaf = ItemTreeUtils.retrieveLeaf(method, context.getItemTree());
 		if (testItemLeaf != null) {
 			testItemLeaf.setFinishResponse(finishResponse);
 		}
@@ -310,21 +441,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	/**
-	 * Get the test item ID for the container of the indicated test item.
-	 *
-	 * @param runner JUnit test runner
-	 * @return container ID for the indicated test item; {@code null} for root test items
-	 */
-	private Maybe<String> getContainerId(Object runner) {
-		Object parent = LifecycleHooks.getParentOf(runner);
-		// if not root object
-		if (parent != null) {
-			return context.getItemIdOfTestRunner(parent);
-		}
-		return null;
-	}
-
-	/**
 	 * Extension point to customize launch creation event/request
 	 *
 	 * @param parameters Launch Configuration parameters
@@ -356,10 +472,21 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return Request to ReportPortal
 	 */
 	protected StartTestItemRQ buildStartSuiteRq(Object runner) {
+		return buildStartSuiteRq(runner, Calendar.getInstance().getTime());
+	}
+
+	/**
+	 * Extension point to customize suite creation event/request
+	 *
+	 * @param runner    JUnit suite context
+	 * @param startTime a suite start time which will be passed to RP
+	 * @return Request to ReportPortal
+	 */
+	protected StartTestItemRQ buildStartSuiteRq(Object runner, Date startTime) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(getRunnerName(runner));
 		rq.setCodeRef(getCodeRef(runner));
-		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setStartTime(startTime);
 		rq.setType("SUITE");
 		return rq;
 	}
@@ -371,10 +498,21 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return Request to ReportPortal
 	 */
 	protected StartTestItemRQ buildStartTestItemRq(AtomicTest<FrameworkMethod> test) {
+		return buildStartTestItemRq(test, Calendar.getInstance().getTime());
+	}
+
+	/**
+	 * Extension point to customize test creation event/request
+	 *
+	 * @param test      JUnit test context
+	 * @param startTime a suite start time which will be passed to RP
+	 * @return Request to ReportPortal
+	 */
+	protected StartTestItemRQ buildStartTestItemRq(AtomicTest<FrameworkMethod> test, Date startTime) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(test.getDescription().getDisplayName());
 		rq.setCodeRef(getCodeRef(test.getRunner()));
-		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setStartTime(startTime);
 		rq.setType("TEST");
 		return rq;
 	}
@@ -382,17 +520,18 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize test step creation event/request
 	 *
+	 * @param description JUnit framework test description object
 	 * @param method JUnit framework method context
 	 * @return Request to ReportPortal
 	 */
-	protected StartTestItemRQ buildStartStepRq(FrameworkMethod method) {
+	protected <T> StartTestItemRQ buildStartStepRq(Description description, FrameworkMethod method, Date startTime) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(method.getName());
 		rq.setCodeRef(getCodeRef(method));
 		rq.setAttributes(getAttributes(method));
-		rq.setDescription(createStepDescription(method));
+		rq.setDescription(createStepDescription(description, method));
 		rq.setUniqueId(extractUniqueID(method));
-		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setStartTime(startTime);
 		MethodType type = MethodType.detect(method);
 		rq.setType(type == null ? "" : type.name());
 
@@ -553,12 +692,13 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize test step description
 	 *
+	 * @param description JUnit framework test description object
 	 * @param method JUnit framework method context
 	 * @return Test/Step Description being sent to ReportPortal
 	 */
-	protected String createStepDescription(FrameworkMethod method) {
+	protected <T> String createStepDescription(Description description, FrameworkMethod method) {
 		DisplayName itemDisplayName = method.getAnnotation(DisplayName.class);
-		return (itemDisplayName != null) ? itemDisplayName.value() : getChildName(method);
+		return (itemDisplayName != null) ? itemDisplayName.value() : description.getDisplayName();
 	}
 
 	/**

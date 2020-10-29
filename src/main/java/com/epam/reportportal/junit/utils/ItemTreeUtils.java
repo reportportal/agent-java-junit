@@ -17,9 +17,11 @@
 package com.epam.reportportal.junit.utils;
 
 import com.epam.reportportal.service.tree.TestItemTree;
-import io.reactivex.annotations.Nullable;
+import com.nordstrom.automation.junit.AtomicTest;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
+
+import javax.annotation.Nullable;
 
 /**
  * @author <a href="mailto:ivan_budayeu@epam.com">Ivan Budayeu</a>
@@ -30,12 +32,28 @@ public class ItemTreeUtils {
 		//static only
 	}
 
+	public static TestItemTree.ItemTreeKey createItemTreeKey(String name) {
+		return TestItemTree.ItemTreeKey.of(name);
+	}
+
 	public static TestItemTree.ItemTreeKey createItemTreeKey(FrameworkMethod method) {
-		return TestItemTree.ItemTreeKey.of(method.getName(), method.getDeclaringClass().getName().hashCode());
+		return TestItemTree.ItemTreeKey.of(method.getName(), (method.getDeclaringClass().getName() + "." + method.getName()).hashCode());
+	}
+
+	public static <T> TestItemTree.ItemTreeKey createItemTreeKey(AtomicTest<T> test) {
+		return TestItemTree.ItemTreeKey.of(test.getDescription().getDisplayName());
 	}
 
 	public static TestItemTree.ItemTreeKey createItemTreeKey(Description description) {
-		return TestItemTree.ItemTreeKey.of(description.getMethodName(), description.getTestClass().getName().hashCode());
+		return TestItemTree.ItemTreeKey.of(
+				description.getMethodName(),
+				(description.getTestClass().getName() + "." + description.getMethodName()).hashCode()
+		);
+	}
+
+	@Nullable
+	public static TestItemTree.TestItemLeaf retrieveLeaf(String name, TestItemTree testItemTree) {
+		return testItemTree.getTestItems().get(createItemTreeKey(name));
 	}
 
 	@Nullable

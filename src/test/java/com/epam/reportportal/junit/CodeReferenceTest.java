@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class CodeReferenceTest {
 
 	private final String launchId = CommonUtils.namedId("launch_");
