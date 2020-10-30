@@ -40,9 +40,6 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.*;
 
-/**
- * @author <a href="mailto:ivan_budayeu@epam.com">Ivan Budayeu</a>
- */
 public class TestCaseIdTest {
 
 	private final String launchId = CommonUtils.namedId("launch_");
