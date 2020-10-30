@@ -277,11 +277,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	public void finishTest(AtomicTest<FrameworkMethod> testContext) {
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void startTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
+	protected void startTestItem(Object runner, FrameworkMethod method) {
 		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
 		TestItemTree.TestItemLeaf testLeaf = ofNullable(retrieveLeaf(runner)).orElseGet(() -> context.getItemTree()
 				.getTestItems()
@@ -300,6 +296,14 @@ public class ParallelRunningHandler implements IListenerHandler {
 				context.getItemTree().getTestItems().put(myKey, myLeaf);
 			}
 		});
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void startTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
+		startTestItem(runner, method);
 	}
 
 	/**
@@ -343,35 +347,29 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * {@inheritDoc}
 	 */
-	//TODO Finish fixes here
 	@Override
 	public void handleTestSkip(AtomicTest<FrameworkMethod> testContext) {
 		Object runner = testContext.getRunner();
-		FrameworkMethod identity = testContext.getIdentity();
-		Method method = identity.getMethod();
-		ReflectiveCallable callable;
-		// TODO: finish
-//
-//		// determine if retrying a failed invocation
-//		Maybe<String> parentId = context.getItemIdOfTest(testContext);
-//
-//		// if actually ignored
-//		if (parentId == null) {
-//			// start ignored test
-//			startTest(testContext);
-//			// get test class instance
-//			Object target = getTargetForRunner(runner);
-//			// synthesize 'callable' object
-//			callable = LifecycleHooks.encloseCallable(method, target);
-//			// start ignored test identity method
-//			startTestMethod(runner, identity, callable);
-//		} else {
-//			// retrieve 'callable' from failed invocation
-//			callable = LifecycleHooks.getCallableOf(runner, method);
-//		}
-//
-//		markCurrentTestMethod(callable, ItemStatus.SKIPPED);
-//		stopTestMethod(runner, identity, callable);
+		FrameworkMethod method = testContext.getIdentity();
+		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
+		TestItemTree.TestItemLeaf testLeaf = ofNullable(retrieveLeaf(runner)).orElseGet(() -> context.getItemTree()
+				.getTestItems()
+				.get(myParentKey));
+		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method);
+
+		ofNullable(testLeaf).ifPresent(p->{
+			Maybe<String> myId = ofNullable(p.getChildItems().get(myKey)).map(TestItemTree.TestItemLeaf::getItemId).orElse(null);
+			ReflectiveCallable callable = ofNullable(myId).map(id -> LifecycleHooks.getCallableOf(runner, method.getMethod()))
+					.orElseGet(() -> {
+						startTest(testContext);
+						Object target = getTargetForRunner(runner);
+						startTestItem(runner, method);
+						return LifecycleHooks.encloseCallable(method.getMethod(), target);
+					});
+
+			markCurrentTestMethod(callable, ItemStatus.SKIPPED);
+			stopTestMethod(runner, method, callable);
+		});
 	}
 
 	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {

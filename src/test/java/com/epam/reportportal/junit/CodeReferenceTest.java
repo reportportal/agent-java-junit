@@ -4,7 +4,7 @@
 
 package com.epam.reportportal.junit;
 
-import com.epam.reportportal.junit.features.coderef.SingleTest;
+import com.epam.reportportal.junit.features.coderef.CodeRefTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
@@ -12,7 +12,6 @@ import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
@@ -40,7 +39,7 @@ public class CodeReferenceTest {
 
 	@Test
 	public void verify_static_test_code_reference_generation() {
-		TestUtils.runClasses(SingleTest.class);
+		TestUtils.runClasses(CodeRefTest.class);
 
 		verify(client, times(1)).startTestItem(any());
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
@@ -53,11 +52,11 @@ public class CodeReferenceTest {
 		StartTestItemRQ classRq = items.get(0);
 		StartTestItemRQ testRq = items.get(1);
 
-		assertThat(classRq.getCodeRef(), allOf(notNullValue(), equalTo(SingleTest.class.getCanonicalName())));
+		assertThat(classRq.getCodeRef(), allOf(notNullValue(), equalTo(CodeRefTest.class.getCanonicalName())));
 		assertThat(testRq.getCodeRef(),
 				allOf(
 						notNullValue(),
-						equalTo(SingleTest.class.getCanonicalName() + "." + SingleTest.class.getDeclaredMethods()[0].getName())
+						equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
 				)
 		);
 	}

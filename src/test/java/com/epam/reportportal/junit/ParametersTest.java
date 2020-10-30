@@ -4,22 +4,14 @@
 
 package com.epam.reportportal.junit;
 
-import com.epam.reportportal.junit.features.coderef.SingleTest;
 import com.epam.reportportal.junit.features.parameters.StandardParametersSimpleTest;
 import com.epam.reportportal.junit.utils.TestUtils;
-import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
-import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.mockito.ArgumentCaptor;
-
-import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
