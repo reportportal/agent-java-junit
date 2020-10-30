@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 EPAM Systems
+ * Copyright 2020 EPAM Systems
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,6 +83,7 @@ test {
     outputs.upToDateWhen { return false }
     useJUnitPlatform()
     maxParallelForks(5)
+    forkEvery(1)
     doFirst {
         def junitFoundation = configurations.runtimeClasspath.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
         def weaver = configurations.testRuntimeClasspath.find { it.name.contains("aspectjweaver") }
@@ -94,7 +95,6 @@ test {
         events "failed"
         exceptionFormat "full"
     }
-    exclude 'com/epam/reportportal/junit/ExpectToFail.class'
 }
 
 wrapper {

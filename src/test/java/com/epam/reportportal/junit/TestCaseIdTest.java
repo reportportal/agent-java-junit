@@ -4,29 +4,28 @@
 
 package com.epam.reportportal.junit;
 
-import com.epam.reportportal.annotations.TestCaseId;
-import com.epam.reportportal.listeners.ListenerParameters;
-import com.epam.reportportal.service.Launch;
+import com.epam.reportportal.junit.features.coderef.CodeRefTest;
+import com.epam.reportportal.junit.features.parameters.JUnitParamsSimpleTest;
+import com.epam.reportportal.junit.features.parameters.StandardParametersSimpleTest;
+import com.epam.reportportal.junit.features.testcaseid.TestCaseIdFromAnnotationTest;
+import com.epam.reportportal.junit.utils.TestUtils;
+import com.epam.reportportal.service.ReportPortal;
+import com.epam.reportportal.service.ReportPortalClient;
+import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
-import com.nordstrom.automation.junit.AtomicTest;
-import com.nordstrom.automation.junit.LifecycleHooks;
-import com.nordstrom.automation.junit.RunAnnouncer;
-import com.nordstrom.common.base.UncheckedThrow;
-import org.apache.commons.lang3.reflect.MethodUtils;
-import org.junit.internal.runners.model.ReflectiveCallable;
-import org.junit.jupiter.api.Assertions;
+import junitparams.Parameters;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.runners.BlockJUnit4ClassRunner;
-import org.junit.runners.model.FrameworkMethod;
-import org.junit.runners.model.InitializationError;
 import org.mockito.ArgumentCaptor;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.IntStream;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.*;
 
 /**
@@ -34,174 +33,118 @@ import static org.mockito.Mockito.*;
  */
 public class TestCaseIdTest {
 
-	private final ParallelRunningContext parallelRunningContext = mock(ParallelRunningContext.class);
-	private final Launch launch = mock(Launch.class);
+	private final String launchId = CommonUtils.namedId("launch_");
+	private final String suiteId = CommonUtils.namedId("suite_");
+	private final String classId = CommonUtils.namedId("class_");
+	private final String methodId = CommonUtils.namedId("method_");
 
-	private final ThreadLocal<Object> runner = new ThreadLocal<>();
-	private Object target;
-	private FrameworkMethod frameworkMethod;
-	private ReflectiveCallable callable;
-	private AtomicTest<FrameworkMethod> atomicTest;
-
-	private TestCaseIdParallelRunningHandler parallelRunningHandler;
-
-	private class TestCaseIdParallelRunningHandler extends ParallelRunningHandler {
-
-		/**
-		 * Constructor: Instantiate a parallel running handler
-		 *
-		 * @param parallelRunningContext test execution context manager
-		 */
-		public TestCaseIdParallelRunningHandler(ParallelRunningContext parallelRunningContext) {
-			super(parallelRunningContext);
-		}
-
-		@Override
-		protected ParallelRunningHandler.MemoizingSupplier<Launch> createLaunch() {
-			return new MemoizingSupplier<>(() -> launch);
-		}
-	}
+	private ReportPortalClient client;
 
 	@BeforeEach
-	public void init() {
-		parallelRunningHandler = new TestCaseIdParallelRunningHandler(parallelRunningContext);
-		when(launch.getParameters()).thenReturn(new ListenerParameters());
-	}
-
-	@SuppressWarnings("unchecked")
-	private void setupFor(Class<?> testClass) {
-		try {
-			BlockJUnit4ClassRunner classRunner = new BlockJUnit4ClassRunner(testClass);
-			runner.set(classRunner);
-
-			List<FrameworkMethod> methods = invoke(classRunner, "getChildren");
-			frameworkMethod = methods.get(0);
-
-			Method newAtomicTest = RunAnnouncer.class.getDeclaredMethod("newAtomicTest", Object.class, Object.class);
-			newAtomicTest.setAccessible(true);
-			atomicTest = (AtomicTest<FrameworkMethod>) newAtomicTest.invoke(null, classRunner, frameworkMethod);
-
-			target = invoke(classRunner,"createTest");
-			callable = LifecycleHooks.encloseCallable(frameworkMethod.getMethod(), target);
-		} catch (InitializationError | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-			throw UncheckedThrow.throwUnchecked(e);
-		}
-	}
-
-	public static class ClassWithTestCaseIdMethod {
-		@org.junit.Test
-		@TestCaseId(value = "testId")
-		public void methodForTesting() {
-
-		}
+	public void setupMock() {
+		client = mock(ReportPortalClient.class);
+		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodId);
+		TestUtils.mockLogging(client);
+		ParallelRunningHandler.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
 	@Test
-	public void shouldReturnProvidedIdWhenNotParametrized() {
+	public void verify_static_test_case_id_generation() {
+		TestUtils.runClasses(CodeRefTest.class);
 
-		setupFor(ClassWithTestCaseIdMethod.class);
+		verify(client, times(1)).startTestItem(any());
+		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(1)).startTestItem(same(suiteId), captor.capture());
+		verify(client, times(1)).startTestItem(same(classId), captor.capture());
 
-		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		List<StartTestItemRQ> items = captor.getAllValues();
+		assertThat(items, hasSize(2));
 
-		parallelRunningHandler.startTest(atomicTest);
-		parallelRunningHandler.startTestMethod(runner.get(), frameworkMethod, callable);
+		StartTestItemRQ testRq = items.get(1);
 
-		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
-
-		StartTestItemRQ request = argumentCaptor.getValue();
-
-		Assertions.assertEquals("testId", request.getTestCaseId());
-	}
-
-//	@Test
-	public void retrieveParametrizedTestCaseIdTestWithKey() {
-
-		setupFor(ParallelRunningHandlerTest.DummyTest.class);
-
-		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-
-		parallelRunningHandler.startTest(atomicTest);
-		parallelRunningHandler.startTestMethod(runner.get(), frameworkMethod, callable);
-
-		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
-
-		StartTestItemRQ request = argumentCaptor.getValue();
-
-		Assertions.assertEquals("I am test id", request.getTestCaseId());
+		assertThat(testRq.getTestCaseId(),
+				allOf(notNullValue(),
+						equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
+				)
+		);
 	}
 
 	@Test
-	public void retrieveParametrizedTestCaseIdTestWithoutKey() {
+	public void verify_test_case_id_standard_parameters_generation() {
+		Class<StandardParametersSimpleTest> testClass = StandardParametersSimpleTest.class;
+		TestUtils.runClasses(testClass);
 
-		setupFor(ParallelRunningHandlerTest.DummyTestWithoutKey.class);
+		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(1)).startTestItem(captor.capture());
+		verify(client, times(1)).startTestItem(same(suiteId), captor.capture());
+		verify(client, times(2)).startTestItem(same(classId), captor.capture());
 
-		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		List<StartTestItemRQ> items = captor.getAllValues();
+		assertThat(items, hasSize(4));
 
-		parallelRunningHandler.startTest(atomicTest);
-		parallelRunningHandler.startTestMethod(runner.get(), frameworkMethod, callable);
+		List<StartTestItemRQ> testRqs = items.subList(2, 4);
 
-		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
-
-		StartTestItemRQ request = argumentCaptor.getValue();
-
-		assertEquals("com.epam.reportportal.junit.ParallelRunningHandlerTest.DummyTestWithoutKey.method", request.getTestCaseId());
+		IntStream.range(0, testRqs.size()).forEach(i -> {
+			StartTestItemRQ testRq = testRqs.get(i);
+			String classStr = testClass.getCanonicalName();
+			String methodStr = Arrays.stream(testClass.getDeclaredMethods())
+					.filter(m -> m.getAnnotation(org.junit.Test.class) != null)
+					.map(Method::getName)
+					.findFirst()
+					.orElse(null);
+			Object params = StandardParametersSimpleTest.params()[i];
+			assertThat(testRq.getTestCaseId(), allOf(notNullValue(), equalTo(classStr + "." + methodStr + "[" + params + "]")));
+		});
 	}
 
 	@Test
-	public void shouldReturnProvidedIdWhenNotParametrizedSkipped() {
+	public void verify_test_case_id_junitparams_parameters_generation() {
+		Class<JUnitParamsSimpleTest> testClass = JUnitParamsSimpleTest.class;
+		TestUtils.runClasses(testClass);
 
-		setupFor(ClassWithTestCaseIdMethod.class);
+		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(1)).startTestItem(captor.capture());
+		verify(client, times(1)).startTestItem(same(suiteId), captor.capture());
+		verify(client, times(2)).startTestItem(same(classId), captor.capture());
 
-		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		List<StartTestItemRQ> items = captor.getAllValues();
+		assertThat(items, hasSize(4));
 
-		parallelRunningHandler.handleTestSkip(atomicTest);
+		List<StartTestItemRQ> testRqs = items.subList(2, 4);
 
-		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
-
-		StartTestItemRQ request = argumentCaptor.getValue();
-
-		Assertions.assertEquals("testId", request.getTestCaseId());
+		IntStream.range(0, testRqs.size()).forEach(i -> {
+			StartTestItemRQ testRq = testRqs.get(i);
+			String classStr = testClass.getCanonicalName();
+			String methodStr = Arrays.stream(testClass.getDeclaredMethods())
+					.filter(m -> m.getAnnotation(org.junit.Test.class) != null)
+					.map(Method::getName)
+					.findFirst()
+					.orElse(null);
+			String params = Arrays.stream(testClass.getDeclaredMethods())
+					.filter(m -> m.getAnnotation(Parameters.class) != null)
+					.map(m -> m.getAnnotation(Parameters.class).value())
+					.map(p -> p[i])
+					.findAny()
+					.orElse("").replace("\\", "");
+			assertThat(testRq.getTestCaseId(), allOf(notNullValue(), equalTo(classStr + "." + methodStr + "[" + params + "]")));
+		});
 	}
 
-//	@Test
-	public void retrieveParametrizedTestCaseIdTestWithKeySkipped() {
-
-		setupFor(ParallelRunningHandlerTest.DummyTest.class);
-
-		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-
-		parallelRunningHandler.handleTestSkip(atomicTest);
-
-		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
-
-		StartTestItemRQ request = argumentCaptor.getValue();
-
-		Assertions.assertEquals("I am test id", request.getTestCaseId());
-	}
 
 	@Test
-	public void retrieveParametrizedTestCaseIdTestWithoutKeySkipped() {
+	public void verify_test_case_id_from_simple_annotation_generation() {
+		Class<TestCaseIdFromAnnotationTest> testClass = TestCaseIdFromAnnotationTest.class;
+		TestUtils.runClasses(testClass);
 
-		setupFor(ParallelRunningHandlerTest.DummyTestWithoutKey.class);
+		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(1)).startTestItem(captor.capture());
+		verify(client, times(1)).startTestItem(same(suiteId), captor.capture());
+		verify(client, times(1)).startTestItem(same(classId), captor.capture());
 
-		ArgumentCaptor<StartTestItemRQ> argumentCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		List<StartTestItemRQ> items = captor.getAllValues();
+		assertThat(items, hasSize(3));
 
-		parallelRunningHandler.handleTestSkip(atomicTest);
-
-		verify(launch, times(1)).startTestItem(any(), argumentCaptor.capture());
-
-		StartTestItemRQ request = argumentCaptor.getValue();
-
-		assertEquals("com.epam.reportportal.junit.ParallelRunningHandlerTest.DummyTestWithoutKey.method", request.getTestCaseId());
+		StartTestItemRQ testRq = items.get(3);
+		assertThat(testRq.getTestCaseId(), allOf(notNullValue(), equalTo(TestCaseIdFromAnnotationTest.TEST_CASE_ID_VALUE)));
 	}
-
-	@SuppressWarnings("unchecked")
-	private static <T> T invoke(Object target, String methodName, Object... parameters) {
-		try {
-			return (T) MethodUtils.invokeMethod(target, true, methodName, parameters);
-		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-			throw UncheckedThrow.throwUnchecked(e);
-		}
-	}
-
 }

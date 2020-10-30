@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 EPAM Systems
+ * Copyright 2020 EPAM Systems
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ import java.util.function.Supplier;
  */
 public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher<FrameworkMethod>, MethodWatcher<FrameworkMethod> {
 
-	private static final MemorizingSupplier<IListenerHandler> HANDLER = new MemorizingSupplier<>(() -> {
+	private final MemorizingSupplier<IListenerHandler> HANDLER = new MemorizingSupplier<>(() -> {
 		ParallelRunningHandler result = new ParallelRunningHandler(new ParallelRunningContext());
 		result.startLaunch();
 		return result;

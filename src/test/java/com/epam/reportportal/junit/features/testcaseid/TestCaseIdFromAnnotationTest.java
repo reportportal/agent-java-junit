@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.features.coderef;
+package com.epam.reportportal.junit.features.testcaseid;
 
+import com.epam.reportportal.annotations.TestCaseId;
 import org.junit.Test;
 
-public class CodeRefTest {
+public class TestCaseIdFromAnnotationTest {
 
+	public static final String TEST_CASE_ID_VALUE = "test-case-id";
+
+	@TestCaseId(TEST_CASE_ID_VALUE)
 	@Test
-	public void singleTest() {
-		System.out.println("Test class: " + getClass().getCanonicalName());
+	void test() {
+
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 EPAM Systems
+ * Copyright 2020 EPAM Systems
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.item.TestCaseIdEntry;
 import com.epam.reportportal.service.tree.TestItemTree;
 import com.epam.reportportal.utils.AttributeParser;
+import com.epam.reportportal.utils.TestCaseIdUtils;
 import com.epam.reportportal.utils.reflect.Accessible;
 import com.epam.ta.reportportal.ws.model.*;
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
@@ -284,9 +285,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 				.get(myParentKey));
 		ofNullable(testLeaf).ifPresent(l -> {
 			Maybe<String> parentId = l.getItemId();
-			StartTestItemRQ rq = buildStartStepRq(context.getTestMethodDescription(method), method, getDateForChild(l));
-			rq.setParameters(createStepParameters(method, runner));
-			rq.setTestCaseId(getTestCaseId(method, runner, rq.getCodeRef()).getId());
+			StartTestItemRQ rq = buildStartStepRq(runner, context.getTestMethodDescription(method), method, getDateForChild(l));
 			Maybe<String> itemId = launch.get().startTestItem(parentId, rq);
 			TestItemTree.ItemTreeKey myKey = createItemTreeKey(method);
 			TestItemTree.TestItemLeaf myLeaf = TestItemTree.createTestItemLeaf(parentId, itemId);
@@ -357,7 +356,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 				.get(myParentKey));
 		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method);
 
-		ofNullable(testLeaf).ifPresent(p->{
+		ofNullable(testLeaf).ifPresent(p -> {
 			Maybe<String> myId = ofNullable(p.getChildItems().get(myKey)).map(TestItemTree.TestItemLeaf::getItemId).orElse(null);
 			ReflectiveCallable callable = ofNullable(myId).map(id -> LifecycleHooks.getCallableOf(runner, method.getMethod()))
 					.orElseGet(() -> {
@@ -518,17 +517,19 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize test step creation event/request
 	 *
+	 * @param runner
 	 * @param description JUnit framework test description object
-	 * @param method JUnit framework method context
+	 * @param method      JUnit framework method context
 	 * @return Request to ReportPortal
 	 */
-	protected <T> StartTestItemRQ buildStartStepRq(Description description, FrameworkMethod method, Date startTime) {
+	protected <T> StartTestItemRQ buildStartStepRq(Object runner, Description description, FrameworkMethod method, Date startTime) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(method.getName());
 		rq.setCodeRef(getCodeRef(method));
 		rq.setAttributes(getAttributes(method));
 		rq.setDescription(createStepDescription(description, method));
-		rq.setUniqueId(extractUniqueID(method));
+		rq.setParameters(createStepParameters(method, runner));
+		rq.setTestCaseId(getTestCaseId(method, runner, rq.getCodeRef()).getId());
 		rq.setStartTime(startTime);
 		MethodType type = MethodType.detect(method);
 		rq.setType(type == null ? "" : type.name());
@@ -607,17 +608,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 	}
 
 	protected TestCaseIdEntry getTestCaseId(Method method, Object target, String codeRef) {
+		List<Object> params = null;
 		if (target instanceof ArtifactParams) {
-			com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
-			boolean isParametrizedMethod = ofNullable(method.getDeclaredAnnotation(TestCaseId.class)).map(TestCaseId::parametrized)
-					.orElse(true);
-			if (params.isPresent() && isParametrizedMethod) {
-				return retrieveParametrizedTestCaseId(target, params.get(), codeRef);
-			}
+			params = ((ArtifactParams) target).getParameters().transform(p -> new ArrayList<>(p.values())).orNull();
 		}
-		return ofNullable(method.getDeclaredAnnotation(TestCaseId.class)).flatMap(annotation -> Optional.of(annotation.value())
-				.map(TestCaseIdEntry::new)).orElseGet(() -> new TestCaseIdEntry(codeRef));
-
+		return TestCaseIdUtils.getTestCaseId(method.getAnnotation(TestCaseId.class), method, codeRef, params);
 	}
 
 	protected TestCaseIdEntry retrieveParametrizedTestCaseId(Object target, Map<String, Object> params, String codeRef) {
@@ -691,7 +686,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * Extension point to customize test step description
 	 *
 	 * @param description JUnit framework test description object
-	 * @param method JUnit framework method context
+	 * @param method      JUnit framework method context
 	 * @return Test/Step Description being sent to ReportPortal
 	 */
 	protected <T> String createStepDescription(Description description, FrameworkMethod method) {
@@ -773,7 +768,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return code reference to the test method
 	 */
 	private String getCodeRef(FrameworkMethod frameworkMethod) {
-		return frameworkMethod.getDeclaringClass().getCanonicalName() + "." + frameworkMethod.getName();
+		return TestCaseIdUtils.getCodeRef(frameworkMethod.getMethod());
 	}
 
 	private Set<ItemAttributesRQ> getAttributes(FrameworkMethod frameworkMethod) {
