@@ -25,7 +25,7 @@ public class TestCaseIdFromAnnotationTest {
 
 	@TestCaseId(TEST_CASE_ID_VALUE)
 	@Test
-	void test() {
+	public void test() {
 
 	}
 }

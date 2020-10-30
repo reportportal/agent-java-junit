@@ -156,7 +156,7 @@ public class TestCaseIdTest {
 		List<StartTestItemRQ> items = captor.getAllValues();
 		assertThat(items, hasSize(3));
 
-		StartTestItemRQ testRq = items.get(3);
+		StartTestItemRQ testRq = items.get(2);
 		assertThat(testRq.getTestCaseId(), allOf(notNullValue(), equalTo(TestCaseIdFromAnnotationTest.TEST_CASE_ID_VALUE)));
 	}
 }
