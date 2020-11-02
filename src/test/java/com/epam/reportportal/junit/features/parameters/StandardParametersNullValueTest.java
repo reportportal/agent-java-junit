@@ -19,28 +19,36 @@ package com.epam.reportportal.junit.features.parameters;
 import com.google.common.base.Optional;
 import com.nordstrom.automation.junit.ArtifactParams;
 import com.nordstrom.automation.junit.AtomIdentity;
-import com.nordstrom.automation.junit.AtomicTest;
-import com.nordstrom.automation.junit.LifecycleHooks;
-import junitparams.JUnitParamsRunner;
-import junitparams.Parameters;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runner.Description;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+import java.util.Collections;
 import java.util.Map;
 
-@RunWith(JUnitParamsRunner.class)
-public class JUnitParamsTwoParamsTest implements ArtifactParams {
+@RunWith(Parameterized.class)
+public class StandardParametersNullValueTest implements ArtifactParams {
 
 	@Rule
 	public final AtomIdentity identity = new AtomIdentity(this);
 
+	@Parameters
+	public static Object[] params() {
+		return new Object[] { "one", null };
+	}
+
+	private final String parameter;
+
+	public StandardParametersNullValueTest(String param) {
+		parameter = param;
+	}
+
 	@Test
-	@Parameters({ "one, 1", "two, 2" })
-	public void testParameters(String param1, int param2) {
-		System.out.println("Parameter test: " + param1 + "; " + param2);
+	public void testParameters() {
+		System.out.println("Parameter test: " + parameter);
 	}
 
 	@Override
@@ -55,14 +63,6 @@ public class JUnitParamsTwoParamsTest implements ArtifactParams {
 
 	@Override
 	public Optional<Map<String, Object>> getParameters() {
-		Object runner = LifecycleHooks.getRunnerForTarget(this);
-		AtomicTest<?> test = LifecycleHooks.getAtomicTestOf(runner);
-		ReflectiveCallable callable = LifecycleHooks.getCallableOf(runner, test.getIdentity());
-		try {
-			Object[] params = LifecycleHooks.getFieldValue(callable, "val$params");
-			return Param.mapOf(Param.param("param1", params[0]), Param.param("param2", params[1]));
-		} catch (IllegalAccessException | NoSuchFieldException e) {
-			return Optional.absent();
-		}
+		return Optional.of(Collections.singletonMap("param", parameter));
 	}
 }

@@ -16,8 +16,6 @@
 package com.epam.reportportal.junit;
 
 import com.epam.reportportal.annotations.TestCaseId;
-import com.epam.reportportal.annotations.TestCaseIdKey;
-import com.epam.reportportal.annotations.UniqueID;
 import com.epam.reportportal.annotations.attribute.Attributes;
 import com.epam.reportportal.junit.utils.ItemTreeUtils;
 import com.epam.reportportal.junit.utils.SystemAttributesFetcher;
@@ -30,7 +28,6 @@ import com.epam.reportportal.service.item.TestCaseIdEntry;
 import com.epam.reportportal.service.tree.TestItemTree;
 import com.epam.reportportal.utils.AttributeParser;
 import com.epam.reportportal.utils.TestCaseIdUtils;
-import com.epam.reportportal.utils.reflect.Accessible;
 import com.epam.ta.reportportal.ws.model.*;
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
 import com.epam.ta.reportportal.ws.model.issue.Issue;
@@ -38,7 +35,6 @@ import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import com.nordstrom.automation.junit.*;
 import io.reactivex.Maybe;
-import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.*;
 import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runner.Description;
@@ -53,8 +49,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.Map.Entry;
@@ -103,7 +97,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 		return REPORT_PORTAL;
 	}
 
-	protected static void setReportPortal(ReportPortal reportPortal) {
+	public static void setReportPortal(ReportPortal reportPortal) {
 		REPORT_PORTAL = reportPortal;
 	}
 
@@ -517,12 +511,13 @@ public class ParallelRunningHandler implements IListenerHandler {
 	/**
 	 * Extension point to customize test step creation event/request
 	 *
-	 * @param runner
+	 * @param runner      JUnit test runner context
 	 * @param description JUnit framework test description object
 	 * @param method      JUnit framework method context
+	 * @param startTime   A test step start date and time
 	 * @return Request to ReportPortal
 	 */
-	protected <T> StartTestItemRQ buildStartStepRq(Object runner, Description description, FrameworkMethod method, Date startTime) {
+	protected StartTestItemRQ buildStartStepRq(Object runner, Description description, FrameworkMethod method, Date startTime) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(method.getName());
 		rq.setCodeRef(getCodeRef(method));
@@ -545,26 +540,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @return Request to ReportPortal
 	 */
 	protected FinishTestItemRQ buildFinishSuiteRq(TestClass testClass) {
-		FinishTestItemRQ rq = new FinishTestItemRQ();
-		rq.setEndTime(Calendar.getInstance().getTime());
-		return rq;
-	}
-
-	/**
-	 * Extension point to customize test on it's finish
-	 *
-	 * @param testContext JUnit test context
-	 * @return Request to ReportPortal
-	 */
-	@SuppressWarnings("squid:S4144")
-	protected FinishTestItemRQ buildFinishTestRq(AtomicTest<FrameworkMethod> testContext) {
-		FinishTestItemRQ rq = buildFinishTestItemRq();
-		String status = testContext.getThrowable() == null ? ItemStatus.PASSED.name() : ItemStatus.FAILED.name();
-		rq.setStatus(status);
-		return rq;
-	}
-
-	protected FinishTestItemRQ buildFinishTestItemRq() {
 		FinishTestItemRQ rq = new FinishTestItemRQ();
 		rq.setEndTime(Calendar.getInstance().getTime());
 		return rq;
@@ -613,31 +588,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 			params = ((ArtifactParams) target).getParameters().transform(p -> new ArrayList<>(p.values())).orNull();
 		}
 		return TestCaseIdUtils.getTestCaseId(method.getAnnotation(TestCaseId.class), method, codeRef, params);
-	}
-
-	protected TestCaseIdEntry retrieveParametrizedTestCaseId(Object target, Map<String, Object> params, String codeRef) {
-		return Arrays.stream(target.getClass().getDeclaredFields())
-				.filter(field -> params.containsKey(field.getName()) && field.getDeclaredAnnotation(TestCaseIdKey.class) != null)
-				.findFirst()
-				.flatMap(testCaseIdField -> retrieveTestCaseId(target, testCaseIdField, codeRef, params.get(testCaseIdField.getName())))
-				.orElseGet(() -> new TestCaseIdEntry(codeRef));
-	}
-
-	/**
-	 * @param target          Current entity
-	 * @param testCaseIdField Field marked by {@link TestCaseIdKey}
-	 * @param codeRef         Location of the current target entity in the code
-	 * @param arguments       Arguments of the parametrized test
-	 * @return {@link TestCaseIdEntry}
-	 */
-	private Optional<TestCaseIdEntry> retrieveTestCaseId(Object target, Field testCaseIdField, String codeRef, Object... arguments) {
-		try {
-			Object testCaseId = Accessible.on(target).field(testCaseIdField).getValue();
-			return Optional.of(new TestCaseIdEntry(String.valueOf(testCaseId)));
-		} catch (IllegalAccessError e) {
-			//do nothing
-		}
-		return Optional.empty();
 	}
 
 	/**
@@ -689,20 +639,9 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 * @param method      JUnit framework method context
 	 * @return Test/Step Description being sent to ReportPortal
 	 */
-	protected <T> String createStepDescription(Description description, FrameworkMethod method) {
+	protected String createStepDescription(Description description, FrameworkMethod method) {
 		DisplayName itemDisplayName = method.getAnnotation(DisplayName.class);
 		return (itemDisplayName != null) ? itemDisplayName.value() : description.getDisplayName();
-	}
-
-	/**
-	 * Returns test item ID from annotation if it provided.
-	 *
-	 * @param method Where to find
-	 * @return test item ID or null
-	 */
-	private static String extractUniqueID(FrameworkMethod method) {
-		UniqueID itemUniqueID = method.getAnnotation(UniqueID.class);
-		return itemUniqueID != null ? itemUniqueID.value() : null;
 	}
 
 	/**
@@ -774,20 +713,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	private Set<ItemAttributesRQ> getAttributes(FrameworkMethod frameworkMethod) {
 		return ofNullable(frameworkMethod.getMethod()).map(m -> ofNullable(m.getAnnotation(Attributes.class)).map(AttributeParser::retrieveAttributes)
 				.orElseGet(Collections::emptySet)).orElseGet(Collections::emptySet);
-	}
-
-	/**
-	 * Get name of the specified JUnit child object.
-	 *
-	 * @param child JUnit child object
-	 * @return child object name
-	 */
-	private static String getChildName(Object child) {
-		try {
-			return (String) MethodUtils.invokeMethod(child, "getName");
-		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-			return child.toString();
-		}
 	}
 
 	@VisibleForTesting

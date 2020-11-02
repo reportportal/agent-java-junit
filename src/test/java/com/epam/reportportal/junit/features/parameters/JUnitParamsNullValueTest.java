@@ -32,15 +32,19 @@ import org.junit.runner.RunWith;
 import java.util.Map;
 
 @RunWith(JUnitParamsRunner.class)
-public class JUnitParamsTwoParamsTest implements ArtifactParams {
+public class JUnitParamsNullValueTest implements ArtifactParams {
 
 	@Rule
 	public final AtomIdentity identity = new AtomIdentity(this);
 
+	public static Object[] testParameters() {
+		return new Object[] { "one", null };
+	}
+
 	@Test
-	@Parameters({ "one, 1", "two, 2" })
-	public void testParameters(String param1, int param2) {
-		System.out.println("Parameter test: " + param1 + "; " + param2);
+	@Parameters(method = "testParameters")
+	public void testParameters(String parameter) {
+		System.out.println("Parameter test: " + parameter);
 	}
 
 	@Override
@@ -60,7 +64,8 @@ public class JUnitParamsTwoParamsTest implements ArtifactParams {
 		ReflectiveCallable callable = LifecycleHooks.getCallableOf(runner, test.getIdentity());
 		try {
 			Object[] params = LifecycleHooks.getFieldValue(callable, "val$params");
-			return Param.mapOf(Param.param("param1", params[0]), Param.param("param2", params[1]));
+			String param = (String) params[0];
+			return Param.mapOf(Param.param("param", param));
 		} catch (IllegalAccessException | NoSuchFieldException e) {
 			return Optional.absent();
 		}
