@@ -31,7 +31,8 @@ repositories {
     mavenLocal()
     mavenCentral()
     jcenter()
-    releaseMode ? maven { url "http://dl.bintray.com/epam/reportportal" } : maven { url 'https://jitpack.io' }
+    maven { url 'https://jitpack.io' }
+    maven { url "http://dl.bintray.com/epam/reportportal" }
 }
 
 project.ext.githubUserName = project.hasProperty('githubUserName') ? githubUserName : ""
