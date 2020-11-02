@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.0.0-BETA-12]
 ### Changed
 - Parameters extraction logic moved into the client, now it works in the same way as for other agents
 - Test Case ID logic moved into the client, now it also works in the same way as for other agents
