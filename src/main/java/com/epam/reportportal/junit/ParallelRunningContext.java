@@ -17,12 +17,11 @@ package com.epam.reportportal.junit;
 
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.service.tree.TestItemTree;
-import com.nordstrom.automation.junit.AtomicTest;
-import io.reactivex.Maybe;
 import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -67,6 +66,7 @@ public class ParallelRunningContext {
 	 * @param callable {@link ReflectiveCallable} object being intercepted
 	 * @return status for test method
 	 */
+	@Nullable
 	public ItemStatus getStatusOfTestMethod(ReflectiveCallable callable) {
 		return statusOfTestMethod.get(callable);
 	}

@@ -1,6 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- A test retry feature which is based on corresponding JunitFoundation's
+  [feature](https://github.com/sbabcoc/JUnit-Foundation#automatic-retry-of-failed-tests).
+- `@Ignore` annotation support
+### Changed
+- JunitFoundation version was updated on 12.3.0
 
 ## [5.0.0-BETA-12]
 ### Changed
@@ -11,7 +17,7 @@
 - Client version updated on [5.0.13](https://github.com/reportportal/client-java/releases/tag/5.0.13)
 ### Removed
 - Some protected methods for extensions implementation were removed due to their redundancy. Alternative methods for extensions will be 
-added in further implementation.
+  added in further implementation.
 
 ## [5.0.0-BETA-11]
 

@@ -15,7 +15,7 @@
  */
 package com.epam.reportportal.junit;
 
-import com.epam.reportportal.listeners.Statuses;
+import com.epam.reportportal.listeners.ItemStatus;
 import com.nordstrom.automation.junit.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -161,7 +161,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	public void reportTestFailure(ReflectiveCallable callable, Throwable thrown) {
 		IListenerHandler handler = getSupplier().get();
 		handler.sendReportPortalMsg(callable, thrown);
-		handler.markCurrentTestMethod(callable, Statuses.FAILED);
+		handler.markCurrentTestMethod(callable, ItemStatus.FAILED);
 	}
 
 	@Override

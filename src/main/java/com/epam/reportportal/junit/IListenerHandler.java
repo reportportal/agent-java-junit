@@ -16,6 +16,7 @@
 package com.epam.reportportal.junit;
 
 import com.epam.reportportal.listeners.ItemStatus;
+import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.nordstrom.automation.junit.AtomicTest;
 import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runners.model.FrameworkMethod;
@@ -84,11 +85,20 @@ public interface IListenerHandler {
 	void stopTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable);
 
 	/**
+	 * Send a <b>finish test item</b> request for the indicated test method to Report Portal.
+	 *
+	 * @param runner JUnit test runner
+	 * @param method {@link FrameworkMethod} object for test
+	 * @param rq     {@link FinishTestItemRQ} a finish request to send
+	 */
+	void stopTestMethod(Object runner, FrameworkMethod method, FinishTestItemRQ rq);
+
+	/**
 	 * Record the status of the specified test method.
 	 *
 	 * @param callable {@link ReflectiveCallable} object being intercepted
 	 * @param status   test completion status
-	 * @deprecated
+	 * @deprecated use {@link #markCurrentTestMethod(ReflectiveCallable, ItemStatus)}
 	 */
 	@Deprecated
 	void markCurrentTestMethod(ReflectiveCallable callable, String status);
@@ -98,9 +108,7 @@ public interface IListenerHandler {
 	 *
 	 * @param callable {@link ReflectiveCallable} object being intercepted
 	 * @param status   test completion status
-	 * @deprecated
 	 */
-	@Deprecated
 	void markCurrentTestMethod(ReflectiveCallable callable, ItemStatus status);
 
 	/**

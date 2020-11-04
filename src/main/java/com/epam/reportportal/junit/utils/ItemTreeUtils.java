@@ -17,11 +17,17 @@
 package com.epam.reportportal.junit.utils;
 
 import com.epam.reportportal.service.tree.TestItemTree;
+import com.epam.ta.reportportal.ws.model.ParameterResource;
 import com.nordstrom.automation.junit.AtomicTest;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 
 import javax.annotation.Nullable;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static java.util.Optional.ofNullable;
 
 /**
  * @author <a href="mailto:ivan_budayeu@epam.com">Ivan Budayeu</a>
@@ -36,8 +42,16 @@ public class ItemTreeUtils {
 		return TestItemTree.ItemTreeKey.of(name);
 	}
 
-	public static TestItemTree.ItemTreeKey createItemTreeKey(FrameworkMethod method) {
-		return TestItemTree.ItemTreeKey.of(method.getName(), (method.getDeclaringClass().getName() + "." + method.getName()).hashCode());
+	public static final Function<List<ParameterResource>, String> PARAMETER_FORMAT = list -> ofNullable(list).map(l -> l.stream()
+			.map(ParameterResource::getValue)
+			.collect(Collectors.joining(",", "[", "]"))).orElse("");
+
+	public static TestItemTree.ItemTreeKey createItemTreeKey(FrameworkMethod method, List<ParameterResource> parameters) {
+		String paramStr = PARAMETER_FORMAT.apply(parameters);
+		return TestItemTree.ItemTreeKey.of(
+				method.getName() + paramStr,
+				(method.getDeclaringClass().getName() + "." + method.getName() + paramStr).hashCode()
+		);
 	}
 
 	public static <T> TestItemTree.ItemTreeKey createItemTreeKey(AtomicTest<T> test) {
@@ -45,23 +59,25 @@ public class ItemTreeUtils {
 	}
 
 	public static TestItemTree.ItemTreeKey createItemTreeKey(Description description) {
-		return TestItemTree.ItemTreeKey.of(
-				description.getMethodName(),
+		return TestItemTree.ItemTreeKey.of(description.getMethodName(),
 				(description.getTestClass().getName() + "." + description.getMethodName()).hashCode()
 		);
 	}
 
 	@Nullable
+	@SuppressWarnings("unused")
 	public static TestItemTree.TestItemLeaf retrieveLeaf(String name, TestItemTree testItemTree) {
 		return testItemTree.getTestItems().get(createItemTreeKey(name));
 	}
 
 	@Nullable
-	public static TestItemTree.TestItemLeaf retrieveLeaf(FrameworkMethod method, TestItemTree testItemTree) {
-		return testItemTree.getTestItems().get(createItemTreeKey(method));
+	public static TestItemTree.TestItemLeaf retrieveLeaf(FrameworkMethod method, List<ParameterResource> parameters,
+			TestItemTree testItemTree) {
+		return testItemTree.getTestItems().get(createItemTreeKey(method, parameters));
 	}
 
 	@Nullable
+	@SuppressWarnings("unused")
 	public static TestItemTree.TestItemLeaf retrieveLeaf(Description description, TestItemTree testItemTree) {
 		return testItemTree.getTestItems().get(createItemTreeKey(description));
 	}
