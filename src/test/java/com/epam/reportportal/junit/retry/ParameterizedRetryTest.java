@@ -17,7 +17,7 @@
 package com.epam.reportportal.junit.retry;
 
 import com.epam.reportportal.junit.ParallelRunningHandler;
-import com.epam.reportportal.junit.features.retry.BasicRetryPassedTest;
+import com.epam.reportportal.junit.features.retry.StandardParametersRetryTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.service.ReportPortal;
@@ -38,12 +38,12 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-public class BasicRetryTest {
+public class ParameterizedRetryTest {
 
 	private final String launchId = CommonUtils.namedId("launch_");
 	private final String suiteId = CommonUtils.namedId("suite_");
 	private final String classId = CommonUtils.namedId("class_");
-	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(2).collect(Collectors.toList());
+	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(3).collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
@@ -56,19 +56,22 @@ public class BasicRetryTest {
 
 	@Test
 	public void verify_static_test_code_reference_generation() {
-		TestUtils.runClasses(BasicRetryPassedTest.class);
+		TestUtils.runClasses(StandardParametersRetryTest.class);
 
 		verify(client, times(1)).startTestItem(any());
 		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
 		verify(client, times(1)).startTestItem(same(suiteId), any());
-		verify(client, times(2)).startTestItem(same(classId), startCaptor.capture());
+		verify(client, times(3)).startTestItem(same(classId), startCaptor.capture());
 		verify(client, times(2)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
 		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
+		verify(client, times(1)).finishTestItem(same(methodIds.get(2)), finishCaptor.capture());
 
 		List<StartTestItemRQ> startItems = startCaptor.getAllValues();
 		assertThat(startItems.get(0).isRetry(), nullValue());
 		assertThat(startItems.get(1).isRetry(), allOf(notNullValue(), equalTo(Boolean.TRUE)));
+		assertThat(startItems.get(1).getTestCaseId(), allOf(notNullValue(), equalTo(startItems.get(0).getTestCaseId())));
+		assertThat(startItems.get(2).isRetry(), nullValue());
 
 		List<FinishTestItemRQ> finishItems = finishCaptor.getAllValues();
 		assertThat(finishItems.get(0).isRetry(), nullValue());
@@ -76,6 +79,8 @@ public class BasicRetryTest {
 		assertThat(finishItems.get(1).getStatus(), allOf(notNullValue(), equalTo(finishItems.get(0).getStatus())));
 		assertThat(finishItems.get(2).isRetry(), nullValue());
 		assertThat(finishItems.get(2).getStatus(), allOf(notNullValue(), equalTo(ItemStatus.PASSED.name())));
+		assertThat(finishItems.get(3).isRetry(), nullValue());
+		assertThat(finishItems.get(3).getStatus(), allOf(notNullValue(), equalTo(ItemStatus.PASSED.name())));
 	}
 
 }

@@ -561,8 +561,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setStartTime(startTime);
 		MethodType type = MethodType.detect(method);
 		rq.setType(type == null ? "" : type.name());
-
-		rq.setRetry(isRetry(method));
 		return rq;
 	}
 
@@ -700,16 +698,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	 */
 	private static boolean isIgnored(FrameworkMethod method) {
 		return (null != method.getAnnotation(Ignore.class));
-	}
-
-	/**
-	 * Determine if the specified JUnit framework method is being retried.
-	 *
-	 * @param method JUnit framework method context
-	 * @return {@code true} if specified method is being retried; otherwise {@code false}
-	 */
-	private static boolean isRetry(FrameworkMethod method) {
-		return (null != method.getAnnotation(RetriedTest.class));
 	}
 
 	/**

@@ -48,7 +48,8 @@ public class ItemTreeUtils {
 
 	public static TestItemTree.ItemTreeKey createItemTreeKey(FrameworkMethod method, List<ParameterResource> parameters) {
 		String paramStr = PARAMETER_FORMAT.apply(parameters);
-		return TestItemTree.ItemTreeKey.of(method.getName() + paramStr,
+		return TestItemTree.ItemTreeKey.of(
+				method.getName() + paramStr,
 				(method.getDeclaringClass().getName() + "." + method.getName() + paramStr).hashCode()
 		);
 	}
@@ -64,6 +65,7 @@ public class ItemTreeUtils {
 	}
 
 	@Nullable
+	@SuppressWarnings("unused")
 	public static TestItemTree.TestItemLeaf retrieveLeaf(String name, TestItemTree testItemTree) {
 		return testItemTree.getTestItems().get(createItemTreeKey(name));
 	}
@@ -75,6 +77,7 @@ public class ItemTreeUtils {
 	}
 
 	@Nullable
+	@SuppressWarnings("unused")
 	public static TestItemTree.TestItemLeaf retrieveLeaf(Description description, TestItemTree testItemTree) {
 		return testItemTree.getTestItems().get(createItemTreeKey(description));
 	}
