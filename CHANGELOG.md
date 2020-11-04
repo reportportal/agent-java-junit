@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.0.0-BETA-13]
 ### Added
 - A test retry feature which is based on corresponding JunitFoundation's
   [feature](https://github.com/sbabcoc/JUnit-Foundation#automatic-retry-of-failed-tests).
