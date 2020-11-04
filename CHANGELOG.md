@@ -4,6 +4,7 @@
 ### Added
 - A test retry feature which is based on corresponding JunitFoundation's
   [feature](https://github.com/sbabcoc/JUnit-Foundation#automatic-retry-of-failed-tests).
+- `@Ignore` annotation support
 ### Changed
 - JunitFoundation version was updated on 12.3.0
 

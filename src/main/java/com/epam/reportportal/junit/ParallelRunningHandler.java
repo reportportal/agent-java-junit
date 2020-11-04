@@ -27,7 +27,9 @@ import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.item.TestCaseIdEntry;
 import com.epam.reportportal.service.tree.TestItemTree;
 import com.epam.reportportal.utils.AttributeParser;
+import com.epam.reportportal.utils.ParameterUtils;
 import com.epam.reportportal.utils.TestCaseIdUtils;
+import com.epam.reportportal.utils.reflect.Accessible;
 import com.epam.ta.reportportal.ws.model.*;
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
 import com.epam.ta.reportportal.ws.model.issue.Issue;
@@ -41,6 +43,9 @@ import org.junit.runner.Description;
 import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.TestClass;
+import org.junit.runners.parameterized.BlockJUnit4ClassRunnerWithParameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rp.com.google.common.annotations.VisibleForTesting;
 import rp.com.google.common.base.Function;
 import rp.com.google.common.base.Supplier;
@@ -49,9 +54,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import static com.epam.reportportal.junit.utils.ItemTreeUtils.createItemTreeKey;
 import static java.util.Optional.ofNullable;
@@ -67,6 +74,8 @@ import static rp.com.google.common.base.Throwables.getStackTraceAsString;
  * @author Aliaksey_Makayed (modified by Andrei_Ramanchuk)
  */
 public class ParallelRunningHandler implements IListenerHandler {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(ParallelRunningHandler.class);
 
 	private static final String FINISH_REQUEST = "FINISH_REQUEST";
 	private static final String START_TIME = "START_TIME";
@@ -364,9 +373,8 @@ public class ParallelRunningHandler implements IListenerHandler {
 		TestItemTree.TestItemLeaf testLeaf = ofNullable(retrieveLeaf(runner)).orElseGet(() -> context.getItemTree()
 				.getTestItems()
 				.get(myParentKey));
-		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method,
-				createStepParameters(testContext.getIdentity(), testContext.getRunner())
-		);
+		List<ParameterResource> parameters = createStepParameters(testContext.getIdentity(), testContext.getRunner());
+		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, parameters);
 
 		ofNullable(testLeaf).ifPresent(p -> {
 			TestItemTree.TestItemLeaf myLeaf = ofNullable(p.getChildItems().get(myKey)).orElse(null);
@@ -557,7 +565,12 @@ public class ParallelRunningHandler implements IListenerHandler {
 		rq.setAttributes(getAttributes(method));
 		rq.setDescription(createStepDescription(description, method));
 		rq.setParameters(createStepParameters(method, runner));
-		rq.setTestCaseId(getTestCaseId(method, runner, rq.getCodeRef()).getId());
+		rq.setTestCaseId(ofNullable(getTestCaseId(
+				method,
+				rq.getCodeRef(),
+				ofNullable(rq.getParameters()).map(p -> p.stream().map(ParameterResource::getValue).collect(Collectors.toList()))
+						.orElse(null)
+		)).map(TestCaseIdEntry::getId).orElse(null));
 		rq.setStartTime(startTime);
 		MethodType type = MethodType.detect(method);
 		rq.setType(type == null ? "" : type.name());
@@ -611,6 +624,11 @@ public class ParallelRunningHandler implements IListenerHandler {
 		return rq;
 	}
 
+	protected <T> TestCaseIdEntry getTestCaseId(FrameworkMethod frameworkMethod, String codeRef, List<T> params) {
+		Method method = frameworkMethod.getMethod();
+		return TestCaseIdUtils.getTestCaseId(method.getAnnotation(TestCaseId.class), method, codeRef, params);
+	}
+
 	/**
 	 * Extension point to customize Report Portal test parameters
 	 *
@@ -621,19 +639,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	protected List<ParameterResource> createStepParameters(FrameworkMethod method, Object runner) {
 		List<ParameterResource> parameters = createMethodParameters(method, runner);
 		return parameters.isEmpty() ? null : parameters;
-	}
-
-	protected TestCaseIdEntry getTestCaseId(FrameworkMethod method, Object runner, String codeRef) {
-		Object target = getTargetForRunner(runner);
-		return getTestCaseId(method.getMethod(), target, codeRef);
-	}
-
-	protected TestCaseIdEntry getTestCaseId(Method method, Object target, String codeRef) {
-		List<Object> params = null;
-		if (target instanceof ArtifactParams) {
-			params = ((ArtifactParams) target).getParameters().transform(p -> new ArrayList<>(p.values())).orNull();
-		}
-		return TestCaseIdUtils.getTestCaseId(method.getAnnotation(TestCaseId.class), method, codeRef, params);
 	}
 
 	/**
@@ -649,7 +654,7 @@ public class ParallelRunningHandler implements IListenerHandler {
 	@SuppressWarnings("squid:S3655")
 	private List<ParameterResource> createMethodParameters(FrameworkMethod method, Object runner) {
 		List<ParameterResource> result = new ArrayList<>();
-		if (!(method.isStatic() || isIgnored(method))) {
+		if (!(method.isStatic())) {
 			Object target = getTargetForRunner(runner);
 			if (target instanceof ArtifactParams) {
 				com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
@@ -661,6 +666,18 @@ public class ParallelRunningHandler implements IListenerHandler {
 						result.add(parameter);
 					}
 				}
+			} else if (runner instanceof BlockJUnit4ClassRunnerWithParameters) {
+				try {
+					Optional<Constructor<?>> constructor = Arrays.stream(method.getDeclaringClass().getConstructors()).findFirst();
+					if (constructor.isPresent()) {
+						result.addAll(ParameterUtils.getParameters(constructor.get(),
+								Arrays.asList((Object[]) Accessible.on(runner).field("parameters").getValue())
+						));
+					}
+				} catch (NoSuchFieldException e) {
+					LOGGER.warn("Unable to get parameters for parameterized runner", e);
+				}
+
 			}
 		}
 		return result;
@@ -688,16 +705,6 @@ public class ParallelRunningHandler implements IListenerHandler {
 	protected String createStepDescription(Description description, FrameworkMethod method) {
 		DisplayName itemDisplayName = method.getAnnotation(DisplayName.class);
 		return (itemDisplayName != null) ? itemDisplayName.value() : description.getDisplayName();
-	}
-
-	/**
-	 * Determine if the specified JUnit framework method is being ignored.
-	 *
-	 * @param method JUnit framework method context
-	 * @return {@code true} if specified method is being ignored; otherwise {@code false}
-	 */
-	private static boolean isIgnored(FrameworkMethod method) {
-		return (null != method.getAnnotation(Ignore.class));
 	}
 
 	/**

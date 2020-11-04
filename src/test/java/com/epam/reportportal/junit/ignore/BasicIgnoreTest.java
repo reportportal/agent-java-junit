@@ -14,68 +14,55 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.retry;
+package com.epam.reportportal.junit.ignore;
 
 import com.epam.reportportal.junit.ParallelRunningHandler;
-import com.epam.reportportal.junit.features.retry.BasicRetryPassedTest;
+import com.epam.reportportal.junit.features.skip.IgnoredTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
-import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
-public class BasicRetryTest {
+public class BasicIgnoreTest {
 
 	private final String launchId = CommonUtils.namedId("launch_");
 	private final String suiteId = CommonUtils.namedId("suite_");
 	private final String classId = CommonUtils.namedId("class_");
-	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(2).collect(Collectors.toList());
+	private final String methodId = CommonUtils.namedId("method_");
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
 	@BeforeEach
 	public void setupMock() {
-		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodIds);
+		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodId);
 		TestUtils.mockLogging(client);
 		ParallelRunningHandler.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
 	@Test
-	public void verify_a_test_with_one_retry() {
-		TestUtils.runClasses(BasicRetryPassedTest.class);
+	public void verify_an_ignored_test_reporting() {
+		TestUtils.runClasses(IgnoredTest.class);
 
 		verify(client, times(1)).startTestItem(any());
-		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
 		verify(client, times(1)).startTestItem(same(suiteId), any());
-		verify(client, times(2)).startTestItem(same(classId), startCaptor.capture());
-		verify(client, times(2)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client, times(1)).startTestItem(same(classId), any());
+		verify(client, times(1)).finishTestItem(same(methodId), finishCaptor.capture());
 
-		List<StartTestItemRQ> startItems = startCaptor.getAllValues();
-		assertThat(startItems.get(0).isRetry(), nullValue());
-		assertThat(startItems.get(1).isRetry(), allOf(notNullValue(), equalTo(Boolean.TRUE)));
+		FinishTestItemRQ finishRq = finishCaptor.getValue();
 
-		List<FinishTestItemRQ> finishItems = finishCaptor.getAllValues();
-		assertThat(finishItems.get(0).isRetry(), nullValue());
-		assertThat(finishItems.get(1).isRetry(), allOf(notNullValue(), equalTo(Boolean.TRUE)));
-		assertThat(finishItems.get(1).getStatus(), allOf(notNullValue(), equalTo(finishItems.get(0).getStatus())));
-		assertThat(finishItems.get(2).isRetry(), nullValue());
-		assertThat(finishItems.get(2).getStatus(), allOf(notNullValue(), equalTo(ItemStatus.PASSED.name())));
+		assertThat(finishRq.getStatus(), allOf(notNullValue(), equalTo(ItemStatus.SKIPPED.name())));
+		assertThat(finishRq.getIssue(), nullValue());
 	}
-
 }
