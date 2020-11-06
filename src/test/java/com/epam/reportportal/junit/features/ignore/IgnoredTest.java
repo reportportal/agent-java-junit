@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.features.skip;
+package com.epam.reportportal.junit.features.ignore;
 
 import org.junit.Ignore;
 import org.junit.Test;

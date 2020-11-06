@@ -1,6 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- A skipped test method reporting in case of a `@Before` method failed
+### Fixed
+- A null-pointer exception on `@Before` methods
+### Changed
+- ParallelRunningHandler class was deleted due to redundancy, all its logic moved to ReportPortalListener class
 
 ## [5.0.0-BETA-13]
 ### Added

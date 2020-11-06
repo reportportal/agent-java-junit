@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.retry;
+package com.epam.reportportal.junit.skip;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.retry.BasicRetryPassedTest;
+import com.epam.reportportal.junit.features.skip.BeforeFailedTest;
 import com.epam.reportportal.junit.utils.TestUtils;
-import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
@@ -34,11 +33,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
-public class BasicRetryTest {
+public class BeforeEachFailedTest {
 
 	private final String launchId = CommonUtils.namedId("launch_");
 	private final String suiteId = CommonUtils.namedId("suite_");
@@ -55,27 +56,35 @@ public class BasicRetryTest {
 	}
 
 	@Test
-	public void verify_a_test_with_one_retry() {
-		TestUtils.runClasses(BasicRetryPassedTest.class);
+	public void agent_should_report_skipped_test_in_case_of_failed_before_each() {
+		TestUtils.runClasses(BeforeFailedTest.class);
 
 		verify(client, times(1)).startTestItem(any());
 		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(suiteId), any());
+		verify(client, times(1)).startTestItem(same(suiteId), startCaptor.capture());
 		verify(client, times(2)).startTestItem(same(classId), startCaptor.capture());
-		verify(client, times(2)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
+		verify(client, times(1)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
 		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
 
 		List<StartTestItemRQ> startItems = startCaptor.getAllValues();
-		assertThat(startItems.get(0).isRetry(), nullValue());
-		assertThat(startItems.get(1).isRetry(), allOf(notNullValue(), equalTo(Boolean.TRUE)));
+		assertThat("There are 3 item created: suite, @BeforeEach and @Test", startItems, hasSize(3));
 
 		List<FinishTestItemRQ> finishItems = finishCaptor.getAllValues();
-		assertThat(finishItems.get(0).isRetry(), nullValue());
-		assertThat(finishItems.get(1).isRetry(), allOf(notNullValue(), equalTo(Boolean.TRUE)));
-		assertThat(finishItems.get(1).getStatus(), allOf(notNullValue(), equalTo(finishItems.get(0).getStatus())));
-		assertThat(finishItems.get(2).isRetry(), nullValue());
-		assertThat(finishItems.get(2).getStatus(), allOf(notNullValue(), equalTo(ItemStatus.PASSED.name())));
+		FinishTestItemRQ beforeEachFinish = finishItems.get(0);
+		assertThat("@BeforeEach failed", beforeEachFinish.getStatus(), equalTo("FAILED"));
+
+		StartTestItemRQ testStart = startItems.get(2);
+		assertThat(
+				"@Test has correct code reference",
+				testStart.getCodeRef(),
+				equalTo(BeforeFailedTest.class.getCanonicalName() + ".testBeforeEachFailed")
+		);
+		assertThat("@Test has correct name", testStart.getName(), equalTo("testBeforeEachFailed"));
+
+		FinishTestItemRQ testFinish = finishItems.get(1);
+		assertThat("@Test reported as skipped", testFinish.getStatus(), equalTo("SKIPPED"));
+		assertThat("@Test issue muted", testFinish.getIssue(), equalTo(ReportPortalListener.NOT_ISSUE));
 	}
 
 }
