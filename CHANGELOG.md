@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.0.0-BETA-14]
 ### Added
 - A skipped test method reporting in case of a `@Before` method failed
 ### Fixed
