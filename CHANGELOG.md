@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- 'retrieveLeaf' and 'stopRunner' methods do not start new launch in case of empty suites / tests
 - 'stopLaunch' method does not start new launch in case of there was no any tests passed
 ### Changed
 - Class type item level was changed from 'SUITE' to 'TEST'

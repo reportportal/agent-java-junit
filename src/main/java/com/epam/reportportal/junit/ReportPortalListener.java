@@ -154,7 +154,6 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	@Nullable
 	private TestItemTree.TestItemLeaf retrieveLeaf(Object runner) {
 		List<Object> chain = getRunnerChain(runner);
-		Launch myLaunch = launch.get();
 		TestItemTree.TestItemLeaf leaf = null;
 		Map<TestItemTree.ItemTreeKey, TestItemTree.TestItemLeaf> children = context.getItemTree().getTestItems();
 		long currentDate = Calendar.getInstance().getTimeInMillis();
@@ -170,6 +169,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			}
 			Maybe<String> parentId = ofNullable(leaf).map(TestItemTree.TestItemLeaf::getItemId).orElse(null);
 			leaf = children.computeIfAbsent(TestItemTree.ItemTreeKey.of(rq.getName()), (k) -> {
+				Launch myLaunch = launch.get();
 				TestItemTree.TestItemLeaf l = ofNullable(parentId).map(p -> TestItemTree.createTestItemLeaf(p,
 						myLaunch.startTestItem(p, rq)
 				)).orElseGet(() -> TestItemTree.createTestItemLeaf(myLaunch.startTestItem(rq)));
@@ -255,7 +255,6 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	protected void stopRunner(Object runner) {
 		FinishTestItemRQ rq = buildFinishSuiteRq(LifecycleHooks.getTestClassOf(runner));
-		Launch myLaunch = launch.get();
 		ofNullable(getLeaf(runner)).ifPresent(l -> {
 			l.setAttribute(FINISH_REQUEST, rq);
 			ItemStatus status = l.getStatus();
@@ -264,7 +263,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				if (value.getType() != ItemType.SUITE) {
 					continue;
 				}
-				ofNullable(value.getAttribute(FINISH_REQUEST)).ifPresent(r -> myLaunch.finishTestItem(value.getItemId(),
+				ofNullable(value.getAttribute(FINISH_REQUEST)).ifPresent(r -> launch.get().finishTestItem(value.getItemId(),
 						(FinishTestItemRQ) value.clearAttribute(FINISH_REQUEST)
 				));
 				status = evaluateStatus(status, value.getStatus());
@@ -272,7 +271,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			l.setStatus(status);
 			if (l.getParentId() == null) {
 				rq.setStatus(ofNullable(status).map(Enum::name).orElse(null));
-				myLaunch.finishTestItem(l.getItemId(), rq);
+				launch.get().finishTestItem(l.getItemId(), rq);
 			}
 		});
 	}
