@@ -58,6 +58,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.epam.reportportal.junit.utils.ItemTreeUtils.createItemTreeKey;
@@ -794,13 +795,13 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	}
 
 	@VisibleForTesting
-	static class MemorizingSupplier<T> implements rp.com.google.common.base.Supplier<T>, Serializable {
-		final rp.com.google.common.base.Supplier<T> delegate;
+	static class MemorizingSupplier<T> implements Supplier<T>, Serializable {
+		final Supplier<T> delegate;
 		transient volatile boolean initialized;
 		transient T value;
 		private static final long serialVersionUID = 0L;
 
-		MemorizingSupplier(rp.com.google.common.base.Supplier<T> delegate) {
+		MemorizingSupplier(Supplier<T> delegate) {
 			this.delegate = delegate;
 		}
 
