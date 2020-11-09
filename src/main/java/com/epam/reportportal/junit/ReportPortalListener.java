@@ -155,8 +155,16 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		TestItemTree.TestItemLeaf leaf = null;
 		Map<TestItemTree.ItemTreeKey, TestItemTree.TestItemLeaf> children = context.getItemTree().getTestItems();
 		long currentDate = Calendar.getInstance().getTimeInMillis();
-		for (Object r : chain) {
-			StartTestItemRQ rq = buildStartSuiteRq(r, new Date(currentDate++));
+		int chainSize = chain.size();
+		for (int i = 0; i < chainSize; i++) {
+			Object r = chain.get(i);
+			Date itemDate = new Date(currentDate++);
+			StartTestItemRQ rq;
+			if (i < chainSize - 1) {
+				rq = buildStartSuiteRq(r, itemDate);
+			} else {
+				rq = buildStartTestItemRq(r, itemDate);
+			}
 			Maybe<String> parentId = ofNullable(leaf).map(TestItemTree.TestItemLeaf::getItemId).orElse(null);
 			leaf = children.computeIfAbsent(TestItemTree.ItemTreeKey.of(rq.getName()), (k) -> {
 				TestItemTree.TestItemLeaf l = ofNullable(parentId).map(p -> TestItemTree.createTestItemLeaf(p,
@@ -573,16 +581,16 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	/**
 	 * Extension point to customize test creation event/request
 	 *
-	 * @param test      JUnit test context
+	 * @param runner      JUnit test runner context
 	 * @param startTime a suite start time which will be passed to RP
 	 * @return Request to ReportPortal
 	 */
-	protected StartTestItemRQ buildStartTestItemRq(AtomicTest<FrameworkMethod> test, Date startTime) {
+	protected StartTestItemRQ buildStartTestItemRq(Object runner, Date startTime) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(test.getDescription().getDisplayName());
-		rq.setCodeRef(getCodeRef(test.getRunner()));
+		rq.setName(getRunnerName(runner));
+		rq.setCodeRef(getCodeRef(runner));
 		rq.setStartTime(startTime);
-		rq.setType("TEST");
+		rq.setType(ItemType.TEST.name());
 		return rq;
 	}
 

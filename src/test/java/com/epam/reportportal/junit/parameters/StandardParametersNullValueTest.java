@@ -34,13 +34,10 @@ import java.util.stream.IntStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class StandardParametersNullValueTest {
 
-	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
 
@@ -48,7 +45,7 @@ public class StandardParametersNullValueTest {
 
 	@BeforeEach
 	public void setupMock() {
-		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodId);
+		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
@@ -59,9 +56,7 @@ public class StandardParametersNullValueTest {
 	public void verify_one_simple_parameter_standard_implementation() {
 		TestUtils.runClasses(com.epam.reportportal.junit.features.parameters.StandardParametersNullValueTest.class);
 
-		verify(client, times(1)).startTestItem(any());
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(suiteId), any());
 		verify(client, times(2)).startTestItem(same(classId), captor.capture());
 
 		List<StartTestItemRQ> items = captor.getAllValues();

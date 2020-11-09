@@ -17,6 +17,7 @@ package com.epam.reportportal.junit;
 
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.service.tree.TestItemTree;
+import com.nordstrom.automation.junit.AtomicTest;
 import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;

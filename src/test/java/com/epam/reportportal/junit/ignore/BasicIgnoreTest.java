@@ -36,8 +36,6 @@ import static org.mockito.Mockito.*;
 
 public class BasicIgnoreTest {
 
-	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
 
@@ -45,7 +43,7 @@ public class BasicIgnoreTest {
 
 	@BeforeEach
 	public void setupMock() {
-		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodId);
+		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
@@ -54,8 +52,6 @@ public class BasicIgnoreTest {
 	public void verify_an_ignored_test_reporting() {
 		TestUtils.runClasses(IgnoredTest.class);
 
-		verify(client, times(1)).startTestItem(any());
-		verify(client, times(1)).startTestItem(same(suiteId), any());
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
 		verify(client, times(1)).startTestItem(same(classId), any());
 		verify(client, times(1)).finishTestItem(same(methodId), finishCaptor.capture());

@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Class type item level was changed from 'SUITE' to 'TEST'
 
 ## [5.0.0-BETA-14]
 ### Added

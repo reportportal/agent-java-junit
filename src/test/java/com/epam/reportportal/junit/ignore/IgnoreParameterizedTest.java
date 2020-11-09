@@ -35,13 +35,10 @@ import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class IgnoreParameterizedTest {
 
-	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
 	private final String classId = CommonUtils.namedId("class_");
 	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(2).collect(Collectors.toList());
 
@@ -49,7 +46,7 @@ public class IgnoreParameterizedTest {
 
 	@BeforeEach
 	public void setupMock() {
-		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodIds);
+		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
@@ -58,10 +55,8 @@ public class IgnoreParameterizedTest {
 	public void verify_a_test_with_one_retry() {
 		TestUtils.runClasses(ParameterizedIgnoredTest.class);
 
-		verify(client, times(1)).startTestItem(any());
 		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(suiteId), any());
 		verify(client, times(2)).startTestItem(same(classId), startCaptor.capture());
 		verify(client, times(1)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
 		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());

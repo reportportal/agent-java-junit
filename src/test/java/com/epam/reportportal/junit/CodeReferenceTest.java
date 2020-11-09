@@ -25,6 +25,7 @@ import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 
 import java.util.List;
 
@@ -35,8 +36,6 @@ import static org.mockito.Mockito.*;
 
 public class CodeReferenceTest {
 
-	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
 
@@ -44,7 +43,7 @@ public class CodeReferenceTest {
 
 	@BeforeEach
 	public void setupMock() {
-		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodId);
+		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
@@ -53,9 +52,8 @@ public class CodeReferenceTest {
 	public void verify_static_test_code_reference_generation() {
 		TestUtils.runClasses(CodeRefTest.class);
 
-		verify(client, times(1)).startTestItem(any());
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(suiteId), captor.capture());
+		verify(client, times(1)).startTestItem(ArgumentMatchers.startsWith("root_"), captor.capture());
 		verify(client, times(1)).startTestItem(same(classId), captor.capture());
 
 		List<StartTestItemRQ> items = captor.getAllValues();
@@ -65,12 +63,9 @@ public class CodeReferenceTest {
 		StartTestItemRQ testRq = items.get(1);
 
 		assertThat(classRq.getCodeRef(), allOf(notNullValue(), equalTo(CodeRefTest.class.getCanonicalName())));
-		assertThat(testRq.getCodeRef(),
-				allOf(
-						notNullValue(),
-						equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
-				)
-		);
+		assertThat(testRq.getCodeRef(), allOf(notNullValue(),
+				equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
+		));
 	}
 
 }

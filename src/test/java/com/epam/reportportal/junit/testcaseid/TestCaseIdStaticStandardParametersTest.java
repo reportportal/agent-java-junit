@@ -39,8 +39,6 @@ import static org.mockito.Mockito.*;
 
 public class TestCaseIdStaticStandardParametersTest {
 
-	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
 
@@ -49,7 +47,7 @@ public class TestCaseIdStaticStandardParametersTest {
 	@BeforeEach
 	public void setupMock() {
 		client = mock(ReportPortalClient.class);
-		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodId);
+		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
@@ -60,17 +58,11 @@ public class TestCaseIdStaticStandardParametersTest {
 		TestUtils.runClasses(testClass);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(captor.capture());
-		verify(client, times(1)).startTestItem(same(suiteId), captor.capture());
 		verify(client, times(2)).startTestItem(same(classId), captor.capture());
 
 		List<StartTestItemRQ> items = captor.getAllValues();
-		assertThat(items, hasSize(4));
-
-		List<StartTestItemRQ> testRqs = items.subList(2, 4);
-
-		IntStream.range(0, testRqs.size()).forEach(i -> {
-			StartTestItemRQ testRq = testRqs.get(i);
+		IntStream.range(0, items.size()).forEach(i -> {
+			StartTestItemRQ testRq = items.get(i);
 			String classStr = testClass.getCanonicalName();
 			String methodStr = Arrays.stream(testClass.getDeclaredMethods())
 					.filter(m -> m.getAnnotation(org.junit.Test.class) != null)

@@ -19,6 +19,7 @@ package com.epam.reportportal.junit.utils;
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.restendpoint.http.MultiPartRequest;
 import com.epam.reportportal.service.ReportPortalClient;
+import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.BatchSaveOperatingRS;
 import com.epam.ta.reportportal.ws.model.OperationCompletionRS;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
@@ -26,27 +27,31 @@ import com.epam.ta.reportportal.ws.model.item.ItemCreatedRS;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRS;
 import io.reactivex.Maybe;
+import junitparams.converters.Nullable;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.runner.JUnitCore;
 import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
 
+import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.epam.reportportal.util.test.CommonUtils.createMaybe;
 import static com.epam.reportportal.util.test.CommonUtils.generateUniqueId;
+import static java.util.Optional.ofNullable;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 public class TestUtils {
 
+	public static final String ROOT_SUITE_PREFIX = "root_";
+
 	private TestUtils() {
 	}
 
 	public static void runClasses(final Class<?>... testClasses) {
-		JUnitCore core = new JUnitCore();
-		core.run(testClasses);
+		JUnitCore.runClasses(testClasses);
 	}
 
 	public static StartTestItemRQ extractRequest(ArgumentCaptor<StartTestItemRQ> captor, String methodType) {
@@ -72,23 +77,31 @@ public class TestUtils {
 		return rq;
 	}
 
-	public static void mockLaunch(ReportPortalClient client, String launchUuid, String suiteUuid, String testClassUuid,
-			String testMethodUuid) {
+	public static void mockLaunch(@Nonnull ReportPortalClient client, @Nullable String launchUuid, @Nullable String suiteUuid,
+			@Nonnull String testClassUuid, @Nonnull String testMethodUuid) {
 		mockLaunch(client, launchUuid, suiteUuid, testClassUuid, Collections.singleton(testMethodUuid));
 	}
 
-	public static void mockLaunch(ReportPortalClient client, String launchUuid, String suiteUuid, String testClassUuid,
-			Collection<String> testMethodUuidList) {
+	public static void mockLaunch(@Nonnull ReportPortalClient client, @Nullable String launchUuid, @Nullable String suiteUuid,
+			@Nonnull String testClassUuid, @Nonnull Collection<String> testMethodUuidList) {
 		mockLaunch(client, launchUuid, suiteUuid, Collections.singletonList(Pair.of(testClassUuid, testMethodUuidList)));
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T extends Collection<String>> void mockLaunch(ReportPortalClient client, String launchUuid, String suiteUuid,
-			Collection<Pair<String, T>> testSteps) {
-		when(client.startLaunch(any())).thenReturn(createMaybe(new StartLaunchRS(launchUuid, 1L)));
+	public static <T extends Collection<String>> void mockLaunch(@Nonnull ReportPortalClient client, @Nullable String launchUuid,
+			@Nullable String suiteUuid, @Nonnull Collection<Pair<String, T>> testSteps) {
+		String launch = ofNullable(launchUuid).orElse(CommonUtils.namedId("launch_"));
+		when(client.startLaunch(any())).thenReturn(createMaybe(new StartLaunchRS(launch, 1L)));
 
-		Maybe<ItemCreatedRS> suiteMaybe = createMaybe(new ItemCreatedRS(suiteUuid, suiteUuid));
-		when(client.startTestItem(any())).thenReturn(suiteMaybe);
+		String rootItemId = CommonUtils.namedId(ROOT_SUITE_PREFIX);
+		Maybe<ItemCreatedRS> rootMaybe = createMaybe(new ItemCreatedRS(rootItemId, rootItemId));
+		when(client.startTestItem(any())).thenReturn(rootMaybe);
+
+		String parentId = ofNullable(suiteUuid).map(s -> {
+			Maybe<ItemCreatedRS> suiteMaybe = createMaybe(new ItemCreatedRS(s, s));
+			when(client.startTestItem(same(rootItemId), any())).thenReturn(suiteMaybe);
+			return s;
+		}).orElse(rootItemId);
 
 		List<Maybe<ItemCreatedRS>> testResponses = testSteps.stream()
 				.map(Pair::getKey)
@@ -97,7 +110,7 @@ public class TestUtils {
 
 		Maybe<ItemCreatedRS> first = testResponses.get(0);
 		Maybe<ItemCreatedRS>[] other = testResponses.subList(1, testResponses.size()).toArray(new Maybe[0]);
-		when(client.startTestItem(same(suiteUuid), any())).thenReturn(first, other);
+		when(client.startTestItem(same(parentId), any())).thenReturn(first, other);
 
 		testSteps.forEach(test -> {
 			String testClassUuid = test.getKey();
@@ -114,10 +127,15 @@ public class TestUtils {
 			when(client.finishTestItem(same(testClassUuid), any())).thenReturn(createMaybe(new OperationCompletionRS()));
 		});
 
-		Maybe<OperationCompletionRS> suiteFinishMaybe = createMaybe(new OperationCompletionRS());
-		when(client.finishTestItem(eq(suiteUuid), any())).thenReturn(suiteFinishMaybe);
+		ofNullable(suiteUuid).ifPresent(s -> {
+			Maybe<OperationCompletionRS> suiteFinishMaybe = createMaybe(new OperationCompletionRS());
+			when(client.finishTestItem(same(s), any())).thenReturn(suiteFinishMaybe);
+		});
 
-		when(client.finishLaunch(eq(launchUuid), any())).thenReturn(createMaybe(new OperationCompletionRS()));
+		Maybe<OperationCompletionRS> rootFinishMaybe = createMaybe(new OperationCompletionRS());
+		when(client.finishTestItem(eq(rootItemId), any())).thenReturn(rootFinishMaybe);
+
+		when(client.finishLaunch(eq(launch), any())).thenReturn(createMaybe(new OperationCompletionRS()));
 	}
 
 	public static void mockLogging(ReportPortalClient client) {

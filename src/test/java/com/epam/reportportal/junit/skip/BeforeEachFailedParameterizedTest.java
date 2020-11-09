@@ -36,13 +36,10 @@ import java.util.stream.Stream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class BeforeEachFailedParameterizedTest {
 
-	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
 	private final String classId = CommonUtils.namedId("class_");
 	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(4).collect(Collectors.toList());
 
@@ -50,7 +47,7 @@ public class BeforeEachFailedParameterizedTest {
 
 	@BeforeEach
 	public void setupMock() {
-		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodIds);
+		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
@@ -59,10 +56,8 @@ public class BeforeEachFailedParameterizedTest {
 	public void agent_should_report_skipped_parametrized_tests_in_case_of_failed_before_each() {
 		TestUtils.runClasses(BeforeFailedParametrizedTest.class);
 
-		verify(client, times(1)).startTestItem(any());
 		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(suiteId), startCaptor.capture());
 		verify(client, times(4)).startTestItem(same(classId), startCaptor.capture());
 		verify(client, times(1)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
 		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
@@ -70,7 +65,7 @@ public class BeforeEachFailedParameterizedTest {
 		verify(client, times(1)).finishTestItem(same(methodIds.get(3)), finishCaptor.capture());
 
 		List<StartTestItemRQ> startItems = startCaptor.getAllValues();
-		assertThat("There are 6 item created: parent suite, suite, 2 @BeforeEach, @Test 1 and @Test 2", startItems, hasSize(5));
+		assertThat("There are 6 item created: parent suite, suite, 2 @BeforeEach, @Test 1 and @Test 2", startItems, hasSize(4));
 
 		List<FinishTestItemRQ> finishItems = finishCaptor.getAllValues();
 		FinishTestItemRQ beforeEachFinish = finishItems.get(0);
@@ -78,7 +73,7 @@ public class BeforeEachFailedParameterizedTest {
 		assertThat("@Before failed", beforeEachFinish.getStatus(), equalTo("FAILED"));
 
 		IntStream.rangeClosed(0, 1).boxed().forEach(i -> {
-			StartTestItemRQ testStart = startItems.get(2 + (i * 2));
+			StartTestItemRQ testStart = startItems.get(1 + (i * 2));
 			assertThat(
 					"@Test has correct code reference",
 					testStart.getCodeRef(),

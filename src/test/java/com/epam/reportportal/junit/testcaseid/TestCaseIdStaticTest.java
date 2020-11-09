@@ -32,13 +32,10 @@ import java.util.List;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.*;
 
 public class TestCaseIdStaticTest {
 
-	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
 
@@ -47,7 +44,7 @@ public class TestCaseIdStaticTest {
 	@BeforeEach
 	public void setupMock() {
 		client = mock(ReportPortalClient.class);
-		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodId);
+		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
@@ -56,18 +53,13 @@ public class TestCaseIdStaticTest {
 	public void verify_static_test_case_id_generation() {
 		TestUtils.runClasses(CodeRefTest.class);
 
-		verify(client, times(1)).startTestItem(any());
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(suiteId), captor.capture());
 		verify(client, times(1)).startTestItem(same(classId), captor.capture());
 
-		List<StartTestItemRQ> items = captor.getAllValues();
-		assertThat(items, hasSize(2));
-
-		StartTestItemRQ testRq = items.get(1);
-
-		assertThat(testRq.getTestCaseId(), allOf(notNullValue(),
-				equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
-		));
+		assertThat(captor.getValue().getTestCaseId(),
+				allOf(notNullValue(),
+						equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
+				)
+		);
 	}
 }
