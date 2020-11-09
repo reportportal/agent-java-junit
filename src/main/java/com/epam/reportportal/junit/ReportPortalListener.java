@@ -127,10 +127,12 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * Send a "finish launch" request to Report Portal.
 	 */
 	protected void stopLaunch() {
-		FinishExecutionRQ finishExecutionRQ = new FinishExecutionRQ();
-		finishExecutionRQ.setEndTime(Calendar.getInstance().getTime());
-		launch.get().finish(finishExecutionRQ);
-		launch.reset();
+		if(launch.isInitialized()) {
+			FinishExecutionRQ finishExecutionRQ = new FinishExecutionRQ();
+			finishExecutionRQ.setEndTime(Calendar.getInstance().getTime());
+			launch.get().finish(finishExecutionRQ);
+			launch.reset();
+		}
 	}
 
 	private List<Object> getRunnerChain(Object runner) {
@@ -796,9 +798,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 
 	@VisibleForTesting
 	static class MemorizingSupplier<T> implements Supplier<T>, Serializable {
-		final Supplier<T> delegate;
-		transient volatile boolean initialized;
-		transient T value;
+		private final Supplier<T> delegate;
+		private transient volatile boolean initialized;
+		private transient volatile T value;
 		private static final long serialVersionUID = 0L;
 
 		MemorizingSupplier(Supplier<T> delegate) {
@@ -809,15 +811,17 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			if (!initialized) {
 				synchronized (this) {
 					if (!initialized) {
-						T t = delegate.get();
-						value = t;
+						value = delegate.get();
 						initialized = true;
-						return t;
+						return value;
 					}
 				}
 			}
-
 			return value;
+		}
+
+		public boolean isInitialized() {
+			return initialized;
 		}
 
 		public synchronized void reset() {

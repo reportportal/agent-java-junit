@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- 'stopLaunch' method does not start new launch in case of there was no any tests passed
 ### Changed
 - Class type item level was changed from 'SUITE' to 'TEST'
 
