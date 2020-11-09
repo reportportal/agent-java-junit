@@ -17,7 +17,6 @@
 package com.epam.reportportal.junit.parameters;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.parameters.JUnitParamsSimpleTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
@@ -38,7 +37,7 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-public class JunitParamsTest {
+public class StandardParametersNoInterfaceTest {
 
 	private final String launchId = CommonUtils.namedId("launch_");
 	private final String suiteId = CommonUtils.namedId("suite_");
@@ -57,8 +56,8 @@ public class JunitParamsTest {
 	private static final List<Pair<String, Object>> PARAMETERS = Arrays.asList(Pair.of("param", "one"), Pair.of("param", "two, three"));
 
 	@Test
-	public void verify_one_simple_parameter_junitparams_implementation() {
-		TestUtils.runClasses(JUnitParamsSimpleTest.class);
+	public void verify_one_simple_parameter_standard_implementation() {
+		TestUtils.runClasses(com.epam.reportportal.junit.features.parameters.StandardParametersNoInterfaceTest.class);
 
 		verify(client, times(1)).startTestItem(any());
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
@@ -66,8 +65,6 @@ public class JunitParamsTest {
 		verify(client, times(2)).startTestItem(same(classId), captor.capture());
 
 		List<StartTestItemRQ> items = captor.getAllValues();
-		assertThat(items, hasSize(2));
-
 		IntStream.range(0, items.size()).forEach(i -> {
 			StartTestItemRQ item = items.get(i);
 			assertThat(item.getParameters(), allOf(notNullValue(), hasSize(1)));

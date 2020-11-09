@@ -16,7 +16,7 @@
 
 package com.epam.reportportal.junit.retry;
 
-import com.epam.reportportal.junit.ParallelRunningHandler;
+import com.epam.reportportal.junit.ReportPortalListener;
 import com.epam.reportportal.junit.features.retry.StandardParametersRetryTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.listeners.ItemStatus;
@@ -51,7 +51,7 @@ public class ParameterizedRetryTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodIds);
 		TestUtils.mockLogging(client);
-		ParallelRunningHandler.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
 	@Test

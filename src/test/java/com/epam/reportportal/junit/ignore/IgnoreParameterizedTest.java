@@ -16,8 +16,8 @@
 
 package com.epam.reportportal.junit.ignore;
 
-import com.epam.reportportal.junit.ParallelRunningHandler;
-import com.epam.reportportal.junit.features.skip.ParameterizedIgnoredTest;
+import com.epam.reportportal.junit.ReportPortalListener;
+import com.epam.reportportal.junit.features.ignore.ParameterizedIgnoredTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.service.ReportPortal;
@@ -51,7 +51,7 @@ public class IgnoreParameterizedTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodIds);
 		TestUtils.mockLogging(client);
-		ParallelRunningHandler.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
 	@Test

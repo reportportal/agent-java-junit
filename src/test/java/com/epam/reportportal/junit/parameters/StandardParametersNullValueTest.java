@@ -16,7 +16,7 @@
 
 package com.epam.reportportal.junit.parameters;
 
-import com.epam.reportportal.junit.ParallelRunningHandler;
+import com.epam.reportportal.junit.ReportPortalListener;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
@@ -50,7 +50,7 @@ public class StandardParametersNullValueTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodId);
 		TestUtils.mockLogging(client);
-		ParallelRunningHandler.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
 	private static final List<Pair<String, Object>> PARAMETERS = Arrays.asList(Pair.of("param", "one"), Pair.of("param", null));

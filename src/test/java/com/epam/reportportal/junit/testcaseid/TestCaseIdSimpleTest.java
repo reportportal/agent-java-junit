@@ -16,7 +16,7 @@
 
 package com.epam.reportportal.junit.testcaseid;
 
-import com.epam.reportportal.junit.ParallelRunningHandler;
+import com.epam.reportportal.junit.ReportPortalListener;
 import com.epam.reportportal.junit.features.testcaseid.TestCaseIdFromAnnotationTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
@@ -48,7 +48,7 @@ public class TestCaseIdSimpleTest {
 		client = mock(ReportPortalClient.class);
 		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodId);
 		TestUtils.mockLogging(client);
-		ParallelRunningHandler.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
 	@Test

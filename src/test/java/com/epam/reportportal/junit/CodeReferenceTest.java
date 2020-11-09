@@ -46,7 +46,7 @@ public class CodeReferenceTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodId);
 		TestUtils.mockLogging(client);
-		ParallelRunningHandler.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
 	@Test
