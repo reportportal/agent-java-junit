@@ -127,7 +127,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * Send a "finish launch" request to Report Portal.
 	 */
 	protected void stopLaunch() {
-		if(launch.isInitialized()) {
+		if (launch.isInitialized()) {
 			FinishExecutionRQ finishExecutionRQ = new FinishExecutionRQ();
 			finishExecutionRQ.setEndTime(Calendar.getInstance().getTime());
 			launch.get().finish(finishExecutionRQ);
@@ -263,9 +263,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				if (value.getType() != ItemType.SUITE) {
 					continue;
 				}
-				ofNullable(value.getAttribute(FINISH_REQUEST)).ifPresent(r -> launch.get().finishTestItem(value.getItemId(),
-						(FinishTestItemRQ) value.clearAttribute(FINISH_REQUEST)
-				));
+				ofNullable(value.getAttribute(FINISH_REQUEST)).ifPresent(r -> launch.get()
+						.finishTestItem(value.getItemId(), (FinishTestItemRQ) value.clearAttribute(FINISH_REQUEST)));
 				status = evaluateStatus(status, value.getStatus());
 			}
 			l.setStatus(status);
@@ -583,7 +582,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	/**
 	 * Extension point to customize test creation event/request
 	 *
-	 * @param runner      JUnit test runner context
+	 * @param runner    JUnit test runner context
 	 * @param startTime a suite start time which will be passed to RP
 	 * @return Request to ReportPortal
 	 */
@@ -791,8 +790,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	}
 
 	private Set<ItemAttributesRQ> getAttributes(FrameworkMethod frameworkMethod) {
-		return ofNullable(frameworkMethod.getMethod()).map(m -> ofNullable(m.getAnnotation(Attributes.class)).map(AttributeParser::retrieveAttributes)
-				.orElseGet(Collections::emptySet)).orElseGet(Collections::emptySet);
+		return ofNullable(frameworkMethod.getMethod()).flatMap(m -> ofNullable(m.getAnnotation(Attributes.class)).map(AttributeParser::retrieveAttributes))
+				.orElseGet(Collections::emptySet);
 	}
 
 	@VisibleForTesting
