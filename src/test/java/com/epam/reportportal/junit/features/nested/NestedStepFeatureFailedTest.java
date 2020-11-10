@@ -14,12 +14,23 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.features.suites;
+package com.epam.reportportal.junit.features.nested;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import com.epam.reportportal.annotations.Step;
+import org.junit.Test;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({ SimpleSuiteClass.class })
-public class SuiteOfSuitesClass {
+public class NestedStepFeatureFailedTest {
+
+	public static final String NESTED_STEP_NAME_TEMPLATE = "I am nested step with parameter - '{param}'";
+	public static final String PARAM = "test param";
+
+	@Test
+	public void test() {
+		failedMethod(PARAM);
+	}
+
+	@Step(NESTED_STEP_NAME_TEMPLATE)
+	public void failedMethod(String param) {
+		throw new RuntimeException("Some random error");
+	}
 }

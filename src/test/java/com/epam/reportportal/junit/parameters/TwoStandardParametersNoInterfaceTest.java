@@ -36,7 +36,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
 
-public class StandardParametersNullValueTest {
+public class TwoStandardParametersNoInterfaceTest {
 
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
@@ -50,11 +50,13 @@ public class StandardParametersNullValueTest {
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
-	private static final List<Pair<String, Object>> PARAMETERS = Arrays.asList(Pair.of("param", "one"), Pair.of("param", null));
+	private static final List<List<Pair<String, Object>>> PARAMETERS = Arrays.asList(Arrays.asList(Pair.of("param1", "one"),
+			Pair.of("param2", "1")
+	), Arrays.asList(Pair.of("param1", "two"), Pair.of("param2", "2")));
 
 	@Test
 	public void verify_one_simple_parameter_standard_implementation() {
-		TestUtils.runClasses(com.epam.reportportal.junit.features.parameters.StandardParametersNullValueTest.class);
+		TestUtils.runClasses(com.epam.reportportal.junit.features.parameters.TwoStandardParametersNoInterfaceTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(classId), captor.capture());
@@ -64,10 +66,13 @@ public class StandardParametersNullValueTest {
 
 		IntStream.range(0, items.size()).forEach(i -> {
 			StartTestItemRQ item = items.get(i);
-			assertThat(item.getParameters(), allOf(notNullValue(), hasSize(1)));
-			ParameterResource param = item.getParameters().get(0);
-			assertThat(param.getKey(), equalTo(PARAMETERS.get(i).getKey()));
-			assertThat(param.getValue(), equalTo(PARAMETERS.get(i).getValue()));
+			assertThat(item.getParameters(), allOf(notNullValue(), hasSize(2)));
+			List<ParameterResource> params = item.getParameters();
+			IntStream.range(0, params.size()).forEach(j -> {
+				ParameterResource param = params.get(j);
+				assertThat(param.getKey(), equalTo(PARAMETERS.get(i).get(j).getKey()));
+				assertThat(param.getValue(), equalTo(PARAMETERS.get(i).get(j).getValue()));
+			});
 		});
 	}
 }

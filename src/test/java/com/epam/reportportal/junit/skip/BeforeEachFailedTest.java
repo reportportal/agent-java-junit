@@ -35,14 +35,11 @@ import java.util.stream.Stream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
 public class BeforeEachFailedTest {
 
-	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
 	private final String classId = CommonUtils.namedId("class_");
 	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(2).collect(Collectors.toList());
 
@@ -50,7 +47,7 @@ public class BeforeEachFailedTest {
 
 	@BeforeEach
 	public void setupMock() {
-		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodIds);
+		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
@@ -59,22 +56,20 @@ public class BeforeEachFailedTest {
 	public void agent_should_report_skipped_test_in_case_of_failed_before_each() {
 		TestUtils.runClasses(BeforeFailedTest.class);
 
-		verify(client, times(1)).startTestItem(any());
 		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(suiteId), startCaptor.capture());
 		verify(client, times(2)).startTestItem(same(classId), startCaptor.capture());
 		verify(client, times(1)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
 		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
 
 		List<StartTestItemRQ> startItems = startCaptor.getAllValues();
-		assertThat("There are 3 item created: suite, @BeforeEach and @Test", startItems, hasSize(3));
+		assertThat("There are 3 item created: suite, @BeforeEach and @Test", startItems, hasSize(2));
 
 		List<FinishTestItemRQ> finishItems = finishCaptor.getAllValues();
 		FinishTestItemRQ beforeEachFinish = finishItems.get(0);
 		assertThat("@BeforeEach failed", beforeEachFinish.getStatus(), equalTo("FAILED"));
 
-		StartTestItemRQ testStart = startItems.get(2);
+		StartTestItemRQ testStart = startItems.get(1);
 		assertThat(
 				"@Test has correct code reference",
 				testStart.getCodeRef(),

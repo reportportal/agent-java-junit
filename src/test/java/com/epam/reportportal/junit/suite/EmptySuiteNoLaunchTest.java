@@ -14,60 +14,57 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.parameters;
+package com.epam.reportportal.junit.suite;
 
 import com.epam.reportportal.junit.ReportPortalListener;
+import com.epam.reportportal.junit.features.suites.EmptySuiteClass;
+import com.epam.reportportal.junit.features.suites.SimpleSuiteClass;
+import com.epam.reportportal.junit.features.suites.tests.FirstSuiteTest;
+import com.epam.reportportal.junit.features.suites.tests.SecondSuiteTest;
 import com.epam.reportportal.junit.utils.TestUtils;
+import com.epam.reportportal.listeners.ItemType;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
-import com.epam.ta.reportportal.ws.model.ParameterResource;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.*;
 
-public class StandardParametersNullValueTest {
+public class EmptySuiteNoLaunchTest {
 
+	private final String suiteId = CommonUtils.namedId("suite_");
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
-
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
 	@BeforeEach
 	public void setupMock() {
-		TestUtils.mockLaunch(client, null, null, classId, methodId);
+		TestUtils.mockLaunch(client, null, suiteId, classId, methodId);
 		TestUtils.mockLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
-	private static final List<Pair<String, Object>> PARAMETERS = Arrays.asList(Pair.of("param", "one"), Pair.of("param", null));
-
 	@Test
-	public void verify_one_simple_parameter_standard_implementation() {
-		TestUtils.runClasses(com.epam.reportportal.junit.features.parameters.StandardParametersNullValueTest.class);
+	public void verify_test_hierarchy_on_simple_suite() {
+		TestUtils.runClasses(EmptySuiteClass.class);
 
-		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(classId), captor.capture());
-
-		List<StartTestItemRQ> items = captor.getAllValues();
-		assertThat(items, hasSize(2));
-
-		IntStream.range(0, items.size()).forEach(i -> {
-			StartTestItemRQ item = items.get(i);
-			assertThat(item.getParameters(), allOf(notNullValue(), hasSize(1)));
-			ParameterResource param = item.getParameters().get(0);
-			assertThat(param.getKey(), equalTo(PARAMETERS.get(i).getKey()));
-			assertThat(param.getValue(), equalTo(PARAMETERS.get(i).getValue()));
-		});
+		verify(client, times(0)).startLaunch(any());
 	}
+
 }

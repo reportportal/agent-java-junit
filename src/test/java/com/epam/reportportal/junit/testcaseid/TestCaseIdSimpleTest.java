@@ -27,8 +27,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.List;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.same;
@@ -36,8 +34,6 @@ import static org.mockito.Mockito.*;
 
 public class TestCaseIdSimpleTest {
 
-	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
 
@@ -46,7 +42,7 @@ public class TestCaseIdSimpleTest {
 	@BeforeEach
 	public void setupMock() {
 		client = mock(ReportPortalClient.class);
-		TestUtils.mockLaunch(client, launchId, suiteId, classId, methodId);
+		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
@@ -57,15 +53,9 @@ public class TestCaseIdSimpleTest {
 		TestUtils.runClasses(testClass);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(captor.capture());
-		verify(client, times(1)).startTestItem(same(suiteId), captor.capture());
 		verify(client, times(1)).startTestItem(same(classId), captor.capture());
 
-		List<StartTestItemRQ> items = captor.getAllValues();
-		assertThat(items, hasSize(3));
-
-		StartTestItemRQ testRq = items.get(2);
-		assertThat(testRq.getTestCaseId(), allOf(notNullValue(), equalTo(TestCaseIdFromAnnotationTest.TEST_CASE_ID_VALUE)));
+		assertThat(captor.getValue().getTestCaseId(), allOf(notNullValue(), equalTo(TestCaseIdFromAnnotationTest.TEST_CASE_ID_VALUE)));
 	}
 
 }

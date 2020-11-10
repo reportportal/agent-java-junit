@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.parameters;
+package com.epam.reportportal.junit.testcaseid;
 
 import com.epam.reportportal.junit.ReportPortalListener;
+import com.epam.reportportal.junit.features.testcaseid.JUnitParamsTestCaseIdTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
-import com.epam.ta.reportportal.ws.model.ParameterResource;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,14 +29,14 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.IntStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
 
-public class StandardParametersNullValueTest {
+public class TestCaseIdJunitParamsTest {
 
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
@@ -50,24 +50,20 @@ public class StandardParametersNullValueTest {
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
-	private static final List<Pair<String, Object>> PARAMETERS = Arrays.asList(Pair.of("param", "one"), Pair.of("param", null));
+	private static final List<List<Pair<String, Object>>> PARAMETERS = Collections.singletonList(Arrays.asList(Pair.of("param1", "one"),
+			Pair.of("param2", "1")
+	));
 
 	@Test
-	public void verify_one_simple_parameter_standard_implementation() {
-		TestUtils.runClasses(com.epam.reportportal.junit.features.parameters.StandardParametersNullValueTest.class);
+	public void verify_two_parameters_junitparams_implementation() {
+		TestUtils.runClasses(JUnitParamsTestCaseIdTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(classId), captor.capture());
+		verify(client, times(1)).startTestItem(same(classId), captor.capture());
 
-		List<StartTestItemRQ> items = captor.getAllValues();
-		assertThat(items, hasSize(2));
-
-		IntStream.range(0, items.size()).forEach(i -> {
-			StartTestItemRQ item = items.get(i);
-			assertThat(item.getParameters(), allOf(notNullValue(), hasSize(1)));
-			ParameterResource param = item.getParameters().get(0);
-			assertThat(param.getKey(), equalTo(PARAMETERS.get(i).getKey()));
-			assertThat(param.getValue(), equalTo(PARAMETERS.get(i).getValue()));
-		});
+		StartTestItemRQ item = captor.getValue();
+		assertThat(item.getTestCaseId(), allOf(notNullValue(),
+				equalTo(JUnitParamsTestCaseIdTest.TEST_CASE_ID_VALUE + "[" + PARAMETERS.get(0).get(0).getValue() + "]")
+		));
 	}
 }

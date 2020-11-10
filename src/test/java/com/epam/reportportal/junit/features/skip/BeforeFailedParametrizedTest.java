@@ -6,7 +6,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static org.junit.runners.Parameterized.*;
+import static org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class BeforeFailedParametrizedTest {
@@ -26,7 +26,6 @@ public class BeforeFailedParametrizedTest {
 	public void beforeEachFailed() {
 		throw new IllegalStateException("Before each");
 	}
-
 
 	@Test
 	public void testBeforeEachFailed() {

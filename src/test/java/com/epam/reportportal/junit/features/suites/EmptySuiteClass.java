@@ -20,6 +20,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ SimpleSuiteClass.class })
-public class SuiteOfSuitesClass {
+@Suite.SuiteClasses({})
+public class EmptySuiteClass {
 }

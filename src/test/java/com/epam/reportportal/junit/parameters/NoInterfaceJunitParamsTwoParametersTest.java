@@ -14,33 +14,38 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.retry;
+package com.epam.reportportal.junit.parameters;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.retry.BasicRetryPassedTest;
+import com.epam.reportportal.junit.features.parameters.TwoJUnitParamsNoInterfaceTest;
 import com.epam.reportportal.junit.utils.TestUtils;
-import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
-import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
+import com.epam.ta.reportportal.ws.model.ParameterResource;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
 
-public class BasicRetryTest {
+public class NoInterfaceJunitParamsTwoParametersTest {
+	private static final int TEST_NUMBER = 2;
 
 	private final String classId = CommonUtils.namedId("class_");
-	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(2).collect(Collectors.toList());
+	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("class_"))
+			.limit(TEST_NUMBER)
+			.collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
@@ -51,26 +56,29 @@ public class BasicRetryTest {
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
+	private static final List<List<Pair<String, Object>>> PARAMETERS = Arrays.asList(Arrays.asList(Pair.of("param1", "one"),
+			Pair.of("param2", "1")
+	), Arrays.asList(Pair.of("param1", "two"), Pair.of("param2", "2")));
+
 	@Test
-	public void verify_a_test_with_one_retry() {
-		TestUtils.runClasses(BasicRetryPassedTest.class);
+	public void verify_two_parameters_junitparams_implementation() {
+		TestUtils.runClasses(TwoJUnitParamsNoInterfaceTest.class);
 
-		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(classId), startCaptor.capture());
-		verify(client, times(2)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
+		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(2)).startTestItem(same(classId), captor.capture());
 
-		List<StartTestItemRQ> startItems = startCaptor.getAllValues();
-		assertThat(startItems.get(0).isRetry(), nullValue());
-		assertThat(startItems.get(1).isRetry(), allOf(notNullValue(), equalTo(Boolean.TRUE)));
+		List<StartTestItemRQ> items = captor.getAllValues();
+		assertThat(items, hasSize(2));
 
-		List<FinishTestItemRQ> finishItems = finishCaptor.getAllValues();
-		assertThat(finishItems.get(0).isRetry(), nullValue());
-		assertThat(finishItems.get(1).isRetry(), allOf(notNullValue(), equalTo(Boolean.TRUE)));
-		assertThat(finishItems.get(1).getStatus(), allOf(notNullValue(), equalTo(finishItems.get(0).getStatus())));
-		assertThat(finishItems.get(2).isRetry(), nullValue());
-		assertThat(finishItems.get(2).getStatus(), allOf(notNullValue(), equalTo(ItemStatus.PASSED.name())));
+		IntStream.range(0, items.size()).forEach(i -> {
+			StartTestItemRQ item = items.get(i);
+			assertThat(item.getParameters(), allOf(notNullValue(), hasSize(2)));
+			List<ParameterResource> params = item.getParameters();
+			IntStream.range(0, params.size()).forEach(j -> {
+				ParameterResource param = params.get(j);
+				assertThat(param.getKey(), equalTo(PARAMETERS.get(i).get(j).getKey()));
+				assertThat(param.getValue(), equalTo(PARAMETERS.get(i).get(j).getValue()));
+			});
+		});
 	}
-
 }

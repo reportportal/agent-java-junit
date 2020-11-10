@@ -14,12 +14,27 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.features.suites;
+package com.epam.reportportal.junit.features.nested;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import com.epam.reportportal.annotations.Step;
+import org.junit.Before;
+import org.junit.Test;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({ SimpleSuiteClass.class })
-public class SuiteOfSuitesClass {
+public class NestedStepWithBeforeEachTest {
+
+	public static final String NESTED_STEP_NAME_TEMPLATE = "I am nested step with parameter - '{param}'";
+	public static final String PARAM = "test param";
+
+	@Before
+	public void before() {
+		method(PARAM);
+	}
+
+	@Test
+	public void test() {
+	}
+
+	@Step(NESTED_STEP_NAME_TEMPLATE)
+	public void method(String param) {
+	}
 }

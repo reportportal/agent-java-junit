@@ -14,12 +14,20 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.features.suites;
+package com.epam.reportportal.junit.features.attribute;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import com.epam.reportportal.annotations.attribute.Attribute;
+import com.epam.reportportal.annotations.attribute.Attributes;
+import org.junit.Test;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({ SimpleSuiteClass.class })
-public class SuiteOfSuitesClass {
+public class SimpleKeyValueAttributeTest {
+
+	public static final String KEY = "attribute_test_key";
+	public static final String VALUE = "attribute_test_value";
+
+	@Test
+	@Attributes(attributes = { @Attribute(key = KEY, value = VALUE) })
+	public void first() {
+		System.out.println("Test class: " + getClass().getCanonicalName());
+	}
 }

@@ -14,29 +14,29 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.parameters;
+package com.epam.reportportal.junit.attribute;
 
 import com.epam.reportportal.junit.ReportPortalListener;
+import com.epam.reportportal.junit.features.attribute.SimpleKeyValueAttributeTest;
+import com.epam.reportportal.junit.features.coderef.CodeRefTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
-import com.epam.ta.reportportal.ws.model.ParameterResource;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
-import org.apache.commons.lang3.tuple.Pair;
+import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.IntStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
 
-public class StandardParametersNullValueTest {
+public class KvAttributeTest {
 
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
@@ -50,24 +50,18 @@ public class StandardParametersNullValueTest {
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
-	private static final List<Pair<String, Object>> PARAMETERS = Arrays.asList(Pair.of("param", "one"), Pair.of("param", null));
-
 	@Test
-	public void verify_one_simple_parameter_standard_implementation() {
-		TestUtils.runClasses(com.epam.reportportal.junit.features.parameters.StandardParametersNullValueTest.class);
+	public void verify_static_attribute_bypass() {
+		TestUtils.runClasses(SimpleKeyValueAttributeTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(classId), captor.capture());
+		verify(client, times(1)).startTestItem(same(classId), captor.capture());
 
-		List<StartTestItemRQ> items = captor.getAllValues();
-		assertThat(items, hasSize(2));
-
-		IntStream.range(0, items.size()).forEach(i -> {
-			StartTestItemRQ item = items.get(i);
-			assertThat(item.getParameters(), allOf(notNullValue(), hasSize(1)));
-			ParameterResource param = item.getParameters().get(0);
-			assertThat(param.getKey(), equalTo(PARAMETERS.get(i).getKey()));
-			assertThat(param.getValue(), equalTo(PARAMETERS.get(i).getValue()));
-		});
+		StartTestItemRQ testRq = captor.getValue();
+		assertThat(testRq.getAttributes(), allOf(notNullValue(), hasSize(1)));
+		ItemAttributesRQ attribute = testRq.getAttributes().iterator().next();
+		assertThat(attribute.getKey(), equalTo(SimpleKeyValueAttributeTest.KEY));
+		assertThat(attribute.getValue(), equalTo(SimpleKeyValueAttributeTest.VALUE));
 	}
+
 }

@@ -17,6 +17,7 @@
 package com.epam.reportportal.junit.parameters;
 
 import com.epam.reportportal.junit.ReportPortalListener;
+import com.epam.reportportal.junit.features.parameters.JUnitParamsNoInterfaceTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
@@ -36,7 +37,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
 
-public class StandardParametersNullValueTest {
+public class JunitParamsNoInterfaceTest {
 
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
@@ -50,11 +51,11 @@ public class StandardParametersNullValueTest {
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
-	private static final List<Pair<String, Object>> PARAMETERS = Arrays.asList(Pair.of("param", "one"), Pair.of("param", null));
+	private static final List<Pair<String, Object>> PARAMETERS = Arrays.asList(Pair.of("param", "one"), Pair.of("param", "two, three"));
 
 	@Test
-	public void verify_one_simple_parameter_standard_implementation() {
-		TestUtils.runClasses(com.epam.reportportal.junit.features.parameters.StandardParametersNullValueTest.class);
+	public void verify_one_simple_parameter_junitparams_implementation() {
+		TestUtils.runClasses(JUnitParamsNoInterfaceTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(classId), captor.capture());

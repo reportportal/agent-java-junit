@@ -14,12 +14,27 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.features.suites;
+package com.epam.reportportal.junit.features.nested;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import com.epam.reportportal.annotations.Step;
+import org.junit.Test;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({ SimpleSuiteClass.class })
-public class SuiteOfSuitesClass {
+public class NestedStepMultiLevelTest {
+
+	public static final String METHOD_WITH_INNER_METHOD_NAME_TEMPLATE = "I am method with inner method";
+	public static final String INNER_METHOD_NAME_TEMPLATE = "I am - {method}";
+
+	@Test
+	public void test() {
+		methodWithInnerMethod();
+	}
+
+	@Step(METHOD_WITH_INNER_METHOD_NAME_TEMPLATE)
+	public void methodWithInnerMethod() {
+		innerMethod();
+	}
+
+	@Step(INNER_METHOD_NAME_TEMPLATE)
+	public void innerMethod() {
+	}
 }

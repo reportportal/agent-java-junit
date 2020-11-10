@@ -14,12 +14,20 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.features.suites;
+package com.epam.reportportal.junit.features.parameters;
 
+import com.epam.reportportal.annotations.ParameterKey;
+import junitparams.JUnitParamsRunner;
+import junitparams.Parameters;
+import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({ SimpleSuiteClass.class })
-public class SuiteOfSuitesClass {
+@RunWith(JUnitParamsRunner.class)
+public class TwoJUnitParamsNoInterfaceTest {
+
+	@Test
+	@Parameters({ "one, 1", "two, 2" })
+	public void testParameters(@ParameterKey("param1") String strParameter, @ParameterKey("param2") int intParameter) {
+		System.out.println("Parameter test: " + strParameter + "; " + intParameter);
+	}
 }
