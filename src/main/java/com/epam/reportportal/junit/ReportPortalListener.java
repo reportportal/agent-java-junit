@@ -701,12 +701,12 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param callable {@link ReflectiveCallable} object being intercepted
 	 * @return Step Parameters being sent to ReportPortal
 	 */
-	@SuppressWarnings({ "squid:S3655" })
 	private List<ParameterResource> createMethodParameters(FrameworkMethod method, Object runner, ReflectiveCallable callable) {
 		List<ParameterResource> result = new ArrayList<>();
 		if (!(method.isStatic())) {
 			Object target = getTargetForRunner(runner);
 			if (target instanceof ArtifactParams) {
+				//noinspection Guava
 				com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
 				if (params.isPresent()) {
 					for (Map.Entry<String, Object> param : params.get().entrySet()) {
@@ -731,10 +731,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				try {
 					Object[] params = (Object[]) Accessible.on(callable).field("val$params").getValue();
 					result.addAll(ParameterUtils.getParameters(method.getMethod(), Arrays.asList(params)));
-				} catch (Throwable e) {
+				} catch (NoSuchFieldException e) {
 					LOGGER.warn("Unable to get parameters for parameterized runner", e);
 				}
-
 			}
 		}
 		return result;
