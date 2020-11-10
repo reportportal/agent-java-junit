@@ -155,28 +155,36 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		List<Object> chain = getRunnerChain(runner);
 		TestItemTree.TestItemLeaf leaf = null;
 		Map<TestItemTree.ItemTreeKey, TestItemTree.TestItemLeaf> children = context.getItemTree().getTestItems();
-		long currentDate = Calendar.getInstance().getTimeInMillis();
 		int chainSize = chain.size();
 		for (int i = 0; i < chainSize; i++) {
 			Object r = chain.get(i);
-			Date itemDate = new Date(currentDate++);
-			StartTestItemRQ rq;
-			if (i < chainSize - 1) {
-				rq = buildStartSuiteRq(r, itemDate);
-			} else {
-				rq = buildStartTestItemRq(r, itemDate);
-			}
 			Maybe<String> parentId = ofNullable(leaf).map(TestItemTree.TestItemLeaf::getItemId).orElse(null);
-			leaf = children.computeIfAbsent(TestItemTree.ItemTreeKey.of(rq.getName()), (k) -> {
+			Date previousDate = ofNullable(leaf).map(l -> (Date) l.getAttribute(START_TIME))
+					.orElseGet(() -> Calendar.getInstance().getTime());
+			int itemNumber = i + 1;
+			leaf = children.computeIfAbsent(TestItemTree.ItemTreeKey.of(getRunnerName(r)), (k) -> {
 				Launch myLaunch = launch.get();
+				long currentDate = Calendar.getInstance().getTimeInMillis();
+				Date itemDate;
+				if (currentDate >= previousDate.getTime()) {
+					itemDate = new Date(currentDate);
+				} else {
+					itemDate = new Date(previousDate.getTime() + 1);
+				}
+				StartTestItemRQ rq;
+				if (itemNumber < chainSize) {
+					rq = buildStartSuiteRq(r, itemDate);
+				} else {
+					rq = buildStartTestItemRq(r, itemDate);
+				}
 				TestItemTree.TestItemLeaf l = ofNullable(parentId).map(p -> TestItemTree.createTestItemLeaf(p,
 						myLaunch.startTestItem(p, rq)
 				)).orElseGet(() -> TestItemTree.createTestItemLeaf(myLaunch.startTestItem(rq)));
 				l.setType(ItemType.SUITE);
 				l.setAttribute(START_TIME, rq.getStartTime());
-
 				return l;
 			});
+
 			children = leaf.getChildItems();
 		}
 		return leaf;
@@ -304,13 +312,13 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	protected void finishTest(AtomicTest<FrameworkMethod> testContext) {
 	}
 
-	protected void startTestStepItem(Object runner, FrameworkMethod method) {
+	protected void startTestStepItem(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
 		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
 		TestItemTree.TestItemLeaf testLeaf = ofNullable(retrieveLeaf(runner)).orElseGet(() -> context.getItemTree()
 				.getTestItems()
 				.get(myParentKey));
 		ofNullable(testLeaf).ifPresent(l -> {
-			StartTestItemRQ rq = buildStartStepRq(runner, context.getTestMethodDescription(method), method, getDateForChild(l));
+			StartTestItemRQ rq = buildStartStepRq(runner, context.getTestMethodDescription(method), method, callable, getDateForChild(l));
 			startTestStepItem(method, l, rq);
 		});
 	}
@@ -367,11 +375,11 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				.get(myParentKey));
 		ofNullable(testLeaf).ifPresent(l -> {
 			FrameworkMethod method = testContext.getIdentity();
-			StartTestItemRQ startRq = buildStartStepRq(runner, testContext.getDescription(), method, skipStartTime);
+			StartTestItemRQ startRq = buildStartStepRq(runner, testContext.getDescription(), method, callable, skipStartTime);
 			startTestStepItem(method, l, startRq);
 			FinishTestItemRQ finishRq = buildFinishStepRq(method, ItemStatus.SKIPPED);
 			finishRq.setIssue(NOT_ISSUE);
-			stopTestMethod(runner, method, finishRq);
+			stopTestMethod(runner, method, callable, finishRq);
 		});
 	}
 
@@ -384,7 +392,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@SuppressWarnings("unused")
 	protected void startTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
-		startTestStepItem(runner, method);
+		startTestStepItem(runner, method, callable);
 	}
 
 	/**
@@ -399,7 +407,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	protected void stopTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable, @Nonnull ItemStatus status,
 			@Nullable Throwable throwable) {
 		FinishTestItemRQ rq = buildFinishStepRq(method, status);
-		stopTestMethod(runner, method, rq);
+		stopTestMethod(runner, method, callable, rq);
 
 		ItemType methodType = detectMethodType(method);
 		if (ItemType.BEFORE_METHOD == methodType && ItemStatus.FAILED == status) {
@@ -410,17 +418,18 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	/**
 	 * Send a <b>finish test item</b> request for the indicated test method to Report Portal.
 	 *
-	 * @param runner JUnit test runner
-	 * @param method {@link FrameworkMethod} object for test
-	 * @param rq     {@link FinishTestItemRQ} a finish request to send
+	 * @param runner   JUnit test runner
+	 * @param method   {@link FrameworkMethod} object for test
+	 * @param callable {@link ReflectiveCallable} object being intercepted
+	 * @param rq       {@link FinishTestItemRQ} a finish request to send
 	 */
-	public void stopTestMethod(Object runner, FrameworkMethod method, FinishTestItemRQ rq) {
+	public void stopTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable, FinishTestItemRQ rq) {
 		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
 		TestItemTree.TestItemLeaf testLeaf = ofNullable(getLeaf(runner)).orElseGet(() -> context.getItemTree()
 				.getTestItems()
 				.get(myParentKey));
-		List<ParameterResource> parameters = createStepParameters(method, runner);
-		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, createStepParameters(method, runner));
+		List<ParameterResource> parameters = createStepParameters(method, runner, callable);
+		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, parameters);
 		ofNullable(testLeaf).map(l -> l.getChildItems().get(myKey)).ifPresent(l -> {
 			Maybe<String> itemId = l.getItemId();
 			l.setStatus(ItemStatus.valueOf(rq.getStatus()));
@@ -443,7 +452,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		TestItemTree.TestItemLeaf testLeaf = ofNullable(retrieveLeaf(runner)).orElseGet(() -> context.getItemTree()
 				.getTestItems()
 				.get(myParentKey));
-		List<ParameterResource> parameters = createStepParameters(testContext.getIdentity(), testContext.getRunner());
+		Object target = getTargetForRunner(runner);
+		ReflectiveCallable callable = LifecycleHooks.encloseCallable(method.getMethod(), target);
+		List<ParameterResource> parameters = createStepParameters(testContext.getIdentity(), testContext.getRunner(), callable);
 		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, parameters);
 
 		ofNullable(testLeaf).ifPresent(p -> {
@@ -451,9 +462,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			if (myLeaf == null) {
 				// a test method wasn't started, most likely an ignored test: start and stop a test item with 'skipped' status
 				startTest(testContext);
-				Object target = getTargetForRunner(runner);
-				startTestStepItem(runner, method);
-				ReflectiveCallable callable = LifecycleHooks.encloseCallable(method.getMethod(), target);
+				startTestStepItem(runner, method, callable);
 				stopTestMethod(runner, method, callable, ItemStatus.SKIPPED, null);
 			} else {
 				// a test method started
@@ -467,7 +476,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 					rq = buildFinishStepRq(method, ItemStatus.SKIPPED);
 					myLeaf.setStatus(ItemStatus.SKIPPED);
 				}
-				stopTestMethod(runner, method, rq);
+				stopTestMethod(runner, method, callable, rq);
 			}
 		});
 	}
@@ -600,16 +609,18 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param runner      JUnit test runner context
 	 * @param description JUnit framework test description object
 	 * @param method      JUnit framework method context
+	 * @param callable    {@link ReflectiveCallable} object being intercepted
 	 * @param startTime   A test step start date and time
 	 * @return Request to ReportPortal
 	 */
-	protected StartTestItemRQ buildStartStepRq(Object runner, Description description, FrameworkMethod method, Date startTime) {
+	protected StartTestItemRQ buildStartStepRq(Object runner, Description description, FrameworkMethod method, ReflectiveCallable callable,
+			Date startTime) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(method.getName());
 		rq.setCodeRef(getCodeRef(method));
 		rq.setAttributes(getAttributes(method));
 		rq.setDescription(createStepDescription(description, method));
-		rq.setParameters(createStepParameters(method, runner));
+		rq.setParameters(createStepParameters(method, runner, callable));
 		rq.setTestCaseId(ofNullable(getTestCaseId(method,
 				rq.getCodeRef(),
 				ofNullable(rq.getParameters()).map(p -> p.stream().map(ParameterResource::getValue).collect(Collectors.toList()))
@@ -669,12 +680,13 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	/**
 	 * Extension point to customize Report Portal test parameters
 	 *
-	 * @param method JUnit framework method context
-	 * @param runner JUnit test runner context
+	 * @param method   JUnit framework method context
+	 * @param runner   JUnit test runner context
+	 * @param callable {@link ReflectiveCallable} object being intercepted
 	 * @return Test/Step Parameters being sent to Report Portal
 	 */
-	protected List<ParameterResource> createStepParameters(FrameworkMethod method, Object runner) {
-		List<ParameterResource> parameters = createMethodParameters(method, runner);
+	protected List<ParameterResource> createStepParameters(FrameworkMethod method, Object runner, ReflectiveCallable callable) {
+		List<ParameterResource> parameters = createMethodParameters(method, runner, callable);
 		return parameters.isEmpty() ? null : parameters;
 	}
 
@@ -684,12 +696,13 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * <b>NOTE</b>: To support publication of execution parameters, the client test class must implement the
 	 * {@link com.nordstrom.automation.junit.ArtifactParams ArtifactParameters} interface.
 	 *
-	 * @param method JUnit framework method context
-	 * @param runner JUnit test runner context
+	 * @param method   JUnit framework method context
+	 * @param runner   JUnit test runner context
+	 * @param callable {@link ReflectiveCallable} object being intercepted
 	 * @return Step Parameters being sent to ReportPortal
 	 */
-	@SuppressWarnings("squid:S3655")
-	private List<ParameterResource> createMethodParameters(FrameworkMethod method, Object runner) {
+	@SuppressWarnings({ "squid:S3655" })
+	private List<ParameterResource> createMethodParameters(FrameworkMethod method, Object runner, ReflectiveCallable callable) {
 		List<ParameterResource> result = new ArrayList<>();
 		if (!(method.isStatic())) {
 			Object target = getTargetForRunner(runner);
@@ -712,6 +725,13 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 						));
 					}
 				} catch (NoSuchFieldException e) {
+					LOGGER.warn("Unable to get parameters for parameterized runner", e);
+				}
+			} else {
+				try {
+					Object[] params = (Object[]) Accessible.on(callable).field("val$params").getValue();
+					result.addAll(ParameterUtils.getParameters(method.getMethod(), Arrays.asList(params)));
+				} catch (Throwable e) {
 					LOGGER.warn("Unable to get parameters for parameterized runner", e);
 				}
 
