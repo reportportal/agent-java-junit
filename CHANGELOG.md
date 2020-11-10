@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.0.0-BETA-15]
 ### Added
 - Handling of standard and JUnitParams parameters without `ArtifactParams` interface
 ### Fixed
