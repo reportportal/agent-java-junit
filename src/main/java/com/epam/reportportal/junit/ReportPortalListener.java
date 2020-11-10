@@ -37,6 +37,8 @@ import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import com.nordstrom.automation.junit.*;
 import io.reactivex.Maybe;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.*;
 import org.junit.Test.None;
 import org.junit.internal.AssumptionViolatedException;
@@ -48,8 +50,6 @@ import org.junit.runners.model.TestClass;
 import org.junit.runners.parameterized.BlockJUnit4ClassRunnerWithParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rp.com.google.common.annotations.VisibleForTesting;
-import rp.com.google.common.base.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -58,13 +58,12 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.epam.reportportal.junit.utils.ItemTreeUtils.createItemTreeKey;
 import static java.util.Optional.ofNullable;
-import static rp.com.google.common.base.Strings.isNullOrEmpty;
-import static rp.com.google.common.base.Throwables.getStackTraceAsString;
 
 /**
  * Report portal custom event listener. This listener support parallel running
@@ -495,7 +494,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			rq.setLevel("ERROR");
 			rq.setLogTime(Calendar.getInstance().getTime());
 			if (thrown != null) {
-				rq.setMessage(getStackTraceAsString(thrown));
+				rq.setMessage(ExceptionUtils.getStackTrace(thrown));
 			} else {
 				rq.setMessage("Test has failed without exception");
 			}
@@ -531,11 +530,11 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		rq.getAttributes().addAll(SystemAttributesFetcher.collectSystemAttributes(parameters.getSkippedAnIssue()));
 
 		rq.setRerun(parameters.isRerun());
-		if (!isNullOrEmpty(parameters.getRerunOf())) {
+		if (StringUtils.isNotBlank(parameters.getRerunOf())) {
 			rq.setRerunOf(parameters.getRerunOf());
 		}
 
-		if (!isNullOrEmpty(parameters.getDescription())) {
+		if (StringUtils.isNotBlank(parameters.getDescription())) {
 			rq.setDescription(parameters.getDescription());
 		}
 		return rq;
@@ -794,8 +793,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				.orElseGet(Collections::emptySet);
 	}
 
-	@VisibleForTesting
-	static class MemorizingSupplier<T> implements Supplier<T>, Serializable {
+	private static class MemorizingSupplier<T> implements Supplier<T>, Serializable {
 		private final Supplier<T> delegate;
 		private transient volatile boolean initialized;
 		private transient volatile T value;
