@@ -4,6 +4,7 @@
 ### Added
 - Handling of standard and JUnitParams parameters without `ArtifactParams` interface
 ### Fixed
+- parameterized Test Case ID generation for standard parameters (`@ParameterKey` annotation handling)
 - 'retrieveLeaf' and 'stopRunner' methods do not start new launch in case of empty suites / tests
 - 'stopLaunch' method does not start new launch in case of there was no any tests passed
 ### Changed

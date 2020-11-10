@@ -31,22 +31,27 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
 
 public class NoInterfaceJunitParamsTwoParametersTest {
+	private static final int TEST_NUMBER = 2;
 
 	private final String classId = CommonUtils.namedId("class_");
-	private final String methodId = CommonUtils.namedId("method_");
+	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("class_"))
+			.limit(TEST_NUMBER)
+			.collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
 	@BeforeEach
 	public void setupMock() {
-		TestUtils.mockLaunch(client, null, null, classId, methodId);
+		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}

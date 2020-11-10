@@ -17,45 +17,53 @@
 package com.epam.reportportal.junit.testcaseid;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.testcaseid.TestCaseIdFromAnnotationTest;
+import com.epam.reportportal.junit.features.testcaseid.JUnitParamsTestCaseIdTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
-public class TestCaseIdSimpleTest {
+public class TestCaseIdJunitParamsTest {
 
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
 
-	private ReportPortalClient client;
+	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
 	@BeforeEach
 	public void setupMock() {
-		client = mock(ReportPortalClient.class);
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
+	private static final List<List<Pair<String, Object>>> PARAMETERS = Collections.singletonList(Arrays.asList(Pair.of("param1", "one"),
+			Pair.of("param2", "1")
+	));
+
 	@Test
-	public void verify_test_case_id_from_simple_annotation_generation() {
-		Class<TestCaseIdFromAnnotationTest> testClass = TestCaseIdFromAnnotationTest.class;
-		TestUtils.runClasses(testClass);
+	public void verify_two_parameters_junitparams_implementation() {
+		TestUtils.runClasses(JUnitParamsTestCaseIdTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(1)).startTestItem(same(classId), captor.capture());
 
-		assertThat(captor.getValue().getTestCaseId(), allOf(notNullValue(), equalTo(TestCaseIdFromAnnotationTest.TEST_CASE_ID_VALUE)));
+		StartTestItemRQ item = captor.getValue();
+		assertThat(item.getTestCaseId(), allOf(notNullValue(),
+				equalTo(JUnitParamsTestCaseIdTest.TEST_CASE_ID_VALUE + "[" + PARAMETERS.get(0).get(0).getValue() + "]")
+		));
 	}
-
 }

@@ -621,7 +621,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		rq.setAttributes(getAttributes(method));
 		rq.setDescription(createStepDescription(description, method));
 		rq.setParameters(createStepParameters(method, runner, callable));
-		rq.setTestCaseId(ofNullable(getTestCaseId(method,
+		rq.setTestCaseId(ofNullable(getTestCaseId(runner,
+				method,
 				rq.getCodeRef(),
 				ofNullable(rq.getParameters()).map(p -> p.stream().map(ParameterResource::getValue).collect(Collectors.toList()))
 						.orElse(null)
@@ -672,8 +673,15 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		return rq;
 	}
 
-	protected <T> TestCaseIdEntry getTestCaseId(FrameworkMethod frameworkMethod, String codeRef, List<T> params) {
+	protected <T> TestCaseIdEntry getTestCaseId(Object runner, FrameworkMethod frameworkMethod, String codeRef, List<T> params) {
 		Method method = frameworkMethod.getMethod();
+		if (runner instanceof BlockJUnit4ClassRunnerWithParameters) {
+			return TestCaseIdUtils.getTestCaseId(method.getAnnotation(TestCaseId.class),
+					Arrays.stream(frameworkMethod.getDeclaringClass().getConstructors()).findAny().orElse(null),
+					codeRef,
+					params
+			);
+		}
 		return TestCaseIdUtils.getTestCaseId(method.getAnnotation(TestCaseId.class), method, codeRef, params);
 	}
 
