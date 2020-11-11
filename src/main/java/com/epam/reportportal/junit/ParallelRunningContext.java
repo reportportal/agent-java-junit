@@ -77,6 +77,7 @@ public class ParallelRunningContext {
 	}
 
 	public Description setTestMethodDescription(FrameworkMethod method, Description description) {
+		CONTEXT_THREAD_LOCAL.set(this);
 		return testMethodDescription.put(method, description);
 	}
 

@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Callback reporting feature
 
 ## [5.0.0-BETA-15]
 ### Added

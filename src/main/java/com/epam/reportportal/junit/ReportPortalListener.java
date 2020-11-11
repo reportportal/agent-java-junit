@@ -336,7 +336,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		myLeaf.setType(ItemType.STEP);
 		parentLeaf.getChildItems().put(myKey, myLeaf);
 		if (getReportPortal().getParameters().isCallbackReportingEnabled()) {
-			context.getItemTree().getTestItems().put(myKey, myLeaf);
+			context.getItemTree().getTestItems().put(createItemTreeKey(method), myLeaf);
 		}
 	}
 
@@ -435,7 +435,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			l.setStatus(ItemStatus.valueOf(rq.getStatus()));
 			Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(itemId, rq);
 			if (getReportPortal().getParameters().isCallbackReportingEnabled()) {
-				updateTestItemTree(method, parameters, finishResponse);
+				updateTestItemTree(method, finishResponse);
 			}
 		});
 	}
@@ -481,9 +481,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		});
 	}
 
-	private void updateTestItemTree(FrameworkMethod method, List<ParameterResource> parameters,
-			Maybe<OperationCompletionRS> finishResponse) {
-		TestItemTree.TestItemLeaf testItemLeaf = ItemTreeUtils.retrieveLeaf(method, parameters, context.getItemTree());
+	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {
+		TestItemTree.TestItemLeaf testItemLeaf = ItemTreeUtils.retrieveLeaf(method, context.getItemTree());
 		if (testItemLeaf != null) {
 			testItemLeaf.setFinishResponse(finishResponse);
 		}
