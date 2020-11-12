@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- JUnit Categories now handled as RP tags
 ### Fixed
 - Callback reporting feature
 
