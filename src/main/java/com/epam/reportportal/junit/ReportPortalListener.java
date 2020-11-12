@@ -41,6 +41,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.*;
 import org.junit.Test.None;
+import org.junit.experimental.categories.Category;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runner.Description;
@@ -61,6 +62,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.epam.reportportal.junit.utils.ItemTreeUtils.createItemTreeKey;
 import static java.util.Optional.ofNullable;
@@ -572,6 +574,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		rq.setCodeRef(getCodeRef(runner));
 		rq.setStartTime(startTime);
 		rq.setType("SUITE");
+		rq.setAttributes(getAttributes(LifecycleHooks.getTestClassOf(runner)));
 		return rq;
 	}
 
@@ -599,6 +602,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		rq.setCodeRef(getCodeRef(runner));
 		rq.setStartTime(startTime);
 		rq.setType(ItemType.TEST.name());
+		rq.setAttributes(getAttributes(LifecycleHooks.getTestClassOf(runner)));
 		return rq;
 	}
 
@@ -814,9 +818,19 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		return TestCaseIdUtils.getCodeRef(frameworkMethod.getMethod());
 	}
 
-	private Set<ItemAttributesRQ> getAttributes(FrameworkMethod frameworkMethod) {
-		return ofNullable(frameworkMethod.getMethod()).flatMap(m -> ofNullable(m.getAnnotation(Attributes.class)).map(AttributeParser::retrieveAttributes))
-				.orElseGet(Collections::emptySet);
+	@Nonnull
+	private Set<ItemAttributesRQ> getAttributes(@Nonnull TestClass testClass) {
+		return ofNullable(testClass.getAnnotation(Category.class)).map(a -> Arrays.stream(a.value())
+				.map(c -> new ItemAttributesRQ(null, c.getSimpleName()))).orElse(Stream.empty()).collect(Collectors.toSet());
+	}
+
+	@Nonnull
+	private Set<ItemAttributesRQ> getAttributes(@Nonnull FrameworkMethod frameworkMethod) {
+		Stream<ItemAttributesRQ> categories = ofNullable(frameworkMethod.getAnnotation(Category.class)).map(a -> Arrays.stream(a.value())
+				.map(c -> new ItemAttributesRQ(null, c.getSimpleName()))).orElse(Stream.empty());
+		Stream<ItemAttributesRQ> attributes = ofNullable(frameworkMethod.getMethod()).flatMap(m -> ofNullable(m.getAnnotation(Attributes.class))
+				.map(a -> AttributeParser.retrieveAttributes(a).stream())).orElse(Stream.empty());
+		return Stream.concat(categories, attributes).collect(Collectors.toSet());
 	}
 
 	private static class MemorizingSupplier<T> implements Supplier<T>, Serializable {
