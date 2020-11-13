@@ -108,12 +108,12 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>4.1.10</version>
+      <version>5.0.0-BETA-16</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>logger-java-logback</artifactId>
-      <version>4.0.0</version>
+      <version>5.0.3</version>
     </dependency>
   </dependencies>
  
@@ -213,12 +213,12 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>4.1.10</version>
+      <version>5.0.0-BETA-16</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>logger-java-log4j</artifactId>
-      <version>4.0.1</version>
+      <version>5.0.3</version>
     </dependency>
   </dependencies>
  
@@ -297,8 +297,8 @@ repositories {
 }
 
 dependencies {
-    compile 'com.epam.reportportal:logger-java-log4j:4.0.1'
-    compile 'com.epam.reportportal:agent-java-junit:4.1.10'
+    compile 'com.epam.reportportal:logger-java-log4j:5.0.3'
+    compile 'com.epam.reportportal:agent-java-junit:5.0.0-BETA-16'
 }
 
 ext {
@@ -440,7 +440,7 @@ We’ll assume that Report Portal is installed and running on <http://localhost:
 <dependency>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>agent-java-junit</artifactId>
-    <version>4.1.8</version>
+    <version>5.0.0-BETA-16</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -457,7 +457,7 @@ If you prefer using **Logback** logging library, add following dependencies:
 <dependency>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>logger-java-logback</artifactId>
-    <version>4.0.0</version>
+    <version>5.0.3</version>
 </dependency>
 ```
 > Up to date version could be found [here](https://bintray.com/epam/reportportal/logger-java-logback)
@@ -478,7 +478,7 @@ If you prefer using **Log4j** logging library, add following dependencies:
 <dependency>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>logger-java-log4j</artifactId>
-    <version>4.0.1</version>
+    <version>5.0.3</version>
 </dependency>
 ```
 > Up to date version could be found [here](https://bintray.com/epam/reportportal/logger-java-log4j)
@@ -488,13 +488,13 @@ If you prefer using **Log4j** logging library, add following dependencies:
 <dependency>
     <groupId>org.apache.logging.log4j</groupId>
     <artifactId>log4j-api</artifactId>
-    <version>2.10.0</version>
+    <version>2.12.1</version>
 </dependency>
 
 <dependency>
      <groupId>org.apache.logging.log4j</groupId>
      <artifactId>log4j-core</artifactId>
-     <version>2.10.0</version>
+     <version>2.12.1</version>
 </dependency>
 ```
 
@@ -715,26 +715,26 @@ in this case - add a `maven dependency plugin` dependency explicitly, like this:
       <dependency>
          <groupId>com.epam.reportportal</groupId>
          <artifactId>agent-java-junit</artifactId>
-         <version>4.1.8</version>
+         <version>5.0.0-BETA-16</version>
          <scope>test</scope>
       </dependency>
 
       <dependency>
          <groupId>com.epam.reportportal</groupId>
          <artifactId>logger-java-log4j</artifactId>
-         <version>4.0.1</version>
+         <version>5.0.3</version>
       </dependency>
 
       <dependency>
          <groupId>org.apache.logging.log4j</groupId>
          <artifactId>log4j-api</artifactId>
-         <version>2.10.0</version>
+         <version>2.12.1</version>
       </dependency>
 
       <dependency>
          <groupId>org.apache.logging.log4j</groupId>
          <artifactId>log4j-core</artifactId>
-         <version>2.10.0</version>
+         <version>2.12.1</version>
       </dependency>
    </dependencies>
 
@@ -862,10 +862,10 @@ repositories {
 }
 
 dependencies {
-    compile 'com.epam.reportportal:logger-java-log4j:4.0.1'
-    compile 'com.epam.reportportal:agent-java-junit:4.1.8'
-    compile 'org.apache.logging.log4j:log4j-api:2.10.0'
-    compile 'org.apache.logging.log4j:log4j-core:2.10.0'
+    compile 'com.epam.reportportal:logger-java-log4j:5.0.3'
+    compile 'com.epam.reportportal:agent-java-junit:5.0.0-BETA-16'
+    compile 'org.apache.logging.log4j:log4j-api:2.12.1'
+    compile 'org.apache.logging.log4j:log4j-core:2.12.1'
 }
 
 ext {
