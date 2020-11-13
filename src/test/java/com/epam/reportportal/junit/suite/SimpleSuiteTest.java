@@ -64,7 +64,7 @@ public class SimpleSuiteTest {
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, suiteId, tests);
-		TestUtils.mockLogging(client);
+		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 

@@ -1,6 +1,13 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- JUnit Categories now handled as RP tags
+### Fixed
+- Callback reporting feature
+- ExpectedException Rule handling (issue #64)
+### Changed
+- Client version updated on [5.0.15](https://github.com/reportportal/client-java/releases/tag/5.0.15)
 
 ## [5.0.0-BETA-15]
 ### Added
@@ -10,6 +17,7 @@
 - 'retrieveLeaf' and 'stopRunner' methods do not start new launch in case of empty suites / tests
 - 'stopLaunch' method does not start new launch in case of there was no any tests passed
 ### Changed
+- Client version updated on [5.0.14](https://github.com/reportportal/client-java/releases/tag/5.0.14)
 - Class type item level was changed from 'SUITE' to 'TEST'
 
 ## [5.0.0-BETA-14]

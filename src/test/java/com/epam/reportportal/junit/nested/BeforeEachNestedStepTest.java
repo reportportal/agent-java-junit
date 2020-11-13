@@ -49,7 +49,7 @@ public class BeforeEachNestedStepTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, Arrays.asList(beforeId, methodId));
 		TestUtils.mockNestedSteps(client, Collections.singletonList(Pair.of(beforeId, nestedId)));
-		TestUtils.mockLogging(client);
+		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 

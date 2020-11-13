@@ -21,11 +21,13 @@ import com.epam.reportportal.restendpoint.http.MultiPartRequest;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.BatchSaveOperatingRS;
+import com.epam.ta.reportportal.ws.model.EntryCreatedAsyncRS;
 import com.epam.ta.reportportal.ws.model.OperationCompletionRS;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import com.epam.ta.reportportal.ws.model.item.ItemCreatedRS;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRS;
+import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import io.reactivex.Maybe;
 import junitparams.converters.Nullable;
 import org.apache.commons.lang3.tuple.Pair;
@@ -138,8 +140,12 @@ public class TestUtils {
 		when(client.finishLaunch(eq(launch), any())).thenReturn(createMaybe(new OperationCompletionRS()));
 	}
 
-	public static void mockLogging(ReportPortalClient client) {
+	public static void mockBatchLogging(ReportPortalClient client) {
 		when(client.log(any(MultiPartRequest.class))).thenReturn(createMaybe(new BatchSaveOperatingRS()));
+	}
+
+	public static void mockSingleLogging(ReportPortalClient client) {
+		when(client.log(any(SaveLogRQ.class))).thenReturn(createMaybe(new EntryCreatedAsyncRS()));
 	}
 
 	public static void mockNestedSteps(ReportPortalClient client, Pair<String, String> parentNestedPair) {
@@ -172,6 +178,7 @@ public class TestUtils {
 		result.setLaunchName("My-test-launch" + generateUniqueId());
 		result.setProjectName("test-project");
 		result.setEnable(true);
+		result.setCallbackReportingEnabled(true);
 		return result;
 	}
 

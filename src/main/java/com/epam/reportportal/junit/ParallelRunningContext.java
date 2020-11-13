@@ -18,11 +18,10 @@ package com.epam.reportportal.junit;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.service.tree.TestItemTree;
 import com.nordstrom.automation.junit.AtomicTest;
-import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -38,38 +37,28 @@ public class ParallelRunningContext {
 	 */
 	private final TestItemTree itemTree = new TestItemTree();
 
-	/**
-	 * hash of runner/method pair => status
-	 */
-	private final Map<ReflectiveCallable, ItemStatus> statusOfTestMethod;
-
-	private final Map<FrameworkMethod, Description> testMethodDescription;
+	private final Map<FrameworkMethod, Description> testMethodDescription = new ConcurrentHashMap<>();
+	private final Map<AtomicTest<?>, ItemStatus> testStatus = new ConcurrentHashMap<>();
+	private final Map<AtomicTest<?>, Throwable> testThrowable = new ConcurrentHashMap<>();
 
 	public ParallelRunningContext() {
-		statusOfTestMethod = new ConcurrentHashMap<>();
-		testMethodDescription = new ConcurrentHashMap<>();
 		CONTEXT_THREAD_LOCAL.set(this);
 	}
 
-	/**
-	 * Set the status for the specified test method.
-	 *
-	 * @param callable {@link ReflectiveCallable} object being intercepted
-	 * @param status   status for test method
-	 */
-	public void setStatusOfTestMethod(ReflectiveCallable callable, ItemStatus status) {
-		statusOfTestMethod.put(callable, status);
+	public <T> ItemStatus getTestStatus(AtomicTest<T> test) {
+		return testStatus.get(test);
 	}
 
-	/**
-	 * Get the status for the specified test method.
-	 *
-	 * @param callable {@link ReflectiveCallable} object being intercepted
-	 * @return status for test method
-	 */
-	@Nullable
-	public ItemStatus getStatusOfTestMethod(ReflectiveCallable callable) {
-		return statusOfTestMethod.get(callable);
+	public <T> ItemStatus setTestStatus(AtomicTest<T> test, ItemStatus status) {
+		return testStatus.put(test, status);
+	}
+
+	public <T> Throwable getTestThrowable(AtomicTest<T> test) {
+		return testThrowable.get(test);
+	}
+
+	public <T> void setTestThrowable(AtomicTest<T> test, Throwable throwable) {
+		testThrowable.put(test, throwable);
 	}
 
 	public Description getTestMethodDescription(FrameworkMethod method) {
@@ -77,6 +66,7 @@ public class ParallelRunningContext {
 	}
 
 	public Description setTestMethodDescription(FrameworkMethod method, Description description) {
+		CONTEXT_THREAD_LOCAL.set(this);
 		return testMethodDescription.put(method, description);
 	}
 

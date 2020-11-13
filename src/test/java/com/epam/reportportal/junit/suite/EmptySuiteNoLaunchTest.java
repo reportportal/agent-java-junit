@@ -18,32 +18,14 @@ package com.epam.reportportal.junit.suite;
 
 import com.epam.reportportal.junit.ReportPortalListener;
 import com.epam.reportportal.junit.features.suites.EmptySuiteClass;
-import com.epam.reportportal.junit.features.suites.SimpleSuiteClass;
-import com.epam.reportportal.junit.features.suites.tests.FirstSuiteTest;
-import com.epam.reportportal.junit.features.suites.tests.SecondSuiteTest;
 import com.epam.reportportal.junit.utils.TestUtils;
-import com.epam.reportportal.listeners.ItemType;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
-import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
-
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.*;
 
 public class EmptySuiteNoLaunchTest {
@@ -56,7 +38,7 @@ public class EmptySuiteNoLaunchTest {
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, suiteId, classId, methodId);
-		TestUtils.mockLogging(client);
+		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 

@@ -47,7 +47,7 @@ public class BasicRetryTest {
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
-		TestUtils.mockLogging(client);
+		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 

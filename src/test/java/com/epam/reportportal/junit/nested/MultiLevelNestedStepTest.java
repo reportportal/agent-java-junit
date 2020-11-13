@@ -50,7 +50,7 @@ public class MultiLevelNestedStepTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, classId, methodId, nestedId);
 		TestUtils.mockNestedSteps(client, Collections.singletonList(Pair.of(nestedId, secondLevelNestedId)));
-		TestUtils.mockLogging(client);
+		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 

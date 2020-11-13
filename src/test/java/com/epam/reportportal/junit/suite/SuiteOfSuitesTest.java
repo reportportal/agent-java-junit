@@ -65,7 +65,7 @@ public class SuiteOfSuitesTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, firstSuiteId, secondSuiteId, classIds);
 		TestUtils.mockNestedSteps(client, tests);
-		TestUtils.mockLogging(client);
+		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 

@@ -41,6 +41,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.*;
 import org.junit.Test.None;
+import org.junit.experimental.categories.Category;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runner.Description;
@@ -61,6 +62,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.epam.reportportal.junit.utils.ItemTreeUtils.createItemTreeKey;
 import static java.util.Optional.ofNullable;
@@ -84,6 +86,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	private static final Logger LOGGER = LoggerFactory.getLogger(ReportPortalListener.class);
 
 	private static final String FINISH_REQUEST = "FINISH_REQUEST";
+	private static final String FINISH_RESPONSE = "FINISH_RESPONSE";
 	private static final String START_TIME = "START_TIME";
 	private static final String IS_RETRY = "IS_RETRY";
 	private static final Map<Class<? extends Annotation>, ItemType> TYPE_MAP = Collections.unmodifiableMap(new HashMap<Class<? extends Annotation>, ItemType>() {{
@@ -205,6 +208,17 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	}
 
 	@Nullable
+	private TestItemTree.TestItemLeaf getLeaf(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
+		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
+		TestItemTree.TestItemLeaf testLeaf = ofNullable(getLeaf(runner)).orElseGet(() -> context.getItemTree()
+				.getTestItems()
+				.get(myParentKey));
+		List<ParameterResource> parameters = createStepParameters(method, runner, callable);
+		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, parameters);
+		return ofNullable(testLeaf).map(l -> l.getChildItems().get(myKey)).orElse(null);
+	}
+
+	@Nullable
 	protected ItemStatus evaluateStatus(@Nullable ItemStatus currentStatus, @Nullable ItemStatus childStatus) {
 		if (childStatus == null) {
 			return currentStatus;
@@ -300,6 +314,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param testContext {@link AtomicTest} object for test method
 	 */
 	protected void startTest(AtomicTest<FrameworkMethod> testContext) {
+		context.setTestStatus(testContext, ItemStatus.PASSED);
 		context.setTestMethodDescription(testContext.getIdentity(), testContext.getDescription());
 	}
 
@@ -308,8 +323,29 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 *
 	 * @param testContext {@link AtomicTest} object for test method
 	 */
-	@SuppressWarnings("unused")
 	protected void finishTest(AtomicTest<FrameworkMethod> testContext) {
+		ItemStatus status = context.getTestStatus(testContext);
+		Throwable throwable = context.getTestThrowable(testContext);
+		TestItemTree.TestItemLeaf testLeaf = getLeaf(testContext.getRunner());
+		if (testLeaf != null) {
+			testLeaf.getChildItems()
+					.values()
+					.stream()
+					.filter(i -> i.getType() == ItemType.STEP)
+					.filter(i -> i.getStatus() != status)
+					.filter(i -> {
+						Boolean isRetry = i.<Boolean>getAttribute(IS_RETRY);
+						return !(ItemStatus.SKIPPED == status && isRetry != null && isRetry);
+					})
+					.forEach(i -> {
+						FrameworkMethod frameworkMethod = testContext.getIdentity();
+						if (status == ItemStatus.FAILED && throwable != null) {
+							reportTestFailure(i, throwable);
+						}
+						stopTestMethod(i, frameworkMethod, buildFinishStepRq(frameworkMethod, status));
+					});
+			testLeaf.setStatus(status);
+		}
 	}
 
 	protected void startTestStepItem(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
@@ -323,20 +359,25 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		});
 	}
 
-	protected void startTestStepItem(FrameworkMethod method, TestItemTree.TestItemLeaf parentLeaf, StartTestItemRQ rq) {
+
+	protected Maybe<String> startTestStepItem(TestItemTree.TestItemLeaf parentLeaf, StartTestItemRQ rq) {
 		Maybe<String> parentId = parentLeaf.getItemId();
+		return launch.get().startTestItem(parentId, rq);
+	}
+
+	protected void startTestStepItem(FrameworkMethod method, TestItemTree.TestItemLeaf parentLeaf, StartTestItemRQ rq) {
 		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, rq.getParameters());
 		ofNullable(parentLeaf.getChildItems().remove(myKey)).map(ol -> ol.<Boolean>getAttribute(IS_RETRY)).ifPresent(r -> {
 			if (r) {
 				rq.setRetry(true);
 			}
 		});
-		Maybe<String> itemId = launch.get().startTestItem(parentId, rq);
-		TestItemTree.TestItemLeaf myLeaf = TestItemTree.createTestItemLeaf(parentId, itemId);
+		Maybe<String> itemId = startTestStepItem(parentLeaf, rq);
+		TestItemTree.TestItemLeaf myLeaf = TestItemTree.createTestItemLeaf(parentLeaf.getItemId(), itemId);
 		myLeaf.setType(ItemType.STEP);
 		parentLeaf.getChildItems().put(myKey, myLeaf);
 		if (getReportPortal().getParameters().isCallbackReportingEnabled()) {
-			context.getItemTree().getTestItems().put(myKey, myLeaf);
+			context.getItemTree().getTestItems().put(createItemTreeKey(method), myLeaf);
 		}
 	}
 
@@ -364,22 +405,22 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param throwable   An exception which caused the skip
 	 * @param eventTime   <code>@Before</code> start time
 	 */
-	@SuppressWarnings("unused")
 	protected void reportSkippedStep(Object runner, AtomicTest<FrameworkMethod> testContext, ReflectiveCallable callable,
 			Throwable throwable, Date eventTime) {
 		Date currentTime = Calendar.getInstance().getTime();
 		Date skipStartTime = currentTime.after(eventTime) ? new Date(currentTime.getTime() - 1) : currentTime;
 		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
-		TestItemTree.TestItemLeaf testLeaf = ofNullable(retrieveLeaf(runner)).orElseGet(() -> context.getItemTree()
+		TestItemTree.TestItemLeaf testLeaf = ofNullable(getLeaf(runner)).orElseGet(() -> context.getItemTree()
 				.getTestItems()
 				.get(myParentKey));
 		ofNullable(testLeaf).ifPresent(l -> {
 			FrameworkMethod method = testContext.getIdentity();
 			StartTestItemRQ startRq = buildStartStepRq(runner, testContext.getDescription(), method, callable, skipStartTime);
-			startTestStepItem(method, l, startRq);
+			Maybe<String> id = startTestStepItem(l, startRq);
+			ofNullable(throwable).ifPresent(t->sendReportPortalMsg(id, throwable));
 			FinishTestItemRQ finishRq = buildFinishStepRq(method, ItemStatus.SKIPPED);
 			finishRq.setIssue(NOT_ISSUE);
-			stopTestMethod(runner, method, callable, finishRq);
+			launch.get().finishTestItem(id, finishRq);
 		});
 	}
 
@@ -424,20 +465,35 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param rq       {@link FinishTestItemRQ} a finish request to send
 	 */
 	public void stopTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable, FinishTestItemRQ rq) {
-		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
-		TestItemTree.TestItemLeaf testLeaf = ofNullable(getLeaf(runner)).orElseGet(() -> context.getItemTree()
-				.getTestItems()
-				.get(myParentKey));
-		List<ParameterResource> parameters = createStepParameters(method, runner, callable);
-		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, parameters);
-		ofNullable(testLeaf).map(l -> l.getChildItems().get(myKey)).ifPresent(l -> {
-			Maybe<String> itemId = l.getItemId();
-			l.setStatus(ItemStatus.valueOf(rq.getStatus()));
-			Maybe<OperationCompletionRS> finishResponse = launch.get().finishTestItem(itemId, rq);
-			if (getReportPortal().getParameters().isCallbackReportingEnabled()) {
-				updateTestItemTree(method, parameters, finishResponse);
-			}
-		});
+		ofNullable(getLeaf(runner, method, callable)).ifPresent(l -> stopTestMethod(l, method, rq));
+	}
+
+	private void stopTestMethod(@Nonnull TestItemTree.TestItemLeaf myLeaf, FrameworkMethod method, FinishTestItemRQ rq) {
+		Maybe<String> itemId = myLeaf.getItemId();
+		myLeaf.setStatus(ItemStatus.valueOf(rq.getStatus()));
+		// update existing item or just send new
+		Maybe<OperationCompletionRS> finishResponse = ofNullable(myLeaf.<Maybe<OperationCompletionRS>>getAttribute(FINISH_RESPONSE)).map(rs -> {
+			// ensure previous request passed to maintain the order
+			// FIXME: rework it to be more RX-friendly, make client wait for all Maybe features
+			//noinspection BlockingMethodInNonBlockingContext, ResultOfMethodCallIgnored
+			rs.blockingGet();
+			return launch.get().finishTestItem(itemId, rq);
+		}).orElseGet(() -> launch.get().finishTestItem(itemId, rq));
+		myLeaf.setAttribute(FINISH_RESPONSE, finishResponse);
+		if (getReportPortal().getParameters().isCallbackReportingEnabled()) {
+			updateTestItemTree(method, finishResponse);
+		}
+	}
+
+	/**
+	 * Handle test failure action
+	 *
+	 * @param testContext {@link AtomicTest} object for test method
+	 * @param thrown      a <code>Throwable</code> thrown by method
+	 */
+	protected void handleFailureTest(AtomicTest<FrameworkMethod> testContext, Throwable thrown) {
+		context.setTestStatus(testContext, ItemStatus.FAILED);
+		context.setTestThrowable(testContext, thrown);
 	}
 
 	/**
@@ -446,6 +502,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param testContext {@link AtomicTest} object for test method
 	 */
 	protected void handleTestSkip(AtomicTest<FrameworkMethod> testContext) {
+		context.setTestStatus(testContext, ItemStatus.SKIPPED);
 		Object runner = testContext.getRunner();
 		FrameworkMethod method = testContext.getIdentity();
 		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
@@ -481,23 +538,15 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		});
 	}
 
-	private void updateTestItemTree(FrameworkMethod method, List<ParameterResource> parameters,
-			Maybe<OperationCompletionRS> finishResponse) {
-		TestItemTree.TestItemLeaf testItemLeaf = ItemTreeUtils.retrieveLeaf(method, parameters, context.getItemTree());
+	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {
+		TestItemTree.TestItemLeaf testItemLeaf = ItemTreeUtils.retrieveLeaf(method, context.getItemTree());
 		if (testItemLeaf != null) {
 			testItemLeaf.setFinishResponse(finishResponse);
 		}
 	}
 
-	/**
-	 * Send message to report portal about appeared failure
-	 *
-	 * @param callable {@link ReflectiveCallable} object being intercepted
-	 * @param thrown   {@link Throwable} object with details of the failure
-	 */
-	@SuppressWarnings("unused")
-	protected void sendReportPortalMsg(ReflectiveCallable callable, final Throwable thrown) {
-		Function<String, SaveLogRQ> function = itemUuid -> {
+	private Function<String, SaveLogRQ> getLogSupplier(final Throwable thrown) {
+		return itemUuid -> {
 			SaveLogRQ rq = new SaveLogRQ();
 			rq.setItemUuid(itemUuid);
 			rq.setLevel("ERROR");
@@ -511,7 +560,28 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 
 			return rq;
 		};
-		ReportPortal.emitLog(function);
+	}
+
+	/**
+	 * Send message to report portal about appeared failure
+	 *
+	 * @param itemUud item Item UUID promise
+	 * @param thrown  {@link Throwable} object with details of the failure
+	 */
+	@SuppressWarnings("unused")
+	protected void sendReportPortalMsg(Maybe<String> itemUud, final Throwable thrown) {
+		ReportPortal.emitLog(itemUud, getLogSupplier(thrown));
+	}
+
+	/**
+	 * Send message to report portal about appeared failure
+	 *
+	 * @param callable {@link ReflectiveCallable} object being intercepted
+	 * @param thrown   {@link Throwable} object with details of the failure
+	 */
+	@SuppressWarnings("unused")
+	protected void sendReportPortalMsg(ReflectiveCallable callable, final Throwable thrown) {
+		ReportPortal.emitLog(getLogSupplier(thrown));
 	}
 
 	/**
@@ -573,6 +643,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		rq.setCodeRef(getCodeRef(runner));
 		rq.setStartTime(startTime);
 		rq.setType("SUITE");
+		rq.setAttributes(getAttributes(LifecycleHooks.getTestClassOf(runner)));
 		return rq;
 	}
 
@@ -600,6 +671,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		rq.setCodeRef(getCodeRef(runner));
 		rq.setStartTime(startTime);
 		rq.setType(ItemType.TEST.name());
+		rq.setAttributes(getAttributes(LifecycleHooks.getTestClassOf(runner)));
 		return rq;
 	}
 
@@ -643,19 +715,6 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		FinishTestItemRQ rq = new FinishTestItemRQ();
 		rq.setEndTime(Calendar.getInstance().getTime());
 		return rq;
-	}
-
-	/**
-	 * Extension point to customize test method on it's finish
-	 *
-	 * @param method JUnit framework method context
-	 * @param status method completion status
-	 * @return Request to ReportPortal
-	 * @deprecated use {@link #buildFinishStepRq(FrameworkMethod, ItemStatus)}
-	 */
-	@Deprecated
-	protected FinishTestItemRQ buildFinishStepRq(@Nullable FrameworkMethod method, @Nonnull String status) {
-		return buildFinishStepRq(method, ItemStatus.valueOf(status));
 	}
 
 	/**
@@ -815,9 +874,19 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		return TestCaseIdUtils.getCodeRef(frameworkMethod.getMethod());
 	}
 
-	private Set<ItemAttributesRQ> getAttributes(FrameworkMethod frameworkMethod) {
-		return ofNullable(frameworkMethod.getMethod()).flatMap(m -> ofNullable(m.getAnnotation(Attributes.class)).map(AttributeParser::retrieveAttributes))
-				.orElseGet(Collections::emptySet);
+	@Nonnull
+	private Set<ItemAttributesRQ> getAttributes(@Nonnull TestClass testClass) {
+		return ofNullable(testClass.getAnnotation(Category.class)).map(a -> Arrays.stream(a.value())
+				.map(c -> new ItemAttributesRQ(null, c.getSimpleName()))).orElse(Stream.empty()).collect(Collectors.toSet());
+	}
+
+	@Nonnull
+	private Set<ItemAttributesRQ> getAttributes(@Nonnull FrameworkMethod frameworkMethod) {
+		Stream<ItemAttributesRQ> categories = ofNullable(frameworkMethod.getAnnotation(Category.class)).map(a -> Arrays.stream(a.value())
+				.map(c -> new ItemAttributesRQ(null, c.getSimpleName()))).orElse(Stream.empty());
+		Stream<ItemAttributesRQ> attributes = ofNullable(frameworkMethod.getMethod()).flatMap(m -> ofNullable(m.getAnnotation(Attributes.class))
+				.map(a -> AttributeParser.retrieveAttributes(a).stream())).orElse(Stream.empty());
+		return Stream.concat(categories, attributes).collect(Collectors.toSet());
 	}
 
 	private static class MemorizingSupplier<T> implements Supplier<T>, Serializable {
@@ -895,7 +964,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Override
 	public void testFailure(AtomicTest<FrameworkMethod> atomicTest, Throwable thrown) {
-		finishTest(atomicTest);
+		handleFailureTest(atomicTest, thrown);
 	}
 
 	/**
@@ -953,7 +1022,6 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 					status = ItemStatus.FAILED;
 				}
 			}
-
 			stopTestMethod(runner, method, callable, status, thrown);
 		}
 	}
@@ -966,6 +1034,16 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	public void reportTestFailure(ReflectiveCallable callable, Throwable thrown) {
 		sendReportPortalMsg(callable, thrown);
+	}
+
+	/**
+	 * Report failure of the indicated "particle" method.
+	 *
+	 * @param testLeaf {@link TestItemTree.TestItemLeaf} object, the source of item ID
+	 * @param thrown   exception thrown by method
+	 */
+	private void reportTestFailure(TestItemTree.TestItemLeaf testLeaf, Throwable thrown) {
+		sendReportPortalMsg(testLeaf.getItemId(), thrown);
 	}
 
 	@Override

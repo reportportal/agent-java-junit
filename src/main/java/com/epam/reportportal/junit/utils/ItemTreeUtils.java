@@ -46,12 +46,15 @@ public class ItemTreeUtils {
 			.map(ParameterResource::getValue)
 			.collect(Collectors.joining(",", "[", "]"))).orElse("");
 
+	public static TestItemTree.ItemTreeKey createItemTreeKey(FrameworkMethod method) {
+		String strKey = method.getDeclaringClass().getName() + "." + method.getName();
+		return TestItemTree.ItemTreeKey.of(strKey);
+	}
+
 	public static TestItemTree.ItemTreeKey createItemTreeKey(FrameworkMethod method, List<ParameterResource> parameters) {
 		String paramStr = PARAMETER_FORMAT.apply(parameters);
-		return TestItemTree.ItemTreeKey.of(
-				method.getName() + paramStr,
-				(method.getDeclaringClass().getName() + "." + method.getName() + paramStr).hashCode()
-		);
+		String strKey = method.getDeclaringClass().getName() + "." + method.getName() + paramStr;
+		return TestItemTree.ItemTreeKey.of(strKey);
 	}
 
 	public static <T> TestItemTree.ItemTreeKey createItemTreeKey(AtomicTest<T> test) {
@@ -71,9 +74,8 @@ public class ItemTreeUtils {
 	}
 
 	@Nullable
-	public static TestItemTree.TestItemLeaf retrieveLeaf(FrameworkMethod method, List<ParameterResource> parameters,
-			TestItemTree testItemTree) {
-		return testItemTree.getTestItems().get(createItemTreeKey(method, parameters));
+	public static TestItemTree.TestItemLeaf retrieveLeaf(FrameworkMethod method, TestItemTree testItemTree) {
+		return testItemTree.getTestItems().get(createItemTreeKey(method));
 	}
 
 	@Nullable
