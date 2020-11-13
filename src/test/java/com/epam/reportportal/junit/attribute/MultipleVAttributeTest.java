@@ -18,7 +18,6 @@ package com.epam.reportportal.junit.attribute;
 
 import com.epam.reportportal.junit.ReportPortalListener;
 import com.epam.reportportal.junit.features.attribute.MultiValueAttributeTest;
-import com.epam.reportportal.junit.features.attribute.MultipleAttributeTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
@@ -45,7 +44,7 @@ public class MultipleVAttributeTest {
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
-		TestUtils.mockLogging(client);
+		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 

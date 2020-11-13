@@ -43,7 +43,7 @@ public class NestedStepFailedTest {
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, classId, methodId, nestedId);
-		TestUtils.mockLogging(client);
+		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 

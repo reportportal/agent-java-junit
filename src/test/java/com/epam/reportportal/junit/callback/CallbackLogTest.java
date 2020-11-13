@@ -45,7 +45,8 @@ public class CallbackLogTest {
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
-		TestUtils.mockLogging(client);
+		TestUtils.mockBatchLogging(client);
+		TestUtils.mockSingleLogging(client);
 		ListenerParameters params = TestUtils.standardParameters();
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, params));
 	}

@@ -48,7 +48,7 @@ public class SuiteTwoCategoriesTest {
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, suiteId, classId, methodId);
-		TestUtils.mockLogging(client);
+		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 

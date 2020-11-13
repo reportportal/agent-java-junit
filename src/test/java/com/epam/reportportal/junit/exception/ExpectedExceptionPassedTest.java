@@ -14,48 +14,55 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.testcaseid;
+package com.epam.reportportal.junit.exception;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.coderef.CodeRefTest;
+import com.epam.reportportal.junit.features.exception.ExpectedExceptionThrownTest;
 import com.epam.reportportal.junit.utils.TestUtils;
+import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
-import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
+import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
+
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
-public class TestCaseIdStaticTest {
+public class ExpectedExceptionPassedTest {
 
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
 
-	private ReportPortalClient client;
+	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
 	@BeforeEach
 	public void setupMock() {
-		client = mock(ReportPortalClient.class);
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
 	@Test
-	public void verify_static_test_case_id_generation() {
-		TestUtils.runClasses(CodeRefTest.class);
+	public void verify_static_test_code_reference_generation() {
+		TestUtils.runClasses(ExpectedExceptionThrownTest.class);
 
-		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(classId), captor.capture());
+		verify(client, times(1)).startTestItem(ArgumentMatchers.startsWith("root_"), any());
+		verify(client, times(1)).startTestItem(same(classId), any());
+		ArgumentCaptor<FinishTestItemRQ> finishTestCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client, times(2)).finishTestItem(same(methodId), finishTestCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> finishSuiteCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client, times(1)).finishTestItem(same(classId), finishSuiteCaptor.capture());
 
-		assertThat(captor.getValue().getTestCaseId(), allOf(notNullValue(),
-				equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
-		));
+		List<FinishTestItemRQ> items = finishTestCaptor.getAllValues();
+		assertThat(items.get(0).getStatus(), equalTo(ItemStatus.FAILED.name()));
+		assertThat(items.get(1).getStatus(), equalTo(ItemStatus.PASSED.name()));
 	}
 }
