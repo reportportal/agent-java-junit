@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.0.0-BETA-16]
 ### Added
 - JUnit Categories now handled as RP tags
 ### Fixed
