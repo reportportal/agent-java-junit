@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- A test status when AssumptionViolatedException was thrown. Now it marks as 'SKIPPED' (issue #63)
 
 ## [5.0.0-BETA-16]
 ### Added

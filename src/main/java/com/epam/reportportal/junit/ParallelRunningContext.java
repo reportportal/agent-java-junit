@@ -17,11 +17,9 @@ package com.epam.reportportal.junit;
 
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.service.tree.TestItemTree;
-import com.nordstrom.automation.junit.AtomicTest;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 
-import javax.annotation.Nonnull;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -38,26 +36,26 @@ public class ParallelRunningContext {
 	private final TestItemTree itemTree = new TestItemTree();
 
 	private final Map<FrameworkMethod, Description> testMethodDescription = new ConcurrentHashMap<>();
-	private final Map<AtomicTest<?>, ItemStatus> testStatus = new ConcurrentHashMap<>();
-	private final Map<AtomicTest<?>, Throwable> testThrowable = new ConcurrentHashMap<>();
+	private final Map<TestItemTree.ItemTreeKey, ItemStatus> testStatus = new ConcurrentHashMap<>();
+	private final Map<TestItemTree.ItemTreeKey, Throwable> testThrowable = new ConcurrentHashMap<>();
 
 	public ParallelRunningContext() {
 		CONTEXT_THREAD_LOCAL.set(this);
 	}
 
-	public <T> ItemStatus getTestStatus(AtomicTest<T> test) {
+	public <T> ItemStatus getTestStatus(TestItemTree.ItemTreeKey test) {
 		return testStatus.get(test);
 	}
 
-	public <T> ItemStatus setTestStatus(AtomicTest<T> test, ItemStatus status) {
+	public <T> ItemStatus setTestStatus(TestItemTree.ItemTreeKey test, ItemStatus status) {
 		return testStatus.put(test, status);
 	}
 
-	public <T> Throwable getTestThrowable(AtomicTest<T> test) {
+	public <T> Throwable getTestThrowable(TestItemTree.ItemTreeKey test) {
 		return testThrowable.get(test);
 	}
 
-	public <T> void setTestThrowable(AtomicTest<T> test, Throwable throwable) {
+	public <T> void setTestThrowable(TestItemTree.ItemTreeKey test, Throwable throwable) {
 		testThrowable.put(test, throwable);
 	}
 

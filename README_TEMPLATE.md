@@ -203,12 +203,12 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
-      <version>2.11.0</version>
+      <version>2.12.1</version>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-api</artifactId>
-      <version>2.11.0</version>
+      <version>2.12.1</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
