@@ -28,9 +28,7 @@ public class MultiValueAttributeTest {
 	private static final String VALUE_1 = "v1";
 	private static final String VALUE_2 = "v2";
 
-	public static final Collection<Pair<String, String>> ATTRIBUTES = Arrays.asList(Pair.of(null, VALUE_1),
-			Pair.of(null, VALUE_2));
-
+	public static final Collection<Pair<String, String>> ATTRIBUTES = Arrays.asList(Pair.of(null, VALUE_1), Pair.of(null, VALUE_2));
 
 	@Test
 	@Attributes(multiValueAttributes = { @MultiValueAttribute(isNullKey = true, values = { VALUE_1, VALUE_2 }) })

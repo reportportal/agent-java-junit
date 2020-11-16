@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
@@ -53,7 +52,6 @@ public class MultiLevelNestedStepTest {
 		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
-
 
 	@Test
 	public void test_multi_layered_nested_steps() throws NoSuchMethodException {

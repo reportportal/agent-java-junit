@@ -98,14 +98,14 @@ public class SimpleSuiteTest {
 		assertThat(suite.getType(), equalTo(ItemType.SUITE.name()));
 
 		List<StartTestItemRQ> tests = testCaptor.getAllValues();
-		IntStream.range(0, tests.size()).forEach(i->{
+		IntStream.range(0, tests.size()).forEach(i -> {
 			StartTestItemRQ test = tests.get(i);
 			assertThat(test.getName(), equalTo(TEST_NAMES.get(i).getCanonicalName()));
 			assertThat(test.getType(), equalTo(ItemType.TEST.name()));
 		});
 
 		List<StartTestItemRQ> steps = stepCaptor.getAllValues();
-		IntStream.range(0, steps.size()).forEach(i->{
+		IntStream.range(0, steps.size()).forEach(i -> {
 			StartTestItemRQ step = steps.get(i);
 			assertThat(step.getName(), equalTo(STEP_NAMES.get(i)));
 			assertThat(step.getType(), equalTo(ItemType.STEP.name()));

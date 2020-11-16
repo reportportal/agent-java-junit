@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.exception;
+package com.epam.reportportal.junit.assumption;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.exception.ExpectedExceptionNotThrownTest;
+import com.epam.reportportal.junit.features.assumption.AssumptionParameterTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.listeners.ItemStatus;
+import com.epam.reportportal.listeners.LogLevel;
 import com.epam.reportportal.restendpoint.http.MultiPartRequest;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
@@ -29,62 +30,58 @@ import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.mockito.ArgumentMatchers.same;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
 
-public class ExpectedExceptionFailedTest {
+public class ParameterizedAssumptionSkipTest {
 
-	private static final String EXPECTED_ERROR = "java.lang.AssertionError: Expected test to throw (an instance of java.lang.IllegalArgumentException and exception with message a string containing \"My error message\")";
 	private final String classId = CommonUtils.namedId("class_");
-	private final String methodId = CommonUtils.namedId("method_");
+	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(2).collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
 	@BeforeEach
 	public void setupMock() {
-		TestUtils.mockLaunch(client, null, null, classId, methodId);
+		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
 	@Test
-	public void verify_static_test_code_reference_generation() {
-		TestUtils.runClasses(ExpectedExceptionNotThrownTest.class);
+	public void verify_assumption_violated_parameterized_test_logs_message_and_marked_as_skipped() {
+		TestUtils.runClasses(AssumptionParameterTest.class);
 
-		verify(client).startTestItem(ArgumentMatchers.startsWith("root_"), any());
-		verify(client).startTestItem(same(classId), any());
-		ArgumentCaptor<FinishTestItemRQ> finishTestCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(2)).finishTestItem(same(methodId), finishTestCaptor.capture());
-		ArgumentCaptor<FinishTestItemRQ> finishSuiteCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(same(classId), finishSuiteCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> captor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client, times(1)).finishTestItem(same(methodIds.get(0)), captor.capture());
+		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), captor.capture());
+		ArgumentCaptor<MultiPartRequest> logCaptor = ArgumentCaptor.forClass(MultiPartRequest.class);
+		verify(client, atLeast(1)).log(logCaptor.capture());
 
-		List<FinishTestItemRQ> items = finishTestCaptor.getAllValues();
-		assertThat(items.get(0).getStatus(), equalTo(ItemStatus.PASSED.name()));
-		assertThat(items.get(1).getStatus(), equalTo(ItemStatus.FAILED.name()));
+		FinishTestItemRQ item = captor.getAllValues().get(0);
+		assertThat(item.getStatus(), allOf(notNullValue(), equalTo(ItemStatus.PASSED.name())));
 
-		ArgumentCaptor<MultiPartRequest> logRqCaptor = ArgumentCaptor.forClass(MultiPartRequest.class);
-		verify(client, atLeastOnce()).log(logRqCaptor.capture());
+		item = captor.getAllValues().get(1);
+		assertThat(item.getStatus(), allOf(notNullValue(), equalTo(ItemStatus.SKIPPED.name())));
 
-		List<MultiPartRequest> logs = logRqCaptor.getAllValues();
-		List<SaveLogRQ> expectedErrorList = logs.stream()
+		List<SaveLogRQ> expectedErrorList = logCaptor.getAllValues()
+				.stream()
 				.flatMap(l -> l.getSerializedRQs().stream())
 				.map(MultiPartRequest.MultiPartSerialized::getRequest)
 				.filter(l -> l instanceof List)
 				.flatMap(l -> ((List<?>) l).stream())
 				.filter(l -> l instanceof SaveLogRQ)
 				.map(l -> (SaveLogRQ) l)
-				.filter(l -> l.getMessage() != null && l.getMessage().startsWith(EXPECTED_ERROR))
+				.filter(l -> LogLevel.WARN.name().equals(l.getLevel()))
+				.filter(l -> l.getMessage() != null && l.getMessage().contains(AssumptionParameterTest.VIOLATION_MESSAGE))
 				.collect(Collectors.toList());
 		assertThat(expectedErrorList, hasSize(1));
 		SaveLogRQ expectedError = expectedErrorList.get(0);
-		assertThat(expectedError.getItemUuid(), equalTo(methodId));
+		assertThat(expectedError.getItemUuid(), equalTo(methodIds.get(1)));
 	}
 }

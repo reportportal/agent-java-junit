@@ -22,6 +22,7 @@ import com.epam.reportportal.junit.utils.SystemAttributesFetcher;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
 import com.epam.reportportal.listeners.ListenerParameters;
+import com.epam.reportportal.listeners.LogLevel;
 import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.item.TestCaseIdEntry;
@@ -213,7 +214,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		TestItemTree.TestItemLeaf testLeaf = ofNullable(getLeaf(runner)).orElseGet(() -> context.getItemTree()
 				.getTestItems()
 				.get(myParentKey));
-		List<ParameterResource> parameters = createStepParameters(method, runner, callable);
+		List<ParameterResource> parameters = getStepParameters(method, runner, callable);
 		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, parameters);
 		return ofNullable(testLeaf).map(l -> l.getChildItems().get(myKey)).orElse(null);
 	}
@@ -314,7 +315,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param testContext {@link AtomicTest} object for test method
 	 */
 	protected void startTest(AtomicTest<FrameworkMethod> testContext) {
-		context.setTestStatus(testContext, ItemStatus.PASSED);
+		TestItemTree.ItemTreeKey key = createItemTreeKey(testContext.getIdentity(), getStepParameters(testContext));
+		context.setTestStatus(key, ItemStatus.PASSED);
 		context.setTestMethodDescription(testContext.getIdentity(), testContext.getDescription());
 	}
 
@@ -324,26 +326,27 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param testContext {@link AtomicTest} object for test method
 	 */
 	protected void finishTest(AtomicTest<FrameworkMethod> testContext) {
-		ItemStatus status = context.getTestStatus(testContext);
-		Throwable throwable = context.getTestThrowable(testContext);
+		TestItemTree.ItemTreeKey key = createItemTreeKey(testContext.getIdentity(), getStepParameters(testContext));
+		ItemStatus status = context.getTestStatus(key);
+		Throwable throwable = context.getTestThrowable(key);
 		TestItemTree.TestItemLeaf testLeaf = getLeaf(testContext.getRunner());
 		if (testLeaf != null) {
-			testLeaf.getChildItems()
-					.values()
-					.stream()
-					.filter(i -> i.getType() == ItemType.STEP)
-					.filter(i -> i.getStatus() != status)
-					.filter(i -> {
-						Boolean isRetry = i.<Boolean>getAttribute(IS_RETRY);
-						return !(ItemStatus.SKIPPED == status && isRetry != null && isRetry);
-					})
-					.forEach(i -> {
+			ofNullable(testLeaf.getChildItems().get(key)).ifPresent(i -> {
+				if (i.getStatus() != status) {
+					Boolean isRetry = i.<Boolean>getAttribute(IS_RETRY);
+					if (!(ItemStatus.SKIPPED == status && isRetry != null && isRetry)) {
 						FrameworkMethod frameworkMethod = testContext.getIdentity();
-						if (status == ItemStatus.FAILED && throwable != null) {
-							reportTestFailure(i, throwable);
-						}
+						ofNullable(throwable).ifPresent(t -> {
+							if (status == ItemStatus.SKIPPED) {
+								sendReportPortalMsg(i.getItemId(), LogLevel.WARN, throwable);
+							} else {
+								sendReportPortalMsg(i.getItemId(), LogLevel.ERROR, throwable);
+							}
+						});
 						stopTestMethod(i, frameworkMethod, buildFinishStepRq(frameworkMethod, status));
-					});
+					}
+				}
+			});
 			testLeaf.setStatus(status);
 		}
 	}
@@ -358,7 +361,6 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			startTestStepItem(method, l, rq);
 		});
 	}
-
 
 	protected Maybe<String> startTestStepItem(TestItemTree.TestItemLeaf parentLeaf, StartTestItemRQ rq) {
 		Maybe<String> parentId = parentLeaf.getItemId();
@@ -417,7 +419,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			FrameworkMethod method = testContext.getIdentity();
 			StartTestItemRQ startRq = buildStartStepRq(runner, testContext.getDescription(), method, callable, skipStartTime);
 			Maybe<String> id = startTestStepItem(l, startRq);
-			ofNullable(throwable).ifPresent(t->sendReportPortalMsg(id, throwable));
+			ofNullable(throwable).ifPresent(t -> sendReportPortalMsg(id, LogLevel.WARN, throwable));
 			FinishTestItemRQ finishRq = buildFinishStepRq(method, ItemStatus.SKIPPED);
 			finishRq.setIssue(NOT_ISSUE);
 			launch.get().finishTestItem(id, finishRq);
@@ -434,6 +436,13 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	@SuppressWarnings("unused")
 	protected void startTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
 		startTestStepItem(runner, method, callable);
+	}
+
+	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {
+		TestItemTree.TestItemLeaf testItemLeaf = ItemTreeUtils.retrieveLeaf(method, context.getItemTree());
+		if (testItemLeaf != null) {
+			testItemLeaf.setFinishResponse(finishResponse);
+		}
 	}
 
 	/**
@@ -491,9 +500,10 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param testContext {@link AtomicTest} object for test method
 	 * @param thrown      a <code>Throwable</code> thrown by method
 	 */
-	protected void handleFailureTest(AtomicTest<FrameworkMethod> testContext, Throwable thrown) {
-		context.setTestStatus(testContext, ItemStatus.FAILED);
-		context.setTestThrowable(testContext, thrown);
+	protected void setTestFailure(AtomicTest<FrameworkMethod> testContext, Throwable thrown) {
+		TestItemTree.ItemTreeKey key = createItemTreeKey(testContext.getIdentity(), getStepParameters(testContext));
+		context.setTestStatus(key, ItemStatus.FAILED);
+		context.setTestThrowable(key, thrown);
 	}
 
 	/**
@@ -502,7 +512,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param testContext {@link AtomicTest} object for test method
 	 */
 	protected void handleTestSkip(AtomicTest<FrameworkMethod> testContext) {
-		context.setTestStatus(testContext, ItemStatus.SKIPPED);
+		List<ParameterResource> parameters = getStepParameters(testContext);
+		TestItemTree.ItemTreeKey key = createItemTreeKey(testContext.getIdentity(), parameters);
+		context.setTestStatus(key, ItemStatus.SKIPPED);
 		Object runner = testContext.getRunner();
 		FrameworkMethod method = testContext.getIdentity();
 		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
@@ -511,7 +523,6 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				.get(myParentKey));
 		Object target = getTargetForRunner(runner);
 		ReflectiveCallable callable = LifecycleHooks.encloseCallable(method.getMethod(), target);
-		List<ParameterResource> parameters = createStepParameters(testContext.getIdentity(), testContext.getRunner(), callable);
 		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, parameters);
 
 		ofNullable(testLeaf).ifPresent(p -> {
@@ -538,18 +549,23 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		});
 	}
 
-	private void updateTestItemTree(FrameworkMethod method, Maybe<OperationCompletionRS> finishResponse) {
-		TestItemTree.TestItemLeaf testItemLeaf = ItemTreeUtils.retrieveLeaf(method, context.getItemTree());
-		if (testItemLeaf != null) {
-			testItemLeaf.setFinishResponse(finishResponse);
-		}
+	/**
+	 * Handle test skip (AssumptionViolatedException) action
+	 *
+	 * @param testContext {@link AtomicTest} object for test method
+	 * @param thrown      a <code>Throwable</code> thrown by method
+	 */
+	protected void setTestSkip(AtomicTest<FrameworkMethod> testContext, Throwable thrown) {
+		TestItemTree.ItemTreeKey key = createItemTreeKey(testContext.getIdentity(), getStepParameters(testContext));
+		context.setTestStatus(key, ItemStatus.SKIPPED);
+		context.setTestThrowable(key, thrown);
 	}
 
-	private Function<String, SaveLogRQ> getLogSupplier(final Throwable thrown) {
+	private Function<String, SaveLogRQ> getLogSupplier(@Nonnull final LogLevel level, @Nullable final Throwable thrown) {
 		return itemUuid -> {
 			SaveLogRQ rq = new SaveLogRQ();
 			rq.setItemUuid(itemUuid);
-			rq.setLevel("ERROR");
+			rq.setLevel(level.name());
 			rq.setLogTime(Calendar.getInstance().getTime());
 			if (thrown != null) {
 				rq.setMessage(ExceptionUtils.getStackTrace(thrown));
@@ -563,25 +579,25 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	}
 
 	/**
-	 * Send message to report portal about appeared failure
+	 * Send a message to report portal about appeared failure, attach it to the specific item
 	 *
-	 * @param itemUud item Item UUID promise
+	 * @param itemUud an item Item UUID promise
+	 * @param level   {@link LogLevel} level of a log entry
 	 * @param thrown  {@link Throwable} object with details of the failure
 	 */
-	@SuppressWarnings("unused")
-	protected void sendReportPortalMsg(Maybe<String> itemUud, final Throwable thrown) {
-		ReportPortal.emitLog(itemUud, getLogSupplier(thrown));
+	@SuppressWarnings("SameParameterValue")
+	protected void sendReportPortalMsg(@Nonnull Maybe<String> itemUud, @Nonnull final LogLevel level, final Throwable thrown) {
+		ReportPortal.emitLog(itemUud, getLogSupplier(level, thrown));
 	}
 
 	/**
 	 * Send message to report portal about appeared failure
 	 *
-	 * @param callable {@link ReflectiveCallable} object being intercepted
-	 * @param thrown   {@link Throwable} object with details of the failure
+	 * @param level  {@link LogLevel} level of a log entry
+	 * @param thrown {@link Throwable} object with details of the failure
 	 */
-	@SuppressWarnings("unused")
-	protected void sendReportPortalMsg(ReflectiveCallable callable, final Throwable thrown) {
-		ReportPortal.emitLog(getLogSupplier(thrown));
+	protected void sendReportPortalMsg(@Nonnull final LogLevel level, final Throwable thrown) {
+		ReportPortal.emitLog(getLogSupplier(level, thrown));
 	}
 
 	/**
@@ -692,7 +708,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		rq.setCodeRef(getCodeRef(method));
 		rq.setAttributes(getAttributes(method));
 		rq.setDescription(createStepDescription(description, method));
-		rq.setParameters(createStepParameters(method, runner, callable));
+		rq.setParameters(getStepParameters(method, runner, callable));
 		rq.setTestCaseId(ofNullable(getTestCaseId(runner,
 				method,
 				rq.getCodeRef(),
@@ -747,12 +763,24 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	/**
 	 * Extension point to customize Report Portal test parameters
 	 *
+	 * @param test JUnit test context
+	 * @return Test/Step Parameters being sent to Report Portal
+	 */
+	protected List<ParameterResource> getStepParameters(AtomicTest<FrameworkMethod> test) {
+		Object runner = test.getRunner();
+		FrameworkMethod identity = test.getIdentity();
+		return getStepParameters(identity, runner, LifecycleHooks.encloseCallable(identity.getMethod(), getTargetForRunner(runner)));
+	}
+
+	/**
+	 * Extension point to customize Report Portal test parameters
+	 *
 	 * @param method   JUnit framework method context
 	 * @param runner   JUnit test runner context
 	 * @param callable {@link ReflectiveCallable} object being intercepted
 	 * @return Test/Step Parameters being sent to Report Portal
 	 */
-	protected List<ParameterResource> createStepParameters(FrameworkMethod method, Object runner, ReflectiveCallable callable) {
+	protected List<ParameterResource> getStepParameters(FrameworkMethod method, Object runner, ReflectiveCallable callable) {
 		List<ParameterResource> parameters = createMethodParameters(method, runner, callable);
 		return parameters.isEmpty() ? null : parameters;
 	}
@@ -964,7 +992,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Override
 	public void testFailure(AtomicTest<FrameworkMethod> atomicTest, Throwable thrown) {
-		handleFailureTest(atomicTest, thrown);
+		setTestFailure(atomicTest, thrown);
 	}
 
 	/**
@@ -972,7 +1000,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Override
 	public void testAssumptionFailure(AtomicTest<FrameworkMethod> atomicTest, AssumptionViolatedException thrown) {
-		finishTest(atomicTest);
+		setTestSkip(atomicTest, thrown);
 	}
 
 	/**
@@ -1004,46 +1032,32 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			ItemStatus status = ItemStatus.PASSED;
 			// if has exception
 			if (thrown != null) {
-				Class<? extends Throwable> expected = None.class;
+				if (thrown instanceof AssumptionViolatedException) {
+					sendReportPortalMsg(LogLevel.WARN, thrown);
+					status = ItemStatus.SKIPPED;
+				} else {
 
-				// if this is not a class-level configuration method
-				if ((null == method.getAnnotation(BeforeClass.class)) && (null == method.getAnnotation(AfterClass.class))) {
+					Class<? extends Throwable> expected = None.class;
 
-					AtomicTest<FrameworkMethod> atomicTest = LifecycleHooks.getAtomicTestOf(runner);
-					FrameworkMethod identity = atomicTest.getIdentity();
-					Test annotation = identity.getAnnotation(Test.class);
-					if (annotation != null) {
-						expected = annotation.expected();
+					// if this is not a class-level configuration method
+					if ((null == method.getAnnotation(BeforeClass.class)) && (null == method.getAnnotation(AfterClass.class))) {
+
+						AtomicTest<FrameworkMethod> atomicTest = LifecycleHooks.getAtomicTestOf(runner);
+						FrameworkMethod identity = atomicTest.getIdentity();
+						Test annotation = identity.getAnnotation(Test.class);
+						if (annotation != null) {
+							expected = annotation.expected();
+						}
 					}
-				}
 
-				if (!expected.isInstance(thrown)) {
-					reportTestFailure(callable, thrown);
-					status = ItemStatus.FAILED;
+					if (!expected.isInstance(thrown)) {
+						sendReportPortalMsg(LogLevel.ERROR, thrown);
+						status = ItemStatus.FAILED;
+					}
 				}
 			}
 			stopTestMethod(runner, method, callable, status, thrown);
 		}
-	}
-
-	/**
-	 * Report failure of the indicated "particle" method.
-	 *
-	 * @param callable {@link ReflectiveCallable} object being intercepted
-	 * @param thrown   exception thrown by method
-	 */
-	public void reportTestFailure(ReflectiveCallable callable, Throwable thrown) {
-		sendReportPortalMsg(callable, thrown);
-	}
-
-	/**
-	 * Report failure of the indicated "particle" method.
-	 *
-	 * @param testLeaf {@link TestItemTree.TestItemLeaf} object, the source of item ID
-	 * @param thrown   exception thrown by method
-	 */
-	private void reportTestFailure(TestItemTree.TestItemLeaf testLeaf, Throwable thrown) {
-		sendReportPortalMsg(testLeaf.getItemId(), thrown);
 	}
 
 	@Override

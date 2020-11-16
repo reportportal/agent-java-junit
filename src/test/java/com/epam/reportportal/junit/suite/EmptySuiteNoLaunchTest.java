@@ -25,7 +25,6 @@ import com.epam.reportportal.util.test.CommonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.*;
 
 public class EmptySuiteNoLaunchTest {

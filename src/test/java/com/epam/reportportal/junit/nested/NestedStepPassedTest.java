@@ -47,7 +47,6 @@ public class NestedStepPassedTest {
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
-
 	@Test
 	public void test_simple_nested_step_case() {
 

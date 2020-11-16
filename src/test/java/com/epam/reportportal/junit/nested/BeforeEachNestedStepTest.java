@@ -53,7 +53,6 @@ public class BeforeEachNestedStepTest {
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
-
 	@Test
 	public void nestedInBeforeMethodTest() {
 		TestUtils.runClasses(NestedStepWithBeforeEachTest.class);
