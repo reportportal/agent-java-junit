@@ -62,8 +62,10 @@ public class TestCaseIdJunitParamsTest {
 		verify(client, times(1)).startTestItem(same(classId), captor.capture());
 
 		StartTestItemRQ item = captor.getValue();
-		assertThat(item.getTestCaseId(), allOf(notNullValue(),
-				equalTo(JUnitParamsTestCaseIdTest.TEST_CASE_ID_VALUE + "[" + PARAMETERS.get(0).get(0).getValue() + "]")
-		));
+		assertThat(item.getTestCaseId(),
+				allOf(notNullValue(),
+						equalTo(JUnitParamsTestCaseIdTest.TEST_CASE_ID_VALUE + "[" + PARAMETERS.get(0).get(0).getValue() + "]")
+				)
+		);
 	}
 }

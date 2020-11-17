@@ -62,9 +62,11 @@ public class CodeReferenceTest {
 		StartTestItemRQ testRq = items.get(1);
 
 		assertThat(classRq.getCodeRef(), allOf(notNullValue(), equalTo(CodeRefTest.class.getCanonicalName())));
-		assertThat(testRq.getCodeRef(), allOf(notNullValue(),
-				equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
-		));
+		assertThat(testRq.getCodeRef(),
+				allOf(notNullValue(),
+						equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
+				)
+		);
 	}
 
 }

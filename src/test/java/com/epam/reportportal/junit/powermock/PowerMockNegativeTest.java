@@ -14,50 +14,40 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.testcaseid;
+package com.epam.reportportal.junit.powermock;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.coderef.CodeRefTest;
+import com.epam.reportportal.junit.features.powermock.SimplePowermockFailureTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
-import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
-public class TestCaseIdStaticTest {
+public class PowerMockNegativeTest {
 
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
 
-	private ReportPortalClient client;
+	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
 	@BeforeEach
 	public void setupMock() {
-		client = mock(ReportPortalClient.class);
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
 	@Test
-	public void verify_static_test_case_id_generation() {
-		TestUtils.runClasses(CodeRefTest.class);
+	@Disabled("Blocked by JUnit Foundation issue")
+	public void verify_a_failed_test_is_being_reported_with_power_mock() {
+		TestUtils.runClasses(SimplePowermockFailureTest.class);
 
-		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(classId), captor.capture());
-
-		assertThat(captor.getValue().getTestCaseId(),
-				allOf(notNullValue(),
-						equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
-				)
-		);
+		verify(client, times(1)).startTestItem(same(classId), any());
 	}
+
 }
