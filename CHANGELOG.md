@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Manual Step Reporting feature
 
 ## [5.0.0-BETA-17]
 ### Fixed

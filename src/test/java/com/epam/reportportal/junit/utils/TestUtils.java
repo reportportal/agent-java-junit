@@ -32,6 +32,7 @@ import io.reactivex.Maybe;
 import junitparams.converters.Nullable;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.runner.JUnitCore;
+import org.junit.runner.Result;
 import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
 
@@ -52,8 +53,8 @@ public class TestUtils {
 	private TestUtils() {
 	}
 
-	public static void runClasses(final Class<?>... testClasses) {
-		JUnitCore.runClasses(testClasses);
+	public static Result runClasses(final Class<?>... testClasses) {
+		return JUnitCore.runClasses(testClasses);
 	}
 
 	public static StartTestItemRQ extractRequest(ArgumentCaptor<StartTestItemRQ> captor, String methodType) {

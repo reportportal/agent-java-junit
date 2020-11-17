@@ -1056,6 +1056,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 					}
 				}
 			}
+			launch.get().getStepReporter().finishPreviousStep();
 			stopTestMethod(runner, method, callable, status, thrown);
 		}
 	}
