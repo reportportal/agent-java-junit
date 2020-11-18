@@ -24,6 +24,7 @@ import com.epam.reportportal.listeners.ItemType;
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.LogLevel;
 import com.epam.reportportal.service.Launch;
+import com.epam.reportportal.service.LaunchImpl;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.item.TestCaseIdEntry;
 import com.epam.reportportal.service.tree.TestItemTree;
@@ -61,6 +62,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -81,7 +83,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	public static final Issue NOT_ISSUE = new Issue();
 
 	static {
-		NOT_ISSUE.setIssueType("NOT_ISSUE");
+		NOT_ISSUE.setIssueType(LaunchImpl.NOT_ISSUE);
 	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ReportPortalListener.class);
@@ -97,6 +99,10 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		put(BeforeClass.class, ItemType.BEFORE_CLASS);
 		put(AfterClass.class, ItemType.AFTER_CLASS);
 	}});
+
+	private static final Predicate<StackTraceElement> EXPECTED_EXCEPTION_ELEMENT = e -> "org.junit.rules.ExpectedException".equals(e.getClassName());
+	private static final Predicate<StackTraceElement[]> IS_EXPECTED_EXCEPTION_RULE = eList -> Arrays.stream(eList)
+			.anyMatch(EXPECTED_EXCEPTION_ELEMENT);
 
 	private static volatile ReportPortal REPORT_PORTAL = ReportPortal.builder().build();
 
@@ -332,10 +338,10 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		TestItemTree.TestItemLeaf testLeaf = getLeaf(testContext.getRunner());
 		if (testLeaf != null) {
 			ofNullable(testLeaf.getChildItems().get(key)).ifPresent(i -> {
-				if (i.getStatus() != status) {
+				ItemStatus itemStatus = i.getStatus();
+				if (itemStatus != status) {
 					Boolean isRetry = i.<Boolean>getAttribute(IS_RETRY);
 					if (!(ItemStatus.SKIPPED == status && isRetry != null && isRetry)) {
-						FrameworkMethod frameworkMethod = testContext.getIdentity();
 						ofNullable(throwable).ifPresent(t -> {
 							if (status == ItemStatus.SKIPPED) {
 								sendReportPortalMsg(i.getItemId(), LogLevel.WARN, throwable);
@@ -343,7 +349,11 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 								sendReportPortalMsg(i.getItemId(), LogLevel.ERROR, throwable);
 							}
 						});
-						stopTestMethod(i, frameworkMethod, buildFinishStepRq(frameworkMethod, status));
+						if (status == ItemStatus.PASSED || (throwable != null
+								&& IS_EXPECTED_EXCEPTION_RULE.test(throwable.getStackTrace()))) {
+							FrameworkMethod frameworkMethod = testContext.getIdentity();
+							stopTestMethod(i, frameworkMethod, buildFinishStepRq(frameworkMethod, status));
+						}
 					}
 				}
 			});
@@ -401,23 +411,26 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	/**
 	 * Extension point to customize test steps skipped in case of a <code>@Before</code> method failed.
 	 *
-	 * @param runner      JUnit class runner
-	 * @param testContext {@link AtomicTest} object for test method
-	 * @param callable    an object being intercepted
-	 * @param throwable   An exception which caused the skip
-	 * @param eventTime   <code>@Before</code> start time
+	 * @param runner       JUnit class runner
+	 * @param failedMethod a method which caused the skip
+	 * @param callable     an object being intercepted
+	 * @param throwable    An exception which caused the skip
+	 * @param eventTime    <code>@Before</code> start time
 	 */
-	protected void reportSkippedStep(Object runner, AtomicTest<FrameworkMethod> testContext, ReflectiveCallable callable,
-			Throwable throwable, Date eventTime) {
+	@SuppressWarnings("unused")
+	protected void reportSkippedStep(Object runner, FrameworkMethod failedMethod, ReflectiveCallable callable, Throwable throwable,
+			Date eventTime) {
 		Date currentTime = Calendar.getInstance().getTime();
 		Date skipStartTime = currentTime.after(eventTime) ? new Date(currentTime.getTime() - 1) : currentTime;
 		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
 		TestItemTree.TestItemLeaf testLeaf = ofNullable(getLeaf(runner)).orElseGet(() -> context.getItemTree()
 				.getTestItems()
 				.get(myParentKey));
+		AtomicTest<FrameworkMethod> testContext = LifecycleHooks.getAtomicTestOf(runner);
+		Description description = testContext.getDescription();
+		FrameworkMethod method = testContext.getIdentity();
 		ofNullable(testLeaf).ifPresent(l -> {
-			FrameworkMethod method = testContext.getIdentity();
-			StartTestItemRQ startRq = buildStartStepRq(runner, testContext.getDescription(), method, callable, skipStartTime);
+			StartTestItemRQ startRq = buildStartStepRq(runner, description, method, callable, skipStartTime);
 			Maybe<String> id = startTestStepItem(l, startRq);
 			ofNullable(throwable).ifPresent(t -> sendReportPortalMsg(id, LogLevel.WARN, throwable));
 			FinishTestItemRQ finishRq = buildFinishStepRq(method, ItemStatus.SKIPPED);
@@ -446,6 +459,21 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	}
 
 	/**
+	 * Extension point to customize test steps skipped in case of a <code>@BeforeClass</code> method failed.
+	 *
+	 * @param runner       JUnit class runner
+	 * @param failedMethod a method which caused the skip
+	 * @param callable     an object being intercepted
+	 * @param throwable    An exception which caused the skip
+	 * @param eventTime    <code>@BeforeClass</code> start time
+	 */
+	@SuppressWarnings("unused")
+	protected void reportSkippedClassTests(Object runner, FrameworkMethod failedMethod, ReflectiveCallable callable, Throwable throwable,
+			Date eventTime) {
+
+	}
+
+	/**
 	 * Send a <b>finish test item</b> request for the indicated test method to Report Portal.
 	 *
 	 * @param runner    JUnit test runner
@@ -461,7 +489,11 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 
 		ItemType methodType = detectMethodType(method);
 		if (ItemType.BEFORE_METHOD == methodType && ItemStatus.FAILED == status) {
-			reportSkippedStep(runner, LifecycleHooks.getAtomicTestOf(runner), callable, throwable, rq.getEndTime());
+			reportSkippedStep(runner, method, callable, throwable, rq.getEndTime());
+		}
+
+		if (ItemType.BEFORE_CLASS == methodType && ItemStatus.FAILED == status) {
+			reportSkippedClassTests(runner, method, callable, throwable, rq.getEndTime());
 		}
 	}
 
@@ -482,9 +514,11 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		myLeaf.setStatus(ItemStatus.valueOf(rq.getStatus()));
 		// update existing item or just send new
 		Maybe<OperationCompletionRS> finishResponse = ofNullable(myLeaf.<Maybe<OperationCompletionRS>>getAttribute(FINISH_RESPONSE)).map(rs -> {
-			// ensure previous request passed to maintain the order
-			// FIXME: rework it to be more RX-friendly, make client wait for all Maybe features
-			//noinspection BlockingMethodInNonBlockingContext, ResultOfMethodCallIgnored
+			/*
+			 * ensure previous request passed to maintain the order
+			 * FIXME: rework it to be more RX-friendly, make client wait for all Maybe features
+			 */
+			// noinspection BlockingMethodInNonBlockingContext, ResultOfMethodCallIgnored
 			rs.blockingGet();
 			return launch.get().finishTestItem(itemId, rq);
 		}).orElseGet(() -> launch.get().finishTestItem(itemId, rq));

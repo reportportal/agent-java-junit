@@ -14,36 +14,30 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.parameters;
+package com.epam.reportportal.junit.beforeafter;
 
 import com.epam.reportportal.junit.ReportPortalListener;
+import com.epam.reportportal.junit.features.beforeafter.BeforeClassFailedTwoParameterizedSkippedTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
-import com.epam.ta.reportportal.ws.model.ParameterResource;
-import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
-public class StandardParametersNoInterfaceTest {
-	private static final int TEST_NUMBER = 2;
+public class BeforeClassFailedInParameterizedTest {
+	private static final int TEST_METHOD_NUMBER = 3;
 
 	private final String classId = CommonUtils.namedId("class_");
 	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_"))
-			.limit(TEST_NUMBER)
+			.limit(TEST_METHOD_NUMBER)
 			.collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
@@ -55,22 +49,12 @@ public class StandardParametersNoInterfaceTest {
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
-	private static final List<Pair<String, Object>> PARAMETERS = Arrays.asList(Pair.of("param", "one"), Pair.of("param", "two, three"));
-
 	@Test
-	public void verify_one_simple_parameter_standard_implementation() {
-		TestUtils.runClasses(com.epam.reportportal.junit.features.parameters.StandardParametersNoInterfaceTest.class);
+	public void verify_before_class_failure_in_parameterized_test() {
+		TestUtils.runClasses(BeforeClassFailedTwoParameterizedSkippedTest.class);
 
-		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(classId), captor.capture());
+		verify(client, atLeast(1)).startTestItem(same(classId), any());
 
-		List<StartTestItemRQ> items = captor.getAllValues();
-		IntStream.range(0, items.size()).forEach(i -> {
-			StartTestItemRQ item = items.get(i);
-			assertThat(item.getParameters(), allOf(notNullValue(), hasSize(1)));
-			ParameterResource param = item.getParameters().get(0);
-			assertThat(param.getKey(), equalTo(PARAMETERS.get(i).getKey()));
-			assertThat(param.getValue(), equalTo(PARAMETERS.get(i).getValue()));
-		});
+		// TODO: finish the test after 'reportSkippedClassTests' method implementation
 	}
 }

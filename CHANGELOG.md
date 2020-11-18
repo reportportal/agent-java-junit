@@ -3,6 +3,8 @@
 ## [Unreleased]
 ### Added
 - Manual Step Reporting feature
+### Fixed
+- A test status switch from PASSED to FAILED in case of an `@After` method failed
 
 ## [5.0.0-BETA-17]
 ### Fixed
