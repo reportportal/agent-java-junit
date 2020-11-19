@@ -7,7 +7,8 @@
 - A test status switch from PASSED to FAILED in case of an `@After` method failed
 - A test status when AssumptionViolatedException was thrown in `@Before` method
 ### Known issues
-- JUnit Theories feature is not functioning due to upstream library exception failures
+- JUnit Theories feature is not functioning due to upstream library exception failures:
+  [JUnit-Foundation #78](https://github.com/sbabcoc/JUnit-Foundation/issues/78)
 - PowerMock library is not supported due to upstream library incompatibility (issue #66).
   Upstream library issue: [JUnit-Foundation #77](https://github.com/sbabcoc/JUnit-Foundation/issues/77)
 
