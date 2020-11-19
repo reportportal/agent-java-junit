@@ -43,11 +43,10 @@ public class PowerMockPositiveTest {
 	}
 
 	@Test
-	@Disabled("Blocked by JUnit Foundation issue")
+	@Disabled("Blocked by JUnit Foundation issue: https://github.com/sbabcoc/JUnit-Foundation/issues/77")
 	public void verify_a_passed_test_is_being_reported_with_power_mock() {
 		TestUtils.runClasses(SimplePowermockTest.class);
 
 		verify(client, times(1)).startTestItem(same(classId), any());
 	}
-
 }
