@@ -488,11 +488,17 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		stopTestMethod(runner, method, callable, rq);
 
 		ItemType methodType = detectMethodType(method);
-		if (ItemType.BEFORE_METHOD == methodType && ItemStatus.FAILED == status) {
+		boolean reportSkippedMethod =
+				(ItemType.BEFORE_METHOD == methodType && ItemStatus.FAILED == status) || (ItemType.BEFORE_METHOD == methodType
+						&& ItemStatus.SKIPPED == status && throwable instanceof AssumptionViolatedException);
+		if (reportSkippedMethod) {
 			reportSkippedStep(runner, method, callable, throwable, rq.getEndTime());
 		}
 
-		if (ItemType.BEFORE_CLASS == methodType && ItemStatus.FAILED == status) {
+		boolean reportSkippedClass =
+				(ItemType.BEFORE_CLASS == methodType && ItemStatus.FAILED == status) || (ItemType.BEFORE_CLASS == methodType
+						&& ItemStatus.SKIPPED == status && throwable instanceof AssumptionViolatedException);
+		if (reportSkippedClass) {
 			reportSkippedClassTests(runner, method, callable, throwable, rq.getEndTime());
 		}
 	}
@@ -782,7 +788,18 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		return rq;
 	}
 
-	protected <T> TestCaseIdEntry getTestCaseId(Object runner, FrameworkMethod frameworkMethod, String codeRef, List<T> params) {
+	/**
+	 * Calculates a test case ID based on code reference and parameters
+	 *
+	 * @param runner          JUnit test runner context
+	 * @param frameworkMethod JUnit framework method context
+	 * @param codeRef         a code reference which will be used for the calculation
+	 * @param params          a list of test arguments
+	 * @return a test case ID
+	 */
+	@Nullable
+	protected <T> TestCaseIdEntry getTestCaseId(@Nullable final Object runner, @Nonnull final FrameworkMethod frameworkMethod,
+			@Nullable final String codeRef, @Nullable final List<T> params) {
 		Method method = frameworkMethod.getMethod();
 		if (runner instanceof BlockJUnit4ClassRunnerWithParameters) {
 			return TestCaseIdUtils.getTestCaseId(method.getAnnotation(TestCaseId.class),
@@ -800,7 +817,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param test JUnit test context
 	 * @return Test/Step Parameters being sent to Report Portal
 	 */
-	protected List<ParameterResource> getStepParameters(AtomicTest<FrameworkMethod> test) {
+	@Nullable
+	protected List<ParameterResource> getStepParameters(@Nonnull final AtomicTest<FrameworkMethod> test) {
 		Object runner = test.getRunner();
 		FrameworkMethod identity = test.getIdentity();
 		return getStepParameters(identity, runner, LifecycleHooks.encloseCallable(identity.getMethod(), getTargetForRunner(runner)));
@@ -899,7 +917,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param runner JUnit test runner
 	 * @return name for runner
 	 */
-	private static String getRunnerName(Object runner) {
+	@Nonnull
+	protected static String getRunnerName(@Nonnull final Object runner) {
 		String name;
 		TestClass testClass = LifecycleHooks.getTestClassOf(runner);
 		Class<?> javaClass = testClass.getJavaClass();
@@ -920,7 +939,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @return code reference to the runner
 	 */
 	@Nullable
-	private String getCodeRef(@Nonnull Object runner) {
+	protected String getCodeRef(@Nonnull final Object runner) {
 		return ofNullable(LifecycleHooks.getTestClassOf(runner)).flatMap(tc -> ofNullable(tc.getJavaClass()))
 				.map(Class::getCanonicalName)
 				.orElse(null);
@@ -932,18 +951,19 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param frameworkMethod JUnit test method
 	 * @return code reference to the test method
 	 */
-	private String getCodeRef(FrameworkMethod frameworkMethod) {
+	@Nonnull
+	protected String getCodeRef(@Nonnull final FrameworkMethod frameworkMethod) {
 		return TestCaseIdUtils.getCodeRef(frameworkMethod.getMethod());
 	}
 
 	@Nonnull
-	private Set<ItemAttributesRQ> getAttributes(@Nonnull TestClass testClass) {
+	private Set<ItemAttributesRQ> getAttributes(@Nonnull final TestClass testClass) {
 		return ofNullable(testClass.getAnnotation(Category.class)).map(a -> Arrays.stream(a.value())
 				.map(c -> new ItemAttributesRQ(null, c.getSimpleName()))).orElse(Stream.empty()).collect(Collectors.toSet());
 	}
 
 	@Nonnull
-	private Set<ItemAttributesRQ> getAttributes(@Nonnull FrameworkMethod frameworkMethod) {
+	private Set<ItemAttributesRQ> getAttributes(@Nonnull final FrameworkMethod frameworkMethod) {
 		Stream<ItemAttributesRQ> categories = ofNullable(frameworkMethod.getAnnotation(Category.class)).map(a -> Arrays.stream(a.value())
 				.map(c -> new ItemAttributesRQ(null, c.getSimpleName()))).orElse(Stream.empty());
 		Stream<ItemAttributesRQ> attributes = ofNullable(frameworkMethod.getMethod()).flatMap(m -> ofNullable(m.getAnnotation(Attributes.class))
@@ -957,7 +977,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		private transient volatile T value;
 		private static final long serialVersionUID = 0L;
 
-		MemorizingSupplier(Supplier<T> delegate) {
+		MemorizingSupplier(@Nonnull final Supplier<T> delegate) {
 			this.delegate = delegate;
 		}
 
