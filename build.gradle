@@ -52,8 +52,8 @@ publishing {
 }
 
 dependencies {
-    api 'com.epam.reportportal:commons-model:5.0.0'
     api 'com.epam.reportportal:client-java:5.0.15'
+    api 'com.epam.reportportal:commons-model:5.0.0'
     api 'com.nordstrom.tools:junit-foundation:12.3.0'
     api 'com.google.code.findbugs:jsr305:3.0.2'
 
@@ -105,6 +105,6 @@ processResources {
     }
 }
 
-def releaseDependencies = [bintrayUpload, publish]
-releaseDependencies.addAll(afterReleaseBuild.getDependsOn())
-afterReleaseBuild.setDependsOn(releaseDependencies)
+//def releaseDependencies = [bintrayUpload, publish]
+//releaseDependencies.addAll(afterReleaseBuild.getDependsOn())
+//afterReleaseBuild.setDependsOn(releaseDependencies)
