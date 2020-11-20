@@ -44,6 +44,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.*;
 import org.junit.Test.None;
 import org.junit.experimental.categories.Category;
+import org.junit.experimental.theories.Theory;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.runner.Description;
@@ -95,6 +96,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		put(After.class, ItemType.AFTER_METHOD);
 		put(BeforeClass.class, ItemType.BEFORE_CLASS);
 		put(AfterClass.class, ItemType.AFTER_CLASS);
+		put(Theory.class, ItemType.STEP);
 	}});
 
 	private static final Predicate<StackTraceElement> EXPECTED_EXCEPTION_ELEMENT = e -> "org.junit.rules.ExpectedException".equals(e.getClassName());
@@ -106,11 +108,19 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	private final ParallelRunningContext context;
 	private final MemorizingSupplier<Launch> launch;
 
+	/**
+	 * Crate an instance of listener
+	 */
 	public ReportPortalListener() {
 		context = new ParallelRunningContext();
 		launch = createLaunch();
 	}
 
+	/**
+	 * Returns a supplier which initialize a launch on the first 'get'.
+	 *
+	 * @return a supplier with a lazy-initialized {@link Launch} instance
+	 */
 	protected MemorizingSupplier<Launch> createLaunch() {
 		return new MemorizingSupplier<>(() -> {
 			final ReportPortal reportPortal = getReportPortal();
@@ -121,10 +131,20 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		});
 	}
 
+	/**
+	 * Returns current {@link ReportPortal} instance
+	 *
+	 * @return current instance
+	 */
 	public static ReportPortal getReportPortal() {
 		return REPORT_PORTAL;
 	}
 
+	/**
+	 * Set current {@link ReportPortal} instance
+	 *
+	 * @param reportPortal an instance to use
+	 */
 	public static void setReportPortal(ReportPortal reportPortal) {
 		REPORT_PORTAL = reportPortal;
 	}
@@ -141,7 +161,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		}
 	}
 
-	private List<Object> getRunnerChain(Object runner) {
+	@Nonnull
+	private List<Object> getRunnerChain(@Nonnull final Object runner) {
 		List<Object> chain = new ArrayList<>();
 		chain.add(runner);
 		Object parent;
@@ -157,48 +178,71 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		return chain;
 	}
 
-	@Nullable
-	protected TestItemTree.TestItemLeaf retrieveLeaf(Object runner) {
-		List<Object> chain = getRunnerChain(runner);
-		TestItemTree.TestItemLeaf leaf = null;
-		Map<TestItemTree.ItemTreeKey, TestItemTree.TestItemLeaf> children = context.getItemTree().getTestItems();
-		int chainSize = chain.size();
-		for (int i = 0; i < chainSize; i++) {
-			Object r = chain.get(i);
-			Maybe<String> parentId = ofNullable(leaf).map(TestItemTree.TestItemLeaf::getItemId).orElse(null);
-			Date previousDate = ofNullable(leaf).map(l -> (Date) l.getAttribute(START_TIME))
-					.orElseGet(() -> Calendar.getInstance().getTime());
-			int itemNumber = i + 1;
-			leaf = children.computeIfAbsent(TestItemTree.ItemTreeKey.of(getRunnerName(r)), (k) -> {
-				Launch myLaunch = launch.get();
-				long currentDate = Calendar.getInstance().getTimeInMillis();
-				Date itemDate;
-				if (currentDate >= previousDate.getTime()) {
-					itemDate = new Date(currentDate);
-				} else {
-					itemDate = new Date(previousDate.getTime() + 1);
-				}
-				StartTestItemRQ rq;
-				if (itemNumber < chainSize) {
-					rq = buildStartSuiteRq(r, itemDate);
-				} else {
-					rq = buildStartTestItemRq(r, itemDate);
-				}
-				TestItemTree.TestItemLeaf l = ofNullable(parentId).map(p -> TestItemTree.createTestItemLeaf(p,
-						myLaunch.startTestItem(p, rq)
-				)).orElseGet(() -> TestItemTree.createTestItemLeaf(myLaunch.startTestItem(rq)));
-				l.setType(ItemType.SUITE);
-				l.setAttribute(START_TIME, rq.getStartTime());
-				return l;
-			});
-
-			children = leaf.getChildItems();
-		}
-		return leaf;
+	@Nonnull
+	private TestItemTree.TestItemLeaf retrieveLeaf(@Nonnull final Map<TestItemTree.ItemTreeKey, TestItemTree.TestItemLeaf> children,
+			@Nonnull final Object runner, @Nonnull final Date previousDate, @Nonnull final ItemType itemType,
+			@Nullable final Maybe<String> parentId) {
+		return children.computeIfAbsent(TestItemTree.ItemTreeKey.of(getRunnerName(runner)), (k) -> {
+			Launch myLaunch = launch.get();
+			long currentDate = Calendar.getInstance().getTimeInMillis();
+			Date itemDate;
+			if (currentDate >= previousDate.getTime()) {
+				itemDate = new Date(currentDate);
+			} else {
+				itemDate = new Date(previousDate.getTime() + 1);
+			}
+			StartTestItemRQ rq = itemType == ItemType.TEST ? buildStartTestItemRq(runner, itemDate) : buildStartSuiteRq(runner, itemDate);
+			TestItemTree.TestItemLeaf l = ofNullable(parentId).map(p -> TestItemTree.createTestItemLeaf(p, myLaunch.startTestItem(p, rq)))
+					.orElseGet(() -> TestItemTree.createTestItemLeaf(myLaunch.startTestItem(rq)));
+			l.setType(ItemType.SUITE);
+			l.setAttribute(START_TIME, rq.getStartTime());
+			return l;
+		});
 	}
 
+	/**
+	 * Returns current test item leaf in Test Tree. Creates Test Item Tree branches and leaves if no such items found.
+	 *
+	 * @param testRunner JUnit test runner
+	 * @return a leaf of an item inside ItemTree or null if not found
+	 */
+	@Nonnull
+	protected TestItemTree.TestItemLeaf retrieveLeaf(@Nonnull final Object testRunner) {
+		List<Object> runnerChain = getRunnerChain(testRunner);
+		int chainSize = runnerChain.size();
+		List<TestItemTree.TestItemLeaf> leafChain = new ArrayList<>(chainSize);
+		for (int i = 0; i < chainSize; i++) {
+			Object runner = runnerChain.get(i);
+			int itemNumber = i + 1;
+			if (i <= 0) {
+				leafChain.add(retrieveLeaf(context.getItemTree().getTestItems(),
+						runner,
+						Calendar.getInstance().getTime(),
+						ItemType.SUITE,
+						null
+				));
+			} else {
+				TestItemTree.TestItemLeaf parentLeaf = leafChain.get(i - 1);
+				leafChain.add(retrieveLeaf(parentLeaf.getChildItems(),
+						runner,
+						// should not be null, since 'retrieveLeaf' always set this attribute
+						Objects.requireNonNull(parentLeaf.getAttribute(START_TIME)),
+						itemNumber < chainSize ? ItemType.SUITE : ItemType.TEST,
+						parentLeaf.getItemId()
+				));
+			}
+		}
+		return leafChain.get(chainSize - 1);
+	}
+
+	/**
+	 * Returns current test item leaf in Test Tree.
+	 *
+	 * @param runner JUnit test runner
+	 * @return a leaf of an item inside ItemTree or null if not found
+	 */
 	@Nullable
-	protected TestItemTree.TestItemLeaf getLeaf(Object runner) {
+	protected TestItemTree.TestItemLeaf getLeaf(@Nonnull final Object runner) {
 		List<Object> chain = getRunnerChain(runner);
 		TestItemTree.TestItemLeaf leaf = null;
 		Map<TestItemTree.ItemTreeKey, TestItemTree.TestItemLeaf> children = context.getItemTree().getTestItems();
@@ -211,6 +255,14 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		return leaf;
 	}
 
+	/**
+	 * Returns current test item leaf in Test Tree.
+	 *
+	 * @param runner   JUnit test runner
+	 * @param method   {@link FrameworkMethod} object for test
+	 * @param callable an object being intercepted
+	 * @return a leaf of an item inside ItemTree or null if not found
+	 */
 	@Nullable
 	protected TestItemTree.TestItemLeaf getLeaf(@Nonnull final Object runner, @Nonnull final FrameworkMethod method,
 			@Nonnull final ReflectiveCallable callable) {
@@ -223,8 +275,35 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		return ofNullable(testLeaf).map(l -> l.getChildItems().get(myKey)).orElse(null);
 	}
 
+	/**
+	 * Calculate an Item status according to its child item status and current status. E.G.: SUITE-TEST or TEST-STEP.
+	 * <p>
+	 * Example 1:
+	 * - Current status: {@link ItemStatus#FAILED}
+	 * - Child item status: {@link ItemStatus#SKIPPED}
+	 * Result: {@link ItemStatus#FAILED}
+	 * <p>
+	 * Example 2:
+	 * - Current status: {@link ItemStatus#PASSED}
+	 * - Child item status: {@link ItemStatus#SKIPPED}
+	 * Result: {@link ItemStatus#PASSED}
+	 * <p>
+	 * Example 3:
+	 * - Current status: {@link ItemStatus#PASSED}
+	 * - Child item status: {@link ItemStatus#FAILED}
+	 * Result: {@link ItemStatus#FAILED}
+	 * <p>
+	 * Example 4:
+	 * - Current status: {@link ItemStatus#SKIPPED}
+	 * - Child item status: {@link ItemStatus#FAILED}
+	 * Result: {@link ItemStatus#FAILED}
+	 *
+	 * @param currentStatus an Item status
+	 * @param childStatus   a status of its child element
+	 * @return new status
+	 */
 	@Nullable
-	protected ItemStatus evaluateStatus(@Nullable ItemStatus currentStatus, @Nullable ItemStatus childStatus) {
+	protected ItemStatus evaluateStatus(@Nullable final ItemStatus currentStatus, @Nullable final ItemStatus childStatus) {
 		if (childStatus == null) {
 			return currentStatus;
 		}
@@ -270,7 +349,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param runner JUnit test runner
 	 */
 	@SuppressWarnings("unused")
-	protected void startRunner(Object runner) {
+	protected void startRunner(@Nonnull final Object runner) {
 		// do nothing, we will construct runner chain on a real test start
 	}
 
@@ -301,16 +380,22 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		});
 	}
 
+	/**
+	 * Calculates a RP-safe date for a child item in Item Tree, which will be greater or equal to the parent timestamp
+	 *
+	 * @param parentLeaf a parent leaf of a new item inside ItemTree
+	 * @return a safe child item timestamp
+	 */
 	@Nonnull
-	protected Date getDateForChild(@Nullable TestItemTree.TestItemLeaf leaf) {
-		return ofNullable(leaf).map(l -> l.<Date>getAttribute(START_TIME)).map(d -> {
-			Date currentDate = Calendar.getInstance().getTime();
-			if (currentDate.compareTo(d) > 0) {
+	protected Date getDateForChild(@Nullable final TestItemTree.TestItemLeaf parentLeaf) {
+		Date currentDate = Calendar.getInstance().getTime();
+		return ofNullable(parentLeaf).map(l -> l.<Date>getAttribute(START_TIME)).map(d -> {
+			if (currentDate.compareTo(d) >= 0) {
 				return currentDate;
 			} else {
-				return new Date(d.getTime() + 1);
+				return d;
 			}
-		}).orElseGet(() -> Calendar.getInstance().getTime());
+		}).orElse(currentDate);
 	}
 
 	/**
@@ -318,7 +403,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 *
 	 * @param testContext {@link AtomicTest} object for test method
 	 */
-	protected void startTest(AtomicTest<FrameworkMethod> testContext) {
+	protected void startTest(@Nonnull final AtomicTest<FrameworkMethod> testContext) {
 		TestItemTree.ItemTreeKey key = createItemTreeKey(testContext.getIdentity(), getStepParameters(testContext));
 		context.setTestStatus(key, ItemStatus.PASSED);
 		context.setTestMethodDescription(testContext.getIdentity(), testContext.getDescription());
@@ -329,7 +414,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 *
 	 * @param testContext {@link AtomicTest} object for test method
 	 */
-	protected void finishTest(AtomicTest<FrameworkMethod> testContext) {
+	protected void finishTest(@Nonnull final AtomicTest<FrameworkMethod> testContext) {
 		TestItemTree.ItemTreeKey key = createItemTreeKey(testContext.getIdentity(), getStepParameters(testContext));
 		ItemStatus status = context.getTestStatus(key);
 		Throwable throwable = context.getTestThrowable(key);
@@ -359,30 +444,22 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		}
 	}
 
-	protected void startTestStepItem(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
-		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
-		TestItemTree.TestItemLeaf testLeaf = ofNullable(retrieveLeaf(runner)).orElseGet(() -> context.getItemTree()
-				.getTestItems()
-				.get(myParentKey));
-		ofNullable(testLeaf).ifPresent(l -> {
-			StartTestItemRQ rq = buildStartStepRq(runner, context.getTestMethodDescription(method), method, callable, getDateForChild(l));
-			startTestStepItem(method, l, rq);
-		});
-	}
-
-	protected Maybe<String> startTestStepItem(TestItemTree.TestItemLeaf parentLeaf, StartTestItemRQ rq) {
-		Maybe<String> parentId = parentLeaf.getItemId();
-		return launch.get().startTestItem(parentId, rq);
-	}
-
-	protected void startTestStepItem(FrameworkMethod method, TestItemTree.TestItemLeaf parentLeaf, StartTestItemRQ rq) {
+	/**
+	 * Start a test item on RP, save a child item into `parentLeaf` property.
+	 *
+	 * @param method     {@link FrameworkMethod} object for test
+	 * @param parentLeaf a parent leaf of a new item inside ItemTree
+	 * @param rq         a request to send to RP
+	 */
+	protected void startTestItem(@Nonnull final FrameworkMethod method, @Nonnull final TestItemTree.TestItemLeaf parentLeaf,
+			@Nonnull final StartTestItemRQ rq) {
 		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, rq.getParameters());
 		ofNullable(parentLeaf.getChildItems().remove(myKey)).map(ol -> ol.<Boolean>getAttribute(IS_RETRY)).ifPresent(r -> {
 			if (r) {
 				rq.setRetry(true);
 			}
 		});
-		Maybe<String> itemId = startTestStepItem(parentLeaf, rq);
+		Maybe<String> itemId = launch.get().startTestItem(parentLeaf.getItemId(), rq);
 		TestItemTree.TestItemLeaf myLeaf = TestItemTree.createTestItemLeaf(parentLeaf.getItemId(), itemId);
 		myLeaf.setType(ItemType.STEP);
 		parentLeaf.getChildItems().put(myKey, myLeaf);
@@ -392,18 +469,44 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	}
 
 	/**
+	 * Send a <b>start test item</b> request for the indicated test method to Report Portal.
+	 *
+	 * @param runner   JUnit test runner
+	 * @param method   {@link FrameworkMethod} object for test
+	 * @param callable {@link ReflectiveCallable} object being intercepted
+	 */
+	protected void startTestMethod(@Nonnull final Object runner, @Nonnull final FrameworkMethod method,
+			@Nonnull final ReflectiveCallable callable) {
+		TestItemTree.TestItemLeaf testLeaf = retrieveLeaf(runner);
+		StartTestItemRQ rq = buildStartStepRq(runner,
+				context.getTestMethodDescription(method),
+				method,
+				callable,
+				getDateForChild(testLeaf)
+		);
+		startTestItem(method, testLeaf, rq);
+	}
+
+	/**
 	 * Detect RP item type by annotation
 	 *
 	 * @param method JUnit framework method context
 	 * @return an item type or null if no such mapping (unknown annotation)
 	 */
 	@Nullable
-	protected ItemType detectMethodType(@Nonnull FrameworkMethod method) {
+	protected ItemType detectMethodType(@Nonnull final FrameworkMethod method) {
 		return Arrays.stream(method.getAnnotations())
 				.map(a -> TYPE_MAP.get(a.annotationType()))
 				.filter(Objects::nonNull)
 				.findFirst()
 				.orElse(null);
+	}
+
+	private void updateTestItemTree(@Nonnull final FrameworkMethod method, @Nullable final Maybe<OperationCompletionRS> finishResponse) {
+		TestItemTree.TestItemLeaf testItemLeaf = ItemTreeUtils.retrieveLeaf(method, context.getItemTree());
+		if (testItemLeaf != null) {
+			testItemLeaf.setFinishResponse(finishResponse);
+		}
 	}
 
 	/**
@@ -412,12 +515,12 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param runner       JUnit class runner
 	 * @param failedMethod a method which caused the skip
 	 * @param callable     an object being intercepted
-	 * @param throwable    An exception which caused the skip
 	 * @param eventTime    <code>@Before</code> start time
+	 * @param throwable    An exception which caused the skip
 	 */
 	@SuppressWarnings("unused")
-	protected void reportSkippedStep(Object runner, FrameworkMethod failedMethod, ReflectiveCallable callable, Throwable throwable,
-			Date eventTime) {
+	protected void reportSkippedStep(@Nonnull final Object runner, @Nonnull final FrameworkMethod failedMethod,
+			@Nonnull final ReflectiveCallable callable, @Nonnull final Date eventTime, @Nullable final Throwable throwable) {
 		Date currentTime = Calendar.getInstance().getTime();
 		Date skipStartTime = currentTime.after(eventTime) ? new Date(currentTime.getTime() - 1) : currentTime;
 		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
@@ -429,7 +532,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		FrameworkMethod method = testContext.getIdentity();
 		ofNullable(testLeaf).ifPresent(l -> {
 			StartTestItemRQ startRq = buildStartStepRq(runner, description, method, callable, skipStartTime);
-			Maybe<String> id = startTestStepItem(l, startRq);
+			Maybe<String> id = launch.get().startTestItem(l.getItemId(), startRq);
 			ofNullable(throwable).ifPresent(t -> sendReportPortalMsg(id, LogLevel.WARN, throwable));
 			FinishTestItemRQ finishRq = buildFinishStepRq(method, ItemStatus.SKIPPED);
 			finishRq.setIssue(NOT_ISSUE);
@@ -438,82 +541,21 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	}
 
 	/**
-	 * Send a <b>start test item</b> request for the indicated test method to Report Portal.
-	 *
-	 * @param runner   JUnit test runner
-	 * @param method   {@link FrameworkMethod} object for test
-	 * @param callable {@link ReflectiveCallable} object being intercepted
-	 */
-	@SuppressWarnings("unused")
-	protected void startTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable) {
-		startTestStepItem(runner, method, callable);
-	}
-
-	private void updateTestItemTree(@Nonnull FrameworkMethod method, @Nullable Maybe<OperationCompletionRS> finishResponse) {
-		TestItemTree.TestItemLeaf testItemLeaf = ItemTreeUtils.retrieveLeaf(method, context.getItemTree());
-		if (testItemLeaf != null) {
-			testItemLeaf.setFinishResponse(finishResponse);
-		}
-	}
-
-	/**
 	 * Extension point to customize test steps skipped in case of a <code>@BeforeClass</code> method failed.
 	 *
 	 * @param runner       JUnit class runner
 	 * @param failedMethod a method which caused the skip
 	 * @param callable     an object being intercepted
-	 * @param throwable    An exception which caused the skip
 	 * @param eventTime    <code>@BeforeClass</code> start time
+	 * @param throwable    An exception which caused the skip
 	 */
 	@SuppressWarnings("unused")
-	protected void reportSkippedClassTests(Object runner, FrameworkMethod failedMethod, ReflectiveCallable callable, Throwable throwable,
-			Date eventTime) {
-
+	protected void reportSkippedClassTests(@Nonnull final Object runner, @Nonnull final FrameworkMethod failedMethod,
+			@Nonnull final ReflectiveCallable callable, @Nonnull final Date eventTime, @Nullable final Throwable throwable) {
 	}
 
-	/**
-	 * Send a <b>finish test item</b> request for the indicated test method to Report Portal.
-	 *
-	 * @param runner    JUnit test runner
-	 * @param method    {@link FrameworkMethod} object for test
-	 * @param callable  {@link ReflectiveCallable} object being intercepted
-	 * @param status    a test method execution result
-	 * @param throwable a throwable result of the method (a failure cause or expected error)
-	 */
-	protected void stopTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable, @Nonnull ItemStatus status,
-			@Nullable Throwable throwable) {
-		FinishTestItemRQ rq = buildFinishStepRq(method, status);
-		stopTestMethod(runner, method, callable, rq);
-
-		ItemType methodType = detectMethodType(method);
-		boolean reportSkippedMethod =
-				(ItemType.BEFORE_METHOD == methodType && ItemStatus.FAILED == status) || (ItemType.BEFORE_METHOD == methodType
-						&& ItemStatus.SKIPPED == status && throwable instanceof AssumptionViolatedException);
-		if (reportSkippedMethod) {
-			reportSkippedStep(runner, method, callable, throwable, rq.getEndTime());
-		}
-
-		boolean reportSkippedClass =
-				(ItemType.BEFORE_CLASS == methodType && ItemStatus.FAILED == status) || (ItemType.BEFORE_CLASS == methodType
-						&& ItemStatus.SKIPPED == status && throwable instanceof AssumptionViolatedException);
-		if (reportSkippedClass) {
-			reportSkippedClassTests(runner, method, callable, throwable, rq.getEndTime());
-		}
-	}
-
-	/**
-	 * Send a <b>finish test item</b> request for the indicated test method to Report Portal.
-	 *
-	 * @param runner   JUnit test runner
-	 * @param method   {@link FrameworkMethod} object for test
-	 * @param callable {@link ReflectiveCallable} object being intercepted
-	 * @param rq       {@link FinishTestItemRQ} a finish request to send
-	 */
-	protected void stopTestMethod(Object runner, FrameworkMethod method, ReflectiveCallable callable, FinishTestItemRQ rq) {
-		ofNullable(getLeaf(runner, method, callable)).ifPresent(l -> stopTestMethod(l, method, rq));
-	}
-
-	private void stopTestMethod(@Nonnull TestItemTree.TestItemLeaf myLeaf, @Nonnull FrameworkMethod method, FinishTestItemRQ rq) {
+	private void stopTestMethod(@Nonnull final TestItemTree.TestItemLeaf myLeaf, @Nonnull final FrameworkMethod method,
+			@Nonnull final FinishTestItemRQ rq) {
 		Maybe<String> itemId = myLeaf.getItemId();
 		myLeaf.setStatus(ItemStatus.valueOf(rq.getStatus()));
 		// update existing item or just send new
@@ -533,12 +575,55 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	}
 
 	/**
+	 * Send a <b>finish test item</b> request for the indicated test method to Report Portal.
+	 *
+	 * @param runner   JUnit test runner
+	 * @param method   {@link FrameworkMethod} object for test
+	 * @param callable {@link ReflectiveCallable} object being intercepted
+	 * @param rq       {@link FinishTestItemRQ} a finish request to send
+	 */
+	protected void stopTestMethod(@Nonnull final Object runner, @Nonnull final FrameworkMethod method,
+			@Nonnull final ReflectiveCallable callable, @Nonnull final FinishTestItemRQ rq) {
+		ofNullable(getLeaf(runner, method, callable)).ifPresent(l -> stopTestMethod(l, method, rq));
+	}
+
+	/**
+	 * Send a <b>finish test item</b> request for the indicated test method to Report Portal.
+	 *
+	 * @param runner    JUnit test runner
+	 * @param method    {@link FrameworkMethod} object for test
+	 * @param callable  {@link ReflectiveCallable} object being intercepted
+	 * @param status    a test method execution result
+	 * @param throwable a throwable result of the method (a failure cause or expected error)
+	 */
+	protected void stopTestMethod(@Nonnull final Object runner, @Nonnull final FrameworkMethod method,
+			@Nonnull final ReflectiveCallable callable, @Nonnull final ItemStatus status, @Nullable final Throwable throwable) {
+		FinishTestItemRQ rq = buildFinishStepRq(method, status);
+		stopTestMethod(runner, method, callable, rq);
+
+		ItemType methodType = detectMethodType(method);
+		boolean reportSkippedMethod =
+				(ItemType.BEFORE_METHOD == methodType && ItemStatus.FAILED == status) || (ItemType.BEFORE_METHOD == methodType
+						&& ItemStatus.SKIPPED == status && throwable instanceof AssumptionViolatedException);
+		if (reportSkippedMethod) {
+			reportSkippedStep(runner, method, callable, rq.getEndTime(), throwable);
+		}
+
+		boolean reportSkippedClass =
+				(ItemType.BEFORE_CLASS == methodType && ItemStatus.FAILED == status) || (ItemType.BEFORE_CLASS == methodType
+						&& ItemStatus.SKIPPED == status && throwable instanceof AssumptionViolatedException);
+		if (reportSkippedClass) {
+			reportSkippedClassTests(runner, method, callable, rq.getEndTime(), throwable);
+		}
+	}
+
+	/**
 	 * Handle test failure action
 	 *
 	 * @param testContext {@link AtomicTest} object for test method
 	 * @param thrown      a <code>Throwable</code> thrown by method
 	 */
-	protected void setTestFailure(@Nonnull final AtomicTest<FrameworkMethod> testContext, @Nullable Throwable thrown) {
+	protected void setTestFailure(@Nonnull final AtomicTest<FrameworkMethod> testContext, @Nullable final Throwable thrown) {
 		TestItemTree.ItemTreeKey key = createItemTreeKey(testContext.getIdentity(), getStepParameters(testContext));
 		context.setTestStatus(key, ItemStatus.FAILED);
 		context.setTestThrowable(key, thrown);
@@ -555,36 +640,29 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		context.setTestStatus(key, ItemStatus.SKIPPED);
 		Object runner = testContext.getRunner();
 		FrameworkMethod method = testContext.getIdentity();
-		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
-		TestItemTree.TestItemLeaf testLeaf = ofNullable(retrieveLeaf(runner)).orElseGet(() -> context.getItemTree()
-				.getTestItems()
-				.get(myParentKey));
 		Object target = getTargetForRunner(runner);
 		ReflectiveCallable callable = LifecycleHooks.encloseCallable(method.getMethod(), target);
 		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, parameters);
-
-		ofNullable(testLeaf).ifPresent(p -> {
-			TestItemTree.TestItemLeaf myLeaf = ofNullable(p.getChildItems().get(myKey)).orElse(null);
-			if (myLeaf == null) {
-				// a test method wasn't started, most likely an ignored test: start and stop a test item with 'skipped' status
-				startTest(testContext);
-				startTestStepItem(runner, method, callable);
-				stopTestMethod(runner, method, callable, ItemStatus.SKIPPED, null);
+		TestItemTree.TestItemLeaf myLeaf = ofNullable(retrieveLeaf(runner).getChildItems().get(myKey)).orElse(null);
+		if (myLeaf == null) {
+			// a test method wasn't started, most likely an ignored test: start and stop a test item with 'skipped' status
+			startTest(testContext);
+			startTestMethod(runner, method, callable);
+			stopTestMethod(runner, method, callable, ItemStatus.SKIPPED, null);
+		} else {
+			// a test method started
+			FinishTestItemRQ rq;
+			if (testContext.getDescription().getAnnotation(RetriedTest.class) != null) {
+				// a retry, send an item update with retry flag
+				rq = buildFinishStepRq(method, myLeaf.getStatus());
+				rq.setRetry(true);
+				myLeaf.setAttribute(IS_RETRY, true);
 			} else {
-				// a test method started
-				FinishTestItemRQ rq;
-				if (testContext.getDescription().getAnnotation(RetriedTest.class) != null) {
-					// a retry, send an item update with retry flag
-					rq = buildFinishStepRq(method, myLeaf.getStatus());
-					rq.setRetry(true);
-					myLeaf.setAttribute(IS_RETRY, true);
-				} else {
-					rq = buildFinishStepRq(method, ItemStatus.SKIPPED);
-					myLeaf.setStatus(ItemStatus.SKIPPED);
-				}
-				stopTestMethod(runner, method, callable, rq);
+				rq = buildFinishStepRq(method, ItemStatus.SKIPPED);
+				myLeaf.setStatus(ItemStatus.SKIPPED);
 			}
-		});
+			stopTestMethod(runner, method, callable, rq);
+		}
 	}
 
 	/**
@@ -632,7 +710,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param thrown  {@link Throwable} object with details of the failure
 	 */
 	@SuppressWarnings("SameParameterValue")
-	protected void sendReportPortalMsg(@Nonnull Maybe<String> itemUud, @Nonnull final LogLevel level, @Nullable final Throwable thrown) {
+	protected void sendReportPortalMsg(@Nonnull final Maybe<String> itemUud, @Nonnull final LogLevel level,
+			@Nullable final Throwable thrown) {
 		ReportPortal.emitLog(itemUud, getLogSupplier(level, thrown));
 	}
 
@@ -652,7 +731,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param method {@link FrameworkMethod} object
 	 * @return {@code true} if method is reportable; otherwise {@code false}
 	 */
-	protected boolean isReportable(FrameworkMethod method) {
+	protected boolean isReportable(@Nonnull final FrameworkMethod method) {
 		return detectMethodType(method) != null;
 	}
 
@@ -787,6 +866,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param frameworkMethod JUnit framework method context
 	 * @param codeRef         a code reference which will be used for the calculation
 	 * @param params          a list of test arguments
+	 * @param <T>             arguments type
 	 * @return a test case ID
 	 */
 	@Nullable
