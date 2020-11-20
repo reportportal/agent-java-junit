@@ -213,22 +213,14 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		List<TestItemTree.TestItemLeaf> leafChain = new ArrayList<>(chainSize);
 		for (int i = 0; i < chainSize; i++) {
 			Object runner = runnerChain.get(i);
-			int itemNumber = i + 1;
+			ItemType type = i + 1 < chainSize ? ItemType.SUITE : ItemType.TEST;
 			if (i <= 0) {
-				leafChain.add(retrieveLeaf(context.getItemTree().getTestItems(),
-						runner,
-						Calendar.getInstance().getTime(),
-						ItemType.SUITE,
-						null
-				));
+				leafChain.add(retrieveLeaf(context.getItemTree().getTestItems(), runner, Calendar.getInstance().getTime(), type, null));
 			} else {
 				TestItemTree.TestItemLeaf parentLeaf = leafChain.get(i - 1);
-				leafChain.add(retrieveLeaf(parentLeaf.getChildItems(),
-						runner,
+				leafChain.add(retrieveLeaf(parentLeaf.getChildItems(), runner,
 						// should not be null, since 'retrieveLeaf' always set this attribute
-						Objects.requireNonNull(parentLeaf.getAttribute(START_TIME)),
-						itemNumber < chainSize ? ItemType.SUITE : ItemType.TEST,
-						parentLeaf.getItemId()
+						Objects.requireNonNull(parentLeaf.getAttribute(START_TIME)), type, parentLeaf.getItemId()
 				));
 			}
 		}
