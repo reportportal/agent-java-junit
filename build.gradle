@@ -105,6 +105,6 @@ processResources {
     }
 }
 
-//def releaseDependencies = [bintrayUpload, publish]
-//releaseDependencies.addAll(afterReleaseBuild.getDependsOn())
-//afterReleaseBuild.setDependsOn(releaseDependencies)
+def releaseDependencies = [bintrayUpload, publish]
+releaseDependencies.addAll(afterReleaseBuild.getDependsOn())
+afterReleaseBuild.setDependsOn(releaseDependencies)
