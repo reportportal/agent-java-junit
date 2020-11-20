@@ -56,13 +56,6 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Setup git credentials
-        uses: oleksiyrudenko/gha-git-credentials@v1
-        with:
-          name: 'reportportal.io'
-          email: 'support@reportportal.io'
-          token: ${{ secrets.GH_TOKEN }}
-
       - name: Release with Gradle
         id: release
         run: |
