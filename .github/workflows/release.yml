@@ -57,7 +57,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Setup git credentials
-        uses: oleksiyrudenko/gha-git-credentials@v1
+        uses: oleksiyrudenko/gha-git-credentials@v2
         with:
           name: 'reportportal.io'
           email: 'support@reportportal.io'
