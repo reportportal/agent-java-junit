@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.skip;
+package com.epam.reportportal.junit.beforeafter;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.skip.BeforeFailedTest;
+import com.epam.reportportal.junit.features.beforeafter.BeforeEachFailedForSecondParameterTest;
 import com.epam.reportportal.junit.utils.TestUtils;
+import com.epam.reportportal.listeners.ItemStatus;
+import com.epam.reportportal.listeners.ItemType;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
@@ -34,14 +36,17 @@ import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
-public class BeforeEachFailedTest {
+public class BeforeEachFailedInParameterizedTest {
+	private static final int TEST_METHOD_NUMBER = 4;
 
 	private final String classId = CommonUtils.namedId("class_");
-	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(2).collect(Collectors.toList());
+	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_"))
+			.limit(TEST_METHOD_NUMBER)
+			.collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
@@ -53,33 +58,24 @@ public class BeforeEachFailedTest {
 	}
 
 	@Test
-	public void agent_should_report_skipped_test_in_case_of_failed_before_each() {
-		TestUtils.runClasses(BeforeFailedTest.class);
+	public void verify_after_each_failure_in_parameterized_test() {
+		TestUtils.runClasses(BeforeEachFailedForSecondParameterTest.class);
 
-		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		ArgumentCaptor<StartTestItemRQ> startCapture = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(TEST_METHOD_NUMBER)).startTestItem(same(classId), startCapture.capture());
+
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(classId), startCaptor.capture());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
+		methodIds.forEach(id -> verify(client, times(1)).finishTestItem(same(id), finishCaptor.capture()));
 
-		List<StartTestItemRQ> startItems = startCaptor.getAllValues();
-		assertThat("There are 3 item created: suite, @BeforeEach and @Test", startItems, hasSize(2));
+		StartTestItemRQ startRq = startCapture.getAllValues().get(3);
+		assertThat(startRq.getType(), equalTo(ItemType.STEP.name()));
 
-		List<FinishTestItemRQ> finishItems = finishCaptor.getAllValues();
-		FinishTestItemRQ beforeEachFinish = finishItems.get(0);
-		assertThat("@BeforeEach failed", beforeEachFinish.getStatus(), equalTo("FAILED"));
+		List<FinishTestItemRQ> finishRqs = finishCaptor.getAllValues();
 
-		StartTestItemRQ testStart = startItems.get(1);
-		assertThat(
-				"@Test has correct code reference",
-				testStart.getCodeRef(),
-				equalTo(BeforeFailedTest.class.getCanonicalName() + ".testBeforeEachFailed")
-		);
-		assertThat("@Test has correct name", testStart.getName(), equalTo("testBeforeEachFailed"));
-
-		FinishTestItemRQ testFinish = finishItems.get(1);
-		assertThat("@Test reported as skipped", testFinish.getStatus(), equalTo("SKIPPED"));
-		assertThat("@Test issue muted", testFinish.getIssue(), equalTo(ReportPortalListener.NOT_ISSUE));
+		finishRqs.subList(0, 2).forEach(rq -> assertThat(rq.getStatus(), equalTo(ItemStatus.PASSED.name())));
+		assertThat(finishRqs.get(2).getStatus(), equalTo(ItemStatus.FAILED.name()));
+		FinishTestItemRQ finishItem = finishRqs.get(3);
+		assertThat(finishItem.getStatus(), equalTo(ItemStatus.SKIPPED.name()));
+		assertThat(finishItem.getIssue(), sameInstance(ReportPortalListener.NOT_ISSUE));
 	}
-
 }

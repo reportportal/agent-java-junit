@@ -22,6 +22,7 @@ import com.nordstrom.automation.junit.AtomicTest;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Function;
@@ -38,7 +39,8 @@ public class ItemTreeUtils {
 		//static only
 	}
 
-	public static TestItemTree.ItemTreeKey createItemTreeKey(String name) {
+	@Nonnull
+	public static TestItemTree.ItemTreeKey createItemTreeKey(@Nullable String name) {
 		return TestItemTree.ItemTreeKey.of(name);
 	}
 
@@ -46,22 +48,27 @@ public class ItemTreeUtils {
 			.map(ParameterResource::getValue)
 			.collect(Collectors.joining(",", "[", "]"))).orElse("");
 
-	public static TestItemTree.ItemTreeKey createItemTreeKey(FrameworkMethod method) {
+	@Nonnull
+	public static TestItemTree.ItemTreeKey createItemTreeKey(@Nonnull FrameworkMethod method) {
 		String strKey = method.getDeclaringClass().getName() + "." + method.getName();
 		return TestItemTree.ItemTreeKey.of(strKey);
 	}
 
-	public static TestItemTree.ItemTreeKey createItemTreeKey(FrameworkMethod method, List<ParameterResource> parameters) {
+	@Nonnull
+	public static TestItemTree.ItemTreeKey createItemTreeKey(@Nonnull FrameworkMethod method,
+			@Nullable List<ParameterResource> parameters) {
 		String paramStr = PARAMETER_FORMAT.apply(parameters);
 		String strKey = method.getDeclaringClass().getName() + "." + method.getName() + paramStr;
 		return TestItemTree.ItemTreeKey.of(strKey);
 	}
 
-	public static <T> TestItemTree.ItemTreeKey createItemTreeKey(AtomicTest<T> test) {
+	@Nonnull
+	public static <T> TestItemTree.ItemTreeKey createItemTreeKey(@Nonnull AtomicTest<T> test) {
 		return TestItemTree.ItemTreeKey.of(test.getDescription().getDisplayName());
 	}
 
-	public static TestItemTree.ItemTreeKey createItemTreeKey(Description description) {
+	@Nonnull
+	public static TestItemTree.ItemTreeKey createItemTreeKey(@Nonnull Description description) {
 		return TestItemTree.ItemTreeKey.of(description.getMethodName(),
 				(description.getTestClass().getName() + "." + description.getMethodName()).hashCode()
 		);
@@ -69,18 +76,18 @@ public class ItemTreeUtils {
 
 	@Nullable
 	@SuppressWarnings("unused")
-	public static TestItemTree.TestItemLeaf retrieveLeaf(String name, TestItemTree testItemTree) {
+	public static TestItemTree.TestItemLeaf retrieveLeaf(@Nullable String name, @Nonnull TestItemTree testItemTree) {
 		return testItemTree.getTestItems().get(createItemTreeKey(name));
 	}
 
 	@Nullable
-	public static TestItemTree.TestItemLeaf retrieveLeaf(FrameworkMethod method, TestItemTree testItemTree) {
+	public static TestItemTree.TestItemLeaf retrieveLeaf(@Nonnull FrameworkMethod method, @Nonnull TestItemTree testItemTree) {
 		return testItemTree.getTestItems().get(createItemTreeKey(method));
 	}
 
 	@Nullable
 	@SuppressWarnings("unused")
-	public static TestItemTree.TestItemLeaf retrieveLeaf(Description description, TestItemTree testItemTree) {
+	public static TestItemTree.TestItemLeaf retrieveLeaf(@Nonnull Description description, @Nonnull TestItemTree testItemTree) {
 		return testItemTree.getTestItems().get(createItemTreeKey(description));
 	}
 }

@@ -14,29 +14,21 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.exception;
+package com.epam.reportportal.junit.powermock;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.exception.ExpectedExceptionThrownTest;
+import com.epam.reportportal.junit.features.powermock.SimplePowermockTest;
 import com.epam.reportportal.junit.utils.TestUtils;
-import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
-import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 
-import java.util.List;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
-public class ExpectedExceptionPassedTest {
+public class PowerMockPositiveTest {
 
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
@@ -51,18 +43,10 @@ public class ExpectedExceptionPassedTest {
 	}
 
 	@Test
-	public void verify_correct_expected_exception_thrown() {
-		TestUtils.runClasses(ExpectedExceptionThrownTest.class);
+	@Disabled("Blocked by JUnit Foundation issue: https://github.com/sbabcoc/JUnit-Foundation/issues/77")
+	public void verify_a_passed_test_is_being_reported_with_power_mock() {
+		TestUtils.runClasses(SimplePowermockTest.class);
 
-		verify(client, times(1)).startTestItem(ArgumentMatchers.startsWith("root_"), any());
 		verify(client, times(1)).startTestItem(same(classId), any());
-		ArgumentCaptor<FinishTestItemRQ> finishTestCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(2)).finishTestItem(same(methodId), finishTestCaptor.capture());
-		ArgumentCaptor<FinishTestItemRQ> finishSuiteCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).finishTestItem(same(classId), finishSuiteCaptor.capture());
-
-		List<FinishTestItemRQ> items = finishTestCaptor.getAllValues();
-		assertThat(items.get(0).getStatus(), equalTo(ItemStatus.FAILED.name()));
-		assertThat(items.get(1).getStatus(), equalTo(ItemStatus.PASSED.name()));
 	}
 }

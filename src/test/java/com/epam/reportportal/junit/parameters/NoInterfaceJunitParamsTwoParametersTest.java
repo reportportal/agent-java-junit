@@ -43,7 +43,7 @@ public class NoInterfaceJunitParamsTwoParametersTest {
 	private static final int TEST_NUMBER = 2;
 
 	private final String classId = CommonUtils.namedId("class_");
-	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("class_"))
+	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_"))
 			.limit(TEST_NUMBER)
 			.collect(Collectors.toList());
 

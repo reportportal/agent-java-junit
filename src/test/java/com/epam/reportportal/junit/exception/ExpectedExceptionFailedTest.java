@@ -56,7 +56,7 @@ public class ExpectedExceptionFailedTest {
 	}
 
 	@Test
-	public void verify_static_test_code_reference_generation() {
+	public void verify_expected_exception_was_not_thrown() {
 		TestUtils.runClasses(ExpectedExceptionNotThrownTest.class);
 
 		verify(client).startTestItem(ArgumentMatchers.startsWith("root_"), any());

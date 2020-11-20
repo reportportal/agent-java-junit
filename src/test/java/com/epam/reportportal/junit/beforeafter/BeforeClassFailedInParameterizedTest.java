@@ -14,50 +14,47 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.testcaseid;
+package com.epam.reportportal.junit.beforeafter;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.coderef.CodeRefTest;
+import com.epam.reportportal.junit.features.beforeafter.BeforeClassFailedTwoParameterizedSkippedTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
-import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
-public class TestCaseIdStaticTest {
+public class BeforeClassFailedInParameterizedTest {
+	private static final int TEST_METHOD_NUMBER = 3;
 
 	private final String classId = CommonUtils.namedId("class_");
-	private final String methodId = CommonUtils.namedId("method_");
+	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_"))
+			.limit(TEST_METHOD_NUMBER)
+			.collect(Collectors.toList());
 
-	private ReportPortalClient client;
+	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
 	@BeforeEach
 	public void setupMock() {
-		client = mock(ReportPortalClient.class);
-		TestUtils.mockLaunch(client, null, null, classId, methodId);
+		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
 	@Test
-	public void verify_static_test_case_id_generation() {
-		TestUtils.runClasses(CodeRefTest.class);
+	public void verify_before_class_failure_in_parameterized_test() {
+		TestUtils.runClasses(BeforeClassFailedTwoParameterizedSkippedTest.class);
 
-		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(classId), captor.capture());
+		verify(client, atLeast(1)).startTestItem(same(classId), any());
 
-		assertThat(captor.getValue().getTestCaseId(),
-				allOf(notNullValue(),
-						equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
-				)
-		);
+		// TODO: finish the test after 'reportSkippedClassTests' method implementation
 	}
 }

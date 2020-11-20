@@ -18,6 +18,7 @@ package com.epam.reportportal.junit;
 
 import com.epam.reportportal.junit.features.coderef.CodeRefTest;
 import com.epam.reportportal.junit.utils.TestUtils;
+import com.epam.reportportal.listeners.ItemType;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
@@ -62,9 +63,12 @@ public class CodeReferenceTest {
 		StartTestItemRQ testRq = items.get(1);
 
 		assertThat(classRq.getCodeRef(), allOf(notNullValue(), equalTo(CodeRefTest.class.getCanonicalName())));
-		assertThat(testRq.getCodeRef(), allOf(notNullValue(),
-				equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
-		));
+		assertThat(classRq.getType(), allOf(notNullValue(), equalTo(ItemType.TEST.name())));
+		assertThat(testRq.getCodeRef(),
+				allOf(notNullValue(),
+						equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
+				)
+		);
 	}
 
 }

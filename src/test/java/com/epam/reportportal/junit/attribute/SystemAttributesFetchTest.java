@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.testcaseid;
+package com.epam.reportportal.junit.attribute;
 
 import com.epam.reportportal.junit.ReportPortalListener;
 import com.epam.reportportal.junit.features.coderef.CodeRefTest;
@@ -23,41 +23,54 @@ import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
+import com.epam.ta.reportportal.ws.model.attribute.ItemAttributeResource;
+import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
+import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
-public class TestCaseIdStaticTest {
+public class SystemAttributesFetchTest {
 
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
 
-	private ReportPortalClient client;
+	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
 	@BeforeEach
 	public void setupMock() {
-		client = mock(ReportPortalClient.class);
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
 	}
 
 	@Test
-	public void verify_static_test_case_id_generation() {
+	public void verify_system_attributes_bypass_on_launch_start() {
 		TestUtils.runClasses(CodeRefTest.class);
 
-		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(classId), captor.capture());
+		ArgumentCaptor<StartLaunchRQ> launchCaptor = ArgumentCaptor.forClass(StartLaunchRQ.class);
+		verify(client).startLaunch(launchCaptor.capture());
 
-		assertThat(captor.getValue().getTestCaseId(),
-				allOf(notNullValue(),
-						equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
-				)
-		);
+		StartLaunchRQ startRq = launchCaptor.getValue();
+		Set<ItemAttributesRQ> attributes = startRq.getAttributes();
+		assertThat(attributes, allOf(notNullValue(), hasSize(greaterThanOrEqualTo(4))));
+		List<ItemAttributesRQ> systemAttributes = attributes.stream().filter(ItemAttributesRQ::isSystem).collect(Collectors.toList());
+		assertThat(systemAttributes, hasSize(4));
+		List<String> systemAttributesKeys = systemAttributes.stream().map(ItemAttributeResource::getKey).collect(Collectors.toList());
+		assertThat(systemAttributesKeys, hasItems("agent", "skippedIssue", "jvm", "os"));
+		List<ItemAttributesRQ> agentName = systemAttributes.stream()
+				.filter(a -> "agent".equals(a.getKey()))
+				.collect(Collectors.toList());
+		assertThat(agentName, hasSize(1));
+		assertThat(agentName.get(0).getValue(), equalTo("test-name|test-version"));
 	}
 }

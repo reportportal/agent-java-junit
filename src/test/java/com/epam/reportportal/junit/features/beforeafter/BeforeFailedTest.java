@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.features.skip;
+package com.epam.reportportal.junit.features.beforeafter;
 
 import org.junit.Before;
 import org.junit.Test;

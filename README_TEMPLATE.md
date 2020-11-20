@@ -1,11 +1,9 @@
 ﻿# agent-java-junit
 ### Report Portal agent for JUnit 4
-
- [ ![Download](https://api.bintray.com/packages/epam/reportportal/agent-java-junit/images/download.svg) ](https://bintray.com/epam/reportportal/agent-java-junit/_latestVersion)
- 
+![CI Build](https://github.com/reportportal/agent-java-junit/workflows/CI%20Build/badge.svg?branch=develop)
+[ ![Download](https://api.bintray.com/packages/epam/reportportal/agent-java-junit/images/download.svg) ](https://bintray.com/epam/reportportal/agent-java-junit/_latestVersion)
 [![Join Slack chat!](https://reportportal-slack-auto.herokuapp.com/badge.svg)](https://reportportal-slack-auto.herokuapp.com)
 [![stackoverflow](https://img.shields.io/badge/reportportal-stackoverflow-orange.svg?style=flat)](http://stackoverflow.com/questions/tagged/reportportal)
-[![UserVoice](https://img.shields.io/badge/uservoice-vote%20ideas-orange.svg?style=flat)](https://rpp.uservoice.com/forums/247117-report-portal)
 [![Build with Love](https://img.shields.io/badge/build%20with-❤%EF%B8%8F%E2%80%8D-lightgrey.svg)](http://reportportal.io?style=flat)
 
 #### Overview: How to Add ReportPortal Logging to Your JUnit Java Project
@@ -25,8 +23,8 @@
 #### Create/update the reportportal.properties configuration file:
 Create or update a file named reportportal.properties in your Java project in source folder src/main/resources:
 
+`reportportal.properties`
 ```
-[reportportal.properties]
 rp.endpoint = http://localhost:8080
 rp.uuid = e0e541d8-b1cd-426a-ae18-b771173c545a
 rp.launch = default_JUNIT_AGENT
@@ -44,8 +42,8 @@ rp.project = default_personal
 
 In your project, create or update a file named logback.xml in the src/main/resources folder, adding the ReportPortal elements:
 
+`logback.xml`
 ```xml
-[logback.xml]
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
  
@@ -79,8 +77,8 @@ In your project, create or update a file named logback.xml in the src/main/resou
 
 #### Add ReportPortal / Logback dependencies to your project POM:
 
+`pom.xml`
 ```xml
-[pom.xml]
 <project ...>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -179,8 +177,8 @@ In your project, create or update a file named logback.xml in the src/main/resou
 
 #### Add ReportPortal / Log4J dependencies to your project POM:
 
+`pom.xml`
 ```xml
-[pom.xml]
 <project ...>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -301,16 +299,10 @@ dependencies {
     compile 'com.epam.reportportal:agent-java-junit:$LATEST_VERSION'
 }
 
-ext {
-    junitFoundation = configurations.compile.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
-}
-
-test.doFirst {
-    jvmArgs "-javaagent:${junitFoundation.file}"
-}
-
 test {
 //  debug true
+    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }.absolutePath}"
+    // not required, but definitely useful
     testLogging.showStandardStreams = true
 }
 ```
@@ -584,8 +576,9 @@ There, in *Configuration Examples* section, you can find the example of `reportp
 Returning back to the code. In your project, create file named `reportportal.properties` in `resources` folder and copy&paste the contents form the user profile page
 
 *Example:*
+
+`reportportal.properties`
 ```properties
-[reportportal.properties]
 rp.endpoint = http://localhost:8080
 rp.uuid = d50810f1-ace9-44fc-b1ba-a0077fb3cc44
 rp.launch = jack_TEST_EXAMPLE
@@ -688,8 +681,8 @@ in this case - add a `maven dependency plugin` dependency explicitly, like this:
 
 *Full pom.xml file example*
 
+`pom.xml`
 ```xml
-[pom.xml]
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -832,23 +825,14 @@ When you are done adding local run configuration, simply go to *Run* -> *Run '<t
 Assuming that you have the default `test` task in your `gradle.build` file, you need to add `jvmArgs` part and `junitFoundation` variable from artifacts using following code:
 
 ```gradle
-ext {
-    junitFoundation = configurations.compile.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
-}
-
-test.doFirst {
-    jvmArgs "-javaagent:${junitFoundation.file}"
-}
-
 test {
+    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }.absolutePath}"
     // your test task
 }
 ```
 
 And the full `build.gradle` file example:
-
 ```gradle
-[build.gradle]
 apply plugin: 'java'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -868,15 +852,8 @@ dependencies {
     compile 'org.apache.logging.log4j:log4j-core:2.12.1'
 }
 
-ext {
-    junitFoundation = configurations.compile.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
-}
-
-test.doFirst {
-    jvmArgs "-javaagent:${junitFoundation.file}"
-}
-
 test {
+    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }.absolutePath}"
     testLogging.showStandardStreams = true
 }
 ```
