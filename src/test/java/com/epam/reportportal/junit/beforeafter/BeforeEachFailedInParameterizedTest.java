@@ -21,6 +21,7 @@ import com.epam.reportportal.junit.features.beforeafter.BeforeEachFailedForSecon
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
+import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
@@ -76,6 +77,6 @@ public class BeforeEachFailedInParameterizedTest {
 		assertThat(finishRqs.get(2).getStatus(), equalTo(ItemStatus.FAILED.name()));
 		FinishTestItemRQ finishItem = finishRqs.get(3);
 		assertThat(finishItem.getStatus(), equalTo(ItemStatus.SKIPPED.name()));
-		assertThat(finishItem.getIssue(), sameInstance(ReportPortalListener.NOT_ISSUE));
+		assertThat(finishItem.getIssue(), sameInstance(Launch.NOT_ISSUE));
 	}
 }

@@ -24,17 +24,13 @@ import com.epam.reportportal.listeners.ItemType;
 import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.listeners.LogLevel;
 import com.epam.reportportal.service.Launch;
-import com.epam.reportportal.service.LaunchImpl;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.item.TestCaseIdEntry;
 import com.epam.reportportal.service.tree.TestItemTree;
-import com.epam.reportportal.utils.AttributeParser;
-import com.epam.reportportal.utils.ParameterUtils;
-import com.epam.reportportal.utils.TestCaseIdUtils;
+import com.epam.reportportal.utils.*;
 import com.epam.reportportal.utils.reflect.Accessible;
 import com.epam.ta.reportportal.ws.model.*;
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
-import com.epam.ta.reportportal.ws.model.issue.Issue;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import com.nordstrom.automation.junit.*;
@@ -57,14 +53,12 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -78,12 +72,6 @@ import static java.util.Optional.ofNullable;
  * times in the one launch)
  */
 public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher<FrameworkMethod>, MethodWatcher<FrameworkMethod> {
-
-	public static final Issue NOT_ISSUE = new Issue();
-
-	static {
-		NOT_ISSUE.setIssueType(LaunchImpl.NOT_ISSUE);
-	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ReportPortalListener.class);
 
@@ -106,7 +94,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	private static volatile ReportPortal REPORT_PORTAL = ReportPortal.builder().build();
 
 	private final ParallelRunningContext context;
-	private final MemorizingSupplier<Launch> launch;
+	private final MemoizingSupplier<Launch> launch;
 
 	/**
 	 * Crate an instance of listener
@@ -121,8 +109,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 *
 	 * @return a supplier with a lazy-initialized {@link Launch} instance
 	 */
-	protected MemorizingSupplier<Launch> createLaunch() {
-		return new MemorizingSupplier<>(() -> {
+	protected MemoizingSupplier<Launch> createLaunch() {
+		return new MemoizingSupplier<>(() -> {
 			final ReportPortal reportPortal = getReportPortal();
 			StartLaunchRQ rq = buildStartLaunchRq(reportPortal.getParameters());
 			Launch l = reportPortal.newLaunch(rq);
@@ -184,12 +172,12 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			@Nullable final Maybe<String> parentId) {
 		return children.computeIfAbsent(TestItemTree.ItemTreeKey.of(getRunnerName(runner)), (k) -> {
 			Launch myLaunch = launch.get();
-			long currentDate = Calendar.getInstance().getTimeInMillis();
+			Date currentDate = Calendar.getInstance().getTime();
 			Date itemDate;
-			if (currentDate >= previousDate.getTime()) {
-				itemDate = new Date(currentDate);
+			if (previousDate.compareTo(currentDate) <= 0) {
+				itemDate = currentDate;
 			} else {
-				itemDate = new Date(previousDate.getTime() + 1);
+				itemDate = previousDate;
 			}
 			StartTestItemRQ rq = itemType == ItemType.TEST ? buildStartTestItemRq(runner, itemDate) : buildStartSuiteRq(runner, itemDate);
 			TestItemTree.TestItemLeaf l = ofNullable(parentId).map(p -> TestItemTree.createTestItemLeaf(p, myLaunch.startTestItem(p, rq)))
@@ -296,43 +284,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Nullable
 	protected ItemStatus evaluateStatus(@Nullable final ItemStatus currentStatus, @Nullable final ItemStatus childStatus) {
-		if (childStatus == null) {
-			return currentStatus;
-		}
-		ItemStatus status = ofNullable(currentStatus).orElse(ItemStatus.PASSED);
-		switch (childStatus) {
-			case PASSED:
-			case SKIPPED:
-			case STOPPED:
-			case INFO:
-			case WARN:
-				return status;
-			case CANCELLED:
-				switch (status) {
-					case PASSED:
-					case SKIPPED:
-					case STOPPED:
-					case INFO:
-					case WARN:
-						return ItemStatus.CANCELLED;
-					default:
-						return currentStatus;
-				}
-			case INTERRUPTED:
-				switch (status) {
-					case PASSED:
-					case SKIPPED:
-					case STOPPED:
-					case INFO:
-					case WARN:
-					case CANCELLED:
-						return ItemStatus.INTERRUPTED;
-					default:
-						return currentStatus;
-				}
-			default:
-				return childStatus;
-		}
+		return StatusEvaluation.evaluateStatus(currentStatus, childStatus);
 	}
 
 	/**
@@ -527,7 +479,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			Maybe<String> id = launch.get().startTestItem(l.getItemId(), startRq);
 			ofNullable(throwable).ifPresent(t -> sendReportPortalMsg(id, LogLevel.WARN, throwable));
 			FinishTestItemRQ finishRq = buildFinishStepRq(method, ItemStatus.SKIPPED);
-			finishRq.setIssue(NOT_ISSUE);
+			finishRq.setIssue(Launch.NOT_ISSUE);
 			launch.get().finishTestItem(id, finishRq);
 		});
 	}
@@ -1047,42 +999,6 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		Stream<ItemAttributesRQ> attributes = ofNullable(frameworkMethod.getMethod()).flatMap(m -> ofNullable(m.getAnnotation(Attributes.class))
 				.map(a -> AttributeParser.retrieveAttributes(a).stream())).orElse(Stream.empty());
 		return Stream.concat(categories, attributes).collect(Collectors.toSet());
-	}
-
-	private static class MemorizingSupplier<T> implements Supplier<T>, Serializable {
-		private final Supplier<T> delegate;
-		private transient volatile boolean initialized;
-		private transient volatile T value;
-		private static final long serialVersionUID = 0L;
-
-		MemorizingSupplier(@Nonnull final Supplier<T> delegate) {
-			this.delegate = delegate;
-		}
-
-		public T get() {
-			if (!initialized) {
-				synchronized (this) {
-					if (!initialized) {
-						value = delegate.get();
-						initialized = true;
-						return value;
-					}
-				}
-			}
-			return value;
-		}
-
-		public boolean isInitialized() {
-			return initialized;
-		}
-
-		public synchronized void reset() {
-			initialized = false;
-		}
-
-		public String toString() {
-			return "Suppliers.memoize(" + delegate + ")";
-		}
 	}
 
 	/**

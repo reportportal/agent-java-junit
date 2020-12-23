@@ -51,7 +51,7 @@ publishing {
 }
 
 dependencies {
-    api 'com.epam.reportportal:client-java:5.0.17'
+    api 'com.epam.reportportal:client-java:5.0.18'
     api 'com.epam.reportportal:commons-model:5.0.0'
     api 'com.nordstrom.tools:junit-foundation:12.5.0'
     api 'com.google.code.findbugs:jsr305:3.0.2'

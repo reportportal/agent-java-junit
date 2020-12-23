@@ -20,6 +20,7 @@ import com.epam.reportportal.junit.ReportPortalListener;
 import com.epam.reportportal.junit.features.beforeafter.BeforeFailedParametrizedTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.listeners.ItemType;
+import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
@@ -35,8 +36,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
 
 public class BeforeEachFailedParameterizedTest {
@@ -85,7 +85,7 @@ public class BeforeEachFailedParameterizedTest {
 
 			FinishTestItemRQ testFinish = finishItems.get(1 + (i * 2));
 			assertThat("@Test reported as skipped", testFinish.getStatus(), equalTo("SKIPPED"));
-			assertThat("@Test issue muted", testFinish.getIssue(), equalTo(ReportPortalListener.NOT_ISSUE));
+			assertThat("@Test issue muted", testFinish.getIssue(), sameInstance(Launch.NOT_ISSUE));
 		});
 	}
 

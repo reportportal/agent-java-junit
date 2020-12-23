@@ -21,6 +21,7 @@ import com.epam.reportportal.junit.features.assumption.AssumptionViolatedBeforeT
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
+import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
@@ -75,7 +76,7 @@ public class AssumptionViolatedInBeforeTest {
 		assertThat(finishItems.get(0).getIssue(), nullValue());
 		assertThat(finishItems.get(0).getStatus(), equalTo(ItemStatus.SKIPPED.name()));
 
-		assertThat(finishItems.get(1).getIssue(), sameInstance(ReportPortalListener.NOT_ISSUE));
+		assertThat(finishItems.get(1).getIssue(), sameInstance(Launch.NOT_ISSUE));
 		assertThat(finishItems.get(1).getStatus(), equalTo(ItemStatus.SKIPPED.name()));
 	}
 }
