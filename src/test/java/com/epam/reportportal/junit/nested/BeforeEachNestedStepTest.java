@@ -31,6 +31,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.same;
@@ -50,7 +51,8 @@ public class BeforeEachNestedStepTest {
 		TestUtils.mockLaunch(client, null, null, classId, Arrays.asList(beforeId, methodId));
 		TestUtils.mockNestedSteps(client, Collections.singletonList(Pair.of(beforeId, nestedId)));
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test

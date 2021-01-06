@@ -30,6 +30,7 @@ import org.mockito.ArgumentMatchers;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -61,7 +62,8 @@ public class ItemTimeOrderTest {
 		TestUtils.mockLaunch(client, null, firstSuiteId, secondSuiteId, classIds);
 		TestUtils.mockNestedSteps(client, tests);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test

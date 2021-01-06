@@ -36,6 +36,7 @@ import org.mockito.ArgumentMatchers;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -66,7 +67,8 @@ public class SuiteOfSuitesTest {
 		TestUtils.mockLaunch(client, null, firstSuiteId, secondSuiteId, classIds);
 		TestUtils.mockNestedSteps(client, tests);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	private static String getMethodName(Class<?> clazz) {

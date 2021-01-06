@@ -31,6 +31,7 @@ import org.junit.runner.Result;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -56,7 +57,11 @@ public class StepReporterFailureTest {
 		TestUtils.mockLaunch(client, null, null, testClassUuid, testMethodUuid);
 		TestUtils.mockNestedSteps(client, testStepUuidOrder);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(
+				client,
+				TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()
+		));
 	}
 
 	/*
