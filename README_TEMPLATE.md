@@ -1,7 +1,7 @@
 ﻿# Report Portal agent for JUnit 4
 
-> **DISCLAIMER**: We use Google Analytics for sending anonymous usage information as agent's and client's names, and their versions after a
-> successful launch start. This information might help us to improve both ReportPortal backend and client sides. It is used by the
+> **DISCLAIMER**: We use Google Analytics for sending anonymous usage information such as agent's and client's names, and their versions 
+> after a successful launch start. This information might help us to improve both ReportPortal backend and client sides. It is used by the
 > ReportPortal team only and is not supposed for sharing with 3rd parties.
 
 ![CI Build](https://github.com/reportportal/agent-java-junit/workflows/CI%20Build/badge.svg?branch=develop)
