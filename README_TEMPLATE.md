@@ -305,7 +305,7 @@ dependencies {
 
 test {
 //  debug true
-    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }.absolutePath}"
+    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }}"
     // not required, but definitely useful
     testLogging.showStandardStreams = true
 }
@@ -830,7 +830,7 @@ Assuming that you have the default `test` task in your `gradle.build` file, you 
 
 ```gradle
 test {
-    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }.absolutePath}"
+    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }}"
     // your test task
 }
 ```
@@ -857,7 +857,7 @@ dependencies {
 }
 
 test {
-    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }.absolutePath}"
+    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }}"
     testLogging.showStandardStreams = true
 }
 ```
