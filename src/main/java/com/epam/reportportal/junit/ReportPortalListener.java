@@ -1089,23 +1089,16 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	public void afterInvocation(Object runner, FrameworkMethod method, ReflectiveCallable callable, Throwable thrown) {
 		// if this is a JUnit configuration method
 		if (isReportable(method)) {
-			ItemStatus status = ItemStatus.PASSED;
-			// if has exception
-			if (thrown != null) {
-				if (thrown instanceof AssumptionViolatedException) {
-					sendReportPortalMsg(LogLevel.WARN, thrown);
-					status = ItemStatus.SKIPPED;
-				} else {
-					status = ofNullable(method.getAnnotation(Test.class)).map(a -> a.expected().isInstance(thrown))
-							.filter(a -> a)
-							.map(a -> ItemStatus.PASSED)
-							.orElseGet(() -> {
-								sendReportPortalMsg(LogLevel.ERROR, thrown);
-								return ItemStatus.FAILED;
-							});
-				}
-			}
 			launch.get().getStepReporter().finishPreviousStep();
+			ItemStatus status = ofNullable(thrown).map(t -> {
+				boolean isAssumption = t instanceof AssumptionViolatedException;
+				ItemStatus myStatus = ofNullable(method.getAnnotation(Test.class)).filter(a -> a.expected().isInstance(thrown))
+						.map(a -> ItemStatus.PASSED)
+						.orElse(isAssumption ? ItemStatus.SKIPPED : ItemStatus.FAILED);
+				LogLevel level = ItemStatus.PASSED == myStatus ? LogLevel.INFO : isAssumption ? LogLevel.WARN : LogLevel.ERROR;
+				sendReportPortalMsg(level, thrown);
+				return myStatus;
+			}).orElse(ItemStatus.PASSED);
 			stopTestMethod(runner, method, callable, status, thrown);
 		}
 	}
