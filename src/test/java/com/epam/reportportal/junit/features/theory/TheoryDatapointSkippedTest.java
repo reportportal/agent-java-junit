@@ -23,6 +23,9 @@ import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
+/**
+ * A theories test which uses {@link DataPoints}
+ */
 @RunWith(Theories.class)
 public class TheoryDatapointSkippedTest {
 
@@ -34,6 +37,5 @@ public class TheoryDatapointSkippedTest {
 	@Theory
 	public void theories(boolean data) {
 		Assume.assumeFalse(data);
-		Assert.assertFalse(data);
 	}
 }

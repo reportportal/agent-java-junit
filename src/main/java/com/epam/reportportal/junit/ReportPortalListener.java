@@ -78,6 +78,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	private static final String FINISH_REQUEST = "FINISH_REQUEST";
 	private static final String START_TIME = "START_TIME";
 	private static final String IS_RETRY = "IS_RETRY";
+	private static final String IS_THEORY = "IS_THEORY";
 	private static final Map<Class<? extends Annotation>, ItemType> TYPE_MAP = Collections.unmodifiableMap(new HashMap<Class<? extends Annotation>, ItemType>() {{
 		put(Test.class, ItemType.STEP);
 		put(Before.class, ItemType.BEFORE_METHOD);
@@ -406,6 +407,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		Maybe<String> itemId = launch.get().startTestItem(parentLeaf.getItemId(), rq);
 		TestItemTree.TestItemLeaf myLeaf = TestItemTree.createTestItemLeaf(parentLeaf.getItemId(), itemId);
 		myLeaf.setType(ItemType.STEP);
+		ofNullable(method.getAnnotation(Theory.class)).ifPresent(a -> myLeaf.setAttribute(IS_THEORY, Boolean.TRUE));
 		parentLeaf.getChildItems().put(myKey, myLeaf);
 		if (getReportPortal().getParameters().isCallbackReportingEnabled()) {
 			context.getItemTree().getTestItems().put(createItemTreeKey(method), myLeaf);
@@ -501,7 +503,11 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	private void stopTestMethod(@Nonnull final TestItemTree.TestItemLeaf myLeaf, @Nonnull final FrameworkMethod method,
 			@Nonnull final FinishTestItemRQ rq) {
 		Maybe<String> itemId = myLeaf.getItemId();
-		myLeaf.setStatus(ItemStatus.valueOf(rq.getStatus()));
+		ItemStatus status = ItemStatus.valueOf(rq.getStatus());
+		myLeaf.setStatus(status);
+		if (ItemStatus.SKIPPED == status && ofNullable(method.getAnnotation(Theory.class)).isPresent()) {
+			return; // Do not stop Theory test
+		}
 		// update existing item or just send new
 		Maybe<OperationCompletionRS> finishResponse = ofNullable(myLeaf.getFinishResponse()).map(rs -> {
 			/*
@@ -1090,24 +1096,13 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 					sendReportPortalMsg(LogLevel.WARN, thrown);
 					status = ItemStatus.SKIPPED;
 				} else {
-
-					Class<? extends Throwable> expected = None.class;
-
-					// if this is not a class-level configuration method
-					if ((null == method.getAnnotation(BeforeClass.class)) && (null == method.getAnnotation(AfterClass.class))) {
-
-						AtomicTest<FrameworkMethod> atomicTest = LifecycleHooks.getAtomicTestOf(runner);
-						FrameworkMethod identity = atomicTest.getIdentity();
-						Test annotation = identity.getAnnotation(Test.class);
-						if (annotation != null) {
-							expected = annotation.expected();
-						}
-					}
-
-					if (!expected.isInstance(thrown)) {
-						sendReportPortalMsg(LogLevel.ERROR, thrown);
-						status = ItemStatus.FAILED;
-					}
+					status = ofNullable(method.getAnnotation(Test.class)).map(a -> a.expected().isInstance(thrown))
+							.filter(a -> a)
+							.map(a -> ItemStatus.PASSED)
+							.orElseGet(() -> {
+								sendReportPortalMsg(LogLevel.ERROR, thrown);
+								return ItemStatus.FAILED;
+							});
 				}
 			}
 			launch.get().getStepReporter().finishPreviousStep();
