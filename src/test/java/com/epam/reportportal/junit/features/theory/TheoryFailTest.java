@@ -22,7 +22,7 @@ import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
 @RunWith(Theories.class)
-public class TheoryFailedTest {
+public class TheoryFailTest {
 
 	@Theory
 	public void theories() {

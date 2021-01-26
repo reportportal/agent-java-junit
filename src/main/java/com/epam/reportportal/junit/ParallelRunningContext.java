@@ -22,6 +22,7 @@ import org.junit.runners.model.FrameworkMethod;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 /**
  * Parallel execution context and set of operations to interact with it
@@ -43,19 +44,23 @@ public class ParallelRunningContext {
 		CONTEXT_THREAD_LOCAL.set(this);
 	}
 
-	public <T> ItemStatus getTestStatus(TestItemTree.ItemTreeKey test) {
+	public ItemStatus getTestStatus(TestItemTree.ItemTreeKey test) {
 		return testStatus.get(test);
 	}
 
-	public <T> ItemStatus setTestStatus(TestItemTree.ItemTreeKey test, ItemStatus status) {
+	public ItemStatus setTestStatus(TestItemTree.ItemTreeKey test, ItemStatus status) {
 		return testStatus.put(test, status);
 	}
 
-	public <T> Throwable getTestThrowable(TestItemTree.ItemTreeKey test) {
+	public ItemStatus computeTestStatusIfNo(TestItemTree.ItemTreeKey test, Function<TestItemTree.ItemTreeKey, ItemStatus> mappingFunction) {
+		return testStatus.computeIfAbsent(test, mappingFunction);
+	}
+
+	public Throwable getTestThrowable(TestItemTree.ItemTreeKey test) {
 		return testThrowable.get(test);
 	}
 
-	public <T> void setTestThrowable(TestItemTree.ItemTreeKey test, Throwable throwable) {
+	public void setTestThrowable(TestItemTree.ItemTreeKey test, Throwable throwable) {
 		testThrowable.put(test, throwable);
 	}
 

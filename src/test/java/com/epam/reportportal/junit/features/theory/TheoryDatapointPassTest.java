@@ -16,26 +16,29 @@
 
 package com.epam.reportportal.junit.features.theory;
 
-import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.AssumptionViolatedException;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
+import static org.hamcrest.Matchers.equalTo;
+
 /**
- * A theories test which uses {@link DataPoints}
+ * A theories test which uses {@link DataPoints}. The test should pass, since all of thrown exceptions are
+ * {@link AssumptionViolatedException} and there is one passed test.
  */
 @RunWith(Theories.class)
-public class TheoryDatapointSkippedTest {
+public class TheoryDatapointPassTest {
 
 	@DataPoints
-	public static boolean[] data() {
-		return new boolean[] { true, false };
+	public static Boolean[] data() {
+		return new Boolean[] { true, false, null };
 	}
 
 	@Theory
-	public void theories(boolean data) {
-		Assume.assumeFalse(data);
+	public void theories(Boolean data) {
+		Assume.assumeThat(data, equalTo(Boolean.FALSE));
 	}
 }

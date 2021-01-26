@@ -17,7 +17,7 @@
 package com.epam.reportportal.junit.theory;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.theory.TheoryPassedTest;
+import com.epam.reportportal.junit.features.theory.TheoryDatapointPassTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
@@ -27,7 +27,6 @@ import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -37,7 +36,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.*;
 
-public class TheoryPassTest {
+public class TheoryDatapointPassedTest {
 
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
@@ -48,19 +47,21 @@ public class TheoryPassTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
-				Executors.newSingleThreadExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client,
+				TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()
+		));
 	}
 
 	@Test
-	public void verify_simple_theory_test_passed() {
-		TestUtils.runClasses(TheoryPassedTest.class);
+	public void verify_theory_test_one_datapoint_of_three_passed() {
+		TestUtils.runClasses(TheoryDatapointPassTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(classId), startCaptor.capture());
+		verify(client).startTestItem(same(classId), startCaptor.capture());
 
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).finishTestItem(same(methodId), finishCaptor.capture());
+		verify(client).finishTestItem(same(methodId), finishCaptor.capture());
 
 		StartTestItemRQ startRq = startCaptor.getValue();
 		assertThat(startRq.getType(), equalTo(ItemType.STEP.name()));
