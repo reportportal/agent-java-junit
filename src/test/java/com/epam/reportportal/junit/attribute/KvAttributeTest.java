@@ -30,6 +30,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.concurrent.Executors;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
@@ -54,7 +55,7 @@ public class KvAttributeTest {
 		TestUtils.runClasses(SimpleKeyValueAttributeTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(classId), captor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), captor.capture());
 
 		StartTestItemRQ testRq = captor.getValue();
 		assertThat(testRq.getAttributes(), allOf(notNullValue(), hasSize(1)));

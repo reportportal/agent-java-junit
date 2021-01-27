@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
@@ -59,8 +60,8 @@ public class ClassTwoCategoriesTest {
 		TestUtils.runClasses(com.epam.reportportal.junit.features.category.ClassTwoCategoriesTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(ArgumentMatchers.startsWith("root_"), captor.capture());
-		verify(client, times(1)).startTestItem(same(classId), captor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(ArgumentMatchers.startsWith("root_"), captor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), captor.capture());
 
 		List<StartTestItemRQ> items = captor.getAllValues();
 		assertThat(items.get(1).getAttributes(), anyOf(emptyCollectionOf(ItemAttributesRQ.class), nullValue()));

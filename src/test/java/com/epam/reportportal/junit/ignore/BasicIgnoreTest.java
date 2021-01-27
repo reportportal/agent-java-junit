@@ -30,6 +30,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.concurrent.Executors;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -56,8 +57,8 @@ public class BasicIgnoreTest {
 		TestUtils.runClasses(IgnoredTest.class);
 
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(classId), any());
-		verify(client, times(1)).finishTestItem(same(methodId), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), any());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodId), finishCaptor.capture());
 
 		FinishTestItemRQ finishRq = finishCaptor.getValue();
 

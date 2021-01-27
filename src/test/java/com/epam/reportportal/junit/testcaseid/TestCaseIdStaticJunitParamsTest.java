@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.same;
@@ -61,7 +62,7 @@ public class TestCaseIdStaticJunitParamsTest {
 		TestUtils.runClasses(testClass);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(classId), captor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).startTestItem(same(classId), captor.capture());
 
 		List<StartTestItemRQ> testRqs = captor.getAllValues();
 		IntStream.range(0, testRqs.size()).forEach(i -> {

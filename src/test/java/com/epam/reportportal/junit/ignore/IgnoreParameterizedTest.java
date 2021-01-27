@@ -34,6 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
@@ -59,9 +60,9 @@ public class IgnoreParameterizedTest {
 
 		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(classId), startCaptor.capture());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).startTestItem(same(classId), startCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
 
 		List<StartTestItemRQ> startRqs = startCaptor.getAllValues();
 		assertThat(startRqs.get(0).getTestCaseId(), not(equalTo(startRqs.get(1).getTestCaseId()))); // test case ID should be parameterized

@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static com.epam.reportportal.util.test.CommonUtils.namedId;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -79,11 +80,11 @@ public class StepReporterFailureTest {
 		assertThat(result.getFailureCount(), equalTo(0));
 
 		ArgumentCaptor<FinishTestItemRQ> finishNestedStep = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).
+		verify(client, timeout(PROCESSING_TIMEOUT)).
 				finishTestItem(same(stepUuidList.get(2)), finishNestedStep.capture());
 
 		ArgumentCaptor<FinishTestItemRQ> finishTestStep = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).
+		verify(client, timeout(PROCESSING_TIMEOUT)).
 				finishTestItem(same(testMethodUuid), finishTestStep.capture());
 
 		assertThat(finishNestedStep.getValue().getStatus(), equalTo(ItemStatus.FAILED.name()));

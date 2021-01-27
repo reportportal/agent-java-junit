@@ -29,6 +29,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.concurrent.Executors;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.same;
@@ -55,7 +56,7 @@ public class TestCaseIdStaticTest {
 		TestUtils.runClasses(CodeRefTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(classId), captor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), captor.capture());
 
 		assertThat(captor.getValue().getTestCaseId(),
 				allOf(notNullValue(),

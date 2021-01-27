@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.Executors;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.mockito.Mockito.*;
 
 public class PowerMockPositiveTest {
@@ -50,6 +51,6 @@ public class PowerMockPositiveTest {
 	public void verify_a_passed_test_is_being_reported_with_power_mock() {
 		TestUtils.runClasses(SimplePowermockTest.class);
 
-		verify(client, times(1)).startTestItem(same(classId), any());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), any());
 	}
 }

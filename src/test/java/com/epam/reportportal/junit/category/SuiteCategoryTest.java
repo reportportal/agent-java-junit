@@ -32,6 +32,7 @@ import org.mockito.ArgumentMatchers;
 
 import java.util.concurrent.Executors;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
@@ -56,11 +57,11 @@ public class SuiteCategoryTest {
 		TestUtils.runClasses(SuiteCategory.class);
 
 		ArgumentCaptor<StartTestItemRQ> suiteCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(ArgumentMatchers.startsWith(TestUtils.ROOT_SUITE_PREFIX), suiteCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(ArgumentMatchers.startsWith(TestUtils.ROOT_SUITE_PREFIX), suiteCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> testCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(suiteId), testCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(suiteId), testCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(classId), stepCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), stepCaptor.capture());
 
 		StartTestItemRQ suite = suiteCaptor.getValue();
 		assertThat(suite.getAttributes(), allOf(notNullValue(), hasSize(1)));

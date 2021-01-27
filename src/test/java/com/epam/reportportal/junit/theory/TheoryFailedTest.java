@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -64,10 +65,10 @@ public class TheoryFailedTest {
 		TestUtils.runClasses(TheoryFailTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(classId), startCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), startCaptor.capture());
 
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).finishTestItem(same(methodId), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodId), finishCaptor.capture());
 
 		StartTestItemRQ startRq = startCaptor.getValue();
 		assertThat(startRq.getType(), equalTo(ItemType.STEP.name()));
@@ -76,7 +77,7 @@ public class TheoryFailedTest {
 		assertThat(finishRq.getStatus(), equalTo(ItemStatus.FAILED.name()));
 
 		ArgumentCaptor<MultiPartRequest> logRqCaptor = ArgumentCaptor.forClass(MultiPartRequest.class);
-		verify(client, atLeastOnce()).log(logRqCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).atLeastOnce()).log(logRqCaptor.capture());
 
 		List<MultiPartRequest> logs = logRqCaptor.getAllValues();
 		List<SaveLogRQ> expectedErrorList = logs.stream()

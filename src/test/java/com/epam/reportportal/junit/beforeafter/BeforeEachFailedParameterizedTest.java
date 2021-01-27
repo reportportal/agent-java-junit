@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
@@ -61,11 +62,11 @@ public class BeforeEachFailedParameterizedTest {
 
 		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(4)).startTestItem(same(classId), startCaptor.capture());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(2)), finishCaptor.capture());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(3)), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(4)).startTestItem(same(classId), startCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(2)), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(3)), finishCaptor.capture());
 
 		List<StartTestItemRQ> startItems = startCaptor.getAllValues();
 		assertThat("There are 6 item created: parent suite, suite, 2 @BeforeEach, @Test 1 and @Test 2", startItems, hasSize(4));

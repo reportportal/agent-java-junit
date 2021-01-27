@@ -35,6 +35,7 @@ import org.mockito.stubbing.Answer;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.epam.reportportal.util.test.CommonUtils.createMaybe;
@@ -46,6 +47,7 @@ import static org.mockito.Mockito.when;
 public class TestUtils {
 
 	public static final String ROOT_SUITE_PREFIX = "root_";
+	public static final long PROCESSING_TIMEOUT = TimeUnit.MINUTES.toMillis(1);
 
 	private TestUtils() {
 	}

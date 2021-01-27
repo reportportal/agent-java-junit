@@ -31,6 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static com.epam.reportportal.util.test.CommonUtils.namedId;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -62,8 +63,7 @@ public class StepReporterFinishTest {
 	public void verify_listener_finishes_unfinished_step() {
 		TestUtils.runClasses(ManualStepReporterSimpleTest.class);
 
-		verify(client, times(1)).
-				finishTestItem(same(stepUuidList.get(0)), any());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(stepUuidList.get(0)), any());
 	}
 
 }

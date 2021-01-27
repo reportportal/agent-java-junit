@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.Executors;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.mockito.Mockito.*;
 
 public class EmptySuiteNoLaunchTest {
@@ -48,7 +49,6 @@ public class EmptySuiteNoLaunchTest {
 	public void verify_test_hierarchy_on_simple_suite() {
 		TestUtils.runClasses(EmptySuiteClass.class);
 
-		verify(client, times(0)).startLaunch(any());
+		verify(client, after(PROCESSING_TIMEOUT).times(0)).startLaunch(any());
 	}
-
 }

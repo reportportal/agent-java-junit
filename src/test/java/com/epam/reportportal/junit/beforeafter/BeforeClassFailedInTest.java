@@ -30,6 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
@@ -55,7 +56,7 @@ public class BeforeClassFailedInTest {
 	public void verify_before_class_failure_in_parameterized_test() {
 		TestUtils.runClasses(BeforeClassFailedTwoSkippedTest.class);
 
-		verify(client, atLeast(1)).startTestItem(same(classId), any());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), any());
 
 		// TODO: finish the test after 'reportSkippedClassTests' method implementation
 	}
