@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- JUnit Theories support
 ### Changed
 - JUnit-Foundation updated on [12.5.0](https://github.com/sbabcoc/JUnit-Foundation/releases/tag/junit-foundation-12.5.0)
 - Client version updated on [5.0.18](https://github.com/reportportal/client-java/releases/tag/5.0.18)
