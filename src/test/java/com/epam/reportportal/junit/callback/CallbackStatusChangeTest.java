@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.any;
@@ -57,10 +58,10 @@ public class CallbackStatusChangeTest {
 	public void verify_test_item_status_change() {
 		TestUtils.runClasses(CallbackFeatureTest.class);
 
-		verify(client, times(2)).startTestItem(same(classId), any());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).startTestItem(same(classId), any());
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(2)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
 
 		List<FinishTestItemRQ> finishRqs = finishCaptor.getAllValues();
 		assertThat(finishRqs.get(0).getStatus(), allOf(notNullValue(), equalTo("PASSED")));
