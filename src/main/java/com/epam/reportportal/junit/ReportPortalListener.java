@@ -57,6 +57,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -94,16 +95,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 
 	private static volatile ReportPortal REPORT_PORTAL = ReportPortal.builder().build();
 
-	private final ParallelRunningContext context;
-	private final MemoizingSupplier<Launch> launch;
-
-	/**
-	 * Crate an instance of listener
-	 */
-	public ReportPortalListener() {
-		context = new ParallelRunningContext();
-		launch = createLaunch();
-	}
+	private final ParallelRunningContext context = new ParallelRunningContext();
+	private final MemoizingSupplier<Launch> launch = createLaunch();
+	private final ConcurrentLinkedDeque<Object> runners = new ConcurrentLinkedDeque<>();
 
 	/**
 	 * Returns a supplier which initialize a launch on the first 'get'.
@@ -154,9 +148,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	private List<Object> getRunnerChain(@Nonnull final Object runner) {
 		List<Object> chain = new ArrayList<>();
 		chain.add(runner);
-		Object parent;
 		Object current = runner;
-		while ((parent = LifecycleHooks.getParentOf(current)) != null) {
+		for (Object parent : runners) {
 			if (!getRunnerName(current).equals(getRunnerName(parent))) {
 				// skip duplicated runners in parameterized tests
 				chain.add(parent);
@@ -294,9 +287,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 *
 	 * @param runner JUnit test runner
 	 */
-	@SuppressWarnings("unused")
 	protected void startRunner(@Nonnull final Object runner) {
-		// do nothing, we will construct runner chain on a real test start
+		runners.addFirst(runner);
 	}
 
 	/**
@@ -324,6 +316,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				launch.get().finishTestItem(l.getItemId(), rq);
 			}
 		});
+		runners.removeFirstOccurrence(runner);
 	}
 
 	/**
@@ -391,10 +384,10 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				} else if (isTheory && testContext.getRunner().getClass() == Theories.class) {
 					// fail theory test if no theories passed
 					ItemStatus theoryStatus = context.getTestStatus(key);
-					if(ItemStatus.FAILED == theoryStatus) {
+					if (ItemStatus.FAILED == theoryStatus) {
 						sendReportPortalMsg(l.getItemId(), LogLevel.ERROR, context.getTestThrowable(key));
 					}
-					stopTestMethod(l, method, buildFinishStepRq(method, theoryStatus == null ? ItemStatus.PASSED:theoryStatus));
+					stopTestMethod(l, method, buildFinishStepRq(method, theoryStatus == null ? ItemStatus.PASSED : theoryStatus));
 				}
 			});
 			testLeaf.setStatus(status);
