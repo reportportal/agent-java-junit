@@ -2,9 +2,10 @@
 
 ## [Unreleased]
 ### Added
-- JUnit Theories support
+- JUnit Theories support (special thanks to Scott Babcock and [JUnit Foundation](https://github.com/sbabcoc/JUnit-Foundation))
+- Powermock support (special thanks to Scott Babcock and [JUnit Foundation](https://github.com/sbabcoc/JUnit-Foundation))
 ### Changed
-- JUnit-Foundation updated on [12.5.0](https://github.com/sbabcoc/JUnit-Foundation/releases/tag/junit-foundation-12.5.0)
+- JUnit-Foundation updated on [12.5.3](https://github.com/sbabcoc/JUnit-Foundation/releases/tag/junit-foundation-12.5.3)
 - Client version updated on [5.0.18](https://github.com/reportportal/client-java/releases/tag/5.0.18)
 - Parent Item status evaluation was moved into the client
 - "Not Issue" issue moved into the client
