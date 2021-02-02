@@ -28,6 +28,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.concurrent.Executors;
+
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
@@ -44,7 +47,8 @@ public class NestedStepPassedTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, classId, methodId, nestedId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test
@@ -54,8 +58,8 @@ public class NestedStepPassedTest {
 
 		ArgumentCaptor<StartTestItemRQ> nestedStepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		ArgumentCaptor<FinishTestItemRQ> finishNestedCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(methodId), nestedStepCaptor.capture());
-		verify(client, times(1)).finishTestItem(same(nestedId), finishNestedCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(methodId), nestedStepCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(nestedId), finishNestedCaptor.capture());
 
 		StartTestItemRQ startTestItemRQ = nestedStepCaptor.getValue();
 

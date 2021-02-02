@@ -30,10 +30,12 @@ import org.mockito.ArgumentMatchers;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static java.util.Optional.ofNullable;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -61,7 +63,8 @@ public class ItemTimeOrderTest {
 		TestUtils.mockLaunch(client, null, firstSuiteId, secondSuiteId, classIds);
 		TestUtils.mockNestedSteps(client, tests);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test
@@ -69,14 +72,14 @@ public class ItemTimeOrderTest {
 		TestUtils.runClasses(SuiteOfSuitesClass.class);
 
 		ArgumentCaptor<StartTestItemRQ> suiteCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(suiteCaptor.capture());
-		verify(client, times(1)).startTestItem(ArgumentMatchers.startsWith(TestUtils.ROOT_SUITE_PREFIX), suiteCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(suiteCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(ArgumentMatchers.startsWith(TestUtils.ROOT_SUITE_PREFIX), suiteCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> testCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(firstSuiteId), testCaptor.capture());
-		verify(client, times(2)).startTestItem(same(secondSuiteId), testCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(firstSuiteId), testCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).startTestItem(same(secondSuiteId), testCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(classIds.get(0)), stepCaptor.capture());
-		verify(client, times(1)).startTestItem(same(classIds.get(1)), stepCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classIds.get(0)), stepCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classIds.get(1)), stepCaptor.capture());
 
 		Date previousDate = null;
 		List<StartTestItemRQ> testItems = testCaptor.getAllValues();

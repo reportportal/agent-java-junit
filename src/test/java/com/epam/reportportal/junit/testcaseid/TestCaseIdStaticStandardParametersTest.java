@@ -30,8 +30,10 @@ import org.mockito.ArgumentCaptor;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.same;
@@ -49,7 +51,8 @@ public class TestCaseIdStaticStandardParametersTest {
 		client = mock(ReportPortalClient.class);
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test
@@ -58,7 +61,7 @@ public class TestCaseIdStaticStandardParametersTest {
 		TestUtils.runClasses(testClass);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(classId), captor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).startTestItem(same(classId), captor.capture());
 
 		List<StartTestItemRQ> items = captor.getAllValues();
 		IntStream.range(0, items.size()).forEach(i -> {

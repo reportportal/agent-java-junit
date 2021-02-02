@@ -17,10 +17,10 @@
 package com.epam.reportportal.junit.beforeafter;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.beforeafter.BeforeFailedTest;
+import com.epam.reportportal.junit.features.beforeafter.BeforeTwoTests;
 import com.epam.reportportal.junit.utils.TestUtils;
+import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
-import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
@@ -30,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -37,14 +38,14 @@ import java.util.stream.Stream;
 
 import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
-public class BeforeEachFailedTest {
+public class BeforeEachTwoTests {
 
 	private final String classId = CommonUtils.namedId("class_");
-	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(2).collect(Collectors.toList());
+	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(4).collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
@@ -57,34 +58,29 @@ public class BeforeEachFailedTest {
 	}
 
 	@Test
-	public void agent_should_report_skipped_test_in_case_of_failed_before_each() {
-		TestUtils.runClasses(BeforeFailedTest.class);
+	public void agent_should_report_two_before_each_methods_in_one_test_correctly() {
+		TestUtils.runClasses(BeforeTwoTests.class);
 
 		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).startTestItem(same(classId), startCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(4)).startTestItem(same(classId), startCaptor.capture());
 		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
 		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(2)), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(3)), finishCaptor.capture());
 
 		List<StartTestItemRQ> startItems = startCaptor.getAllValues();
-		assertThat("There are 3 item created: suite, @BeforeEach and @Test", startItems, hasSize(2));
+		finishCaptor.getAllValues().forEach(e -> assertThat(e.getStatus(), equalTo(ItemStatus.PASSED.name())));
 
-		List<FinishTestItemRQ> finishItems = finishCaptor.getAllValues();
-		FinishTestItemRQ beforeEachFinish = finishItems.get(0);
-		assertThat("@BeforeEach failed", beforeEachFinish.getStatus(), equalTo("FAILED"));
+		List<StartTestItemRQ> beforeStarts = Arrays.asList(startItems.get(0), startItems.get(2));
 
-		StartTestItemRQ testStart = startItems.get(1);
-		assertThat(
-				"@Test has correct code reference",
-				testStart.getCodeRef(),
-				equalTo(BeforeFailedTest.class.getCanonicalName() + ".testBeforeEachFailed")
-		);
-		assertThat("@Test has correct name", testStart.getName(), equalTo("testBeforeEachFailed"));
-		assertThat("@Test has correct type", testStart.getType(), equalTo(ItemType.STEP.name()));
-
-		FinishTestItemRQ testFinish = finishItems.get(1);
-		assertThat("@Test reported as skipped", testFinish.getStatus(), equalTo("SKIPPED"));
-		assertThat("@Test issue muted", testFinish.getIssue(), sameInstance(Launch.NOT_ISSUE));
+		beforeStarts.forEach(e -> {
+			assertThat("@Before has correct code reference",
+					e.getCodeRef(),
+					equalTo(BeforeTwoTests.class.getCanonicalName() + ".beforeEach")
+			);
+			assertThat("@Before has correct item type", e.getType(), equalTo(ItemType.BEFORE_METHOD.name()));
+		});
 	}
 
 }

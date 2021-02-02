@@ -21,6 +21,7 @@ import com.epam.reportportal.junit.features.assumption.AssumptionViolatedBeforeT
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
+import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
@@ -31,9 +32,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
@@ -53,7 +56,8 @@ public class AssumptionViolatedInBeforeTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test
@@ -61,11 +65,11 @@ public class AssumptionViolatedInBeforeTest {
 		TestUtils.runClasses(AssumptionViolatedBeforeTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(classId), startCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).startTestItem(same(classId), startCaptor.capture());
 
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
 
 		List<StartTestItemRQ> startItems = startCaptor.getAllValues();
 		assertThat(startItems.get(0).getType(), equalTo(ItemType.BEFORE_METHOD.name()));
@@ -75,7 +79,7 @@ public class AssumptionViolatedInBeforeTest {
 		assertThat(finishItems.get(0).getIssue(), nullValue());
 		assertThat(finishItems.get(0).getStatus(), equalTo(ItemStatus.SKIPPED.name()));
 
-		assertThat(finishItems.get(1).getIssue(), sameInstance(ReportPortalListener.NOT_ISSUE));
+		assertThat(finishItems.get(1).getIssue(), sameInstance(Launch.NOT_ISSUE));
 		assertThat(finishItems.get(1).getStatus(), equalTo(ItemStatus.SKIPPED.name()));
 	}
 }

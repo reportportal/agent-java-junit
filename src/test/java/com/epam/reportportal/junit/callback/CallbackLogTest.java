@@ -29,9 +29,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Mockito.*;
@@ -48,16 +50,17 @@ public class CallbackLogTest {
 		TestUtils.mockBatchLogging(client);
 		TestUtils.mockSingleLogging(client);
 		ListenerParameters params = TestUtils.standardParameters();
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, params));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, params,
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test
 	public void verify_test_item_callback_log() {
 		TestUtils.runClasses(CallbackLogFeatureTest.class);
 
-		verify(client, times(2)).startTestItem(same(classId), any());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(0)), any());
-		verify(client, times(1)).finishTestItem(same(methodIds.get(1)), any());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).startTestItem(same(classId), any());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(0)), any());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(1)), any());
 
 		ArgumentCaptor<SaveLogRQ> logCapture = ArgumentCaptor.forClass(SaveLogRQ.class);
 		verify(client).log(logCapture.capture());

@@ -31,8 +31,10 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
@@ -48,7 +50,8 @@ public class JunitParamsNullValueTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	private static final List<Pair<String, Object>> PARAMETERS = Arrays.asList(Pair.of("param", "one"), Pair.of("param", null));
@@ -58,7 +61,7 @@ public class JunitParamsNullValueTest {
 		TestUtils.runClasses(JUnitParamsNullValueTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(classId), captor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).startTestItem(same(classId), captor.capture());
 
 		List<StartTestItemRQ> items = captor.getAllValues();
 		assertThat(items, hasSize(2));

@@ -32,8 +32,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
@@ -49,7 +51,8 @@ public class AssumptionSkipTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test
@@ -57,9 +60,9 @@ public class AssumptionSkipTest {
 		TestUtils.runClasses(AssumptionViolatedTest.class);
 
 		ArgumentCaptor<FinishTestItemRQ> captor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).finishTestItem(same(methodId), captor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodId), captor.capture());
 		ArgumentCaptor<MultiPartRequest> logCaptor = ArgumentCaptor.forClass(MultiPartRequest.class);
-		verify(client, atLeast(1)).log(logCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).atLeastOnce()).log(logCaptor.capture());
 
 		FinishTestItemRQ item = captor.getAllValues().get(0);
 		assertThat(item.getStatus(), allOf(notNullValue(), equalTo(ItemStatus.SKIPPED.name())));

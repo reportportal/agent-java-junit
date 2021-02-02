@@ -26,6 +26,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.Executors;
+
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.mockito.Mockito.*;
 
 public class PowerMockNegativeTest {
@@ -39,14 +42,14 @@ public class PowerMockNegativeTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test
-	@Disabled("Blocked by JUnit Foundation issue: https://github.com/sbabcoc/JUnit-Foundation/issues/77")
 	public void verify_a_failed_test_is_being_reported_with_power_mock() {
 		TestUtils.runClasses(SimplePowermockFailureTest.class);
 
-		verify(client, times(1)).startTestItem(same(classId), any());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), any());
 	}
 }

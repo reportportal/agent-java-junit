@@ -17,16 +17,26 @@
 package com.epam.reportportal.junit.features.theory;
 
 import org.junit.Assume;
+import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
+import static org.hamcrest.Matchers.equalTo;
+
+/**
+ * A theories test which uses {@link DataPoints}. The test should fail, since there is no passed test.
+ */
 @RunWith(Theories.class)
-public class TheoryFailedTest {
+public class TheoryDatapointFailTest {
+
+	@DataPoints
+	public static Boolean[] data() {
+		return new Boolean[] { true, null };
+	}
 
 	@Theory
-	public void theories() {
-		//noinspection ConstantConditions
-		Assume.assumeFalse(true);
+	public void theories(Boolean data) {
+		Assume.assumeThat(data, equalTo(Boolean.FALSE));
 	}
 }

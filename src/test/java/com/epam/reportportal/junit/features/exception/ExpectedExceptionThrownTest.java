@@ -24,6 +24,7 @@ public class ExpectedExceptionThrownTest {
 
 	public static final String ERROR_MESSAGE = "My error message";
 
+	@SuppressWarnings("deprecation")
 	@Rule
 	public ExpectedException thrown = ExpectedException.none();
 

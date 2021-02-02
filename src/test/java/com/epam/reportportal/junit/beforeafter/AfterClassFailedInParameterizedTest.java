@@ -29,9 +29,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.same;
@@ -51,17 +53,18 @@ public class AfterClassFailedInParameterizedTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test
 	public void verify_after_class_failure_in_parameterized_test() {
 		TestUtils.runClasses(AfterClassFailedTwoParameterizedTest.class);
 
-		verify(client, times(TEST_METHOD_NUMBER)).startTestItem(same(classId), any());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(TEST_METHOD_NUMBER)).startTestItem(same(classId), any());
 
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		methodIds.forEach(id -> verify(client, times(1)).finishTestItem(same(id), finishCaptor.capture()));
+		methodIds.forEach(id -> verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(id), finishCaptor.capture()));
 
 		List<FinishTestItemRQ> finishRqs = finishCaptor.getAllValues();
 

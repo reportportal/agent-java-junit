@@ -37,10 +37,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.*;
@@ -65,7 +67,8 @@ public class SimpleSuiteTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, suiteId, tests);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	private static String getMethodName(Class<?> clazz) {
@@ -84,12 +87,12 @@ public class SimpleSuiteTest {
 		TestUtils.runClasses(SimpleSuiteClass.class);
 
 		ArgumentCaptor<StartTestItemRQ> suiteCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(ArgumentMatchers.startsWith(TestUtils.ROOT_SUITE_PREFIX), suiteCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(ArgumentMatchers.startsWith(TestUtils.ROOT_SUITE_PREFIX), suiteCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> testCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(suiteId), testCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).startTestItem(same(suiteId), testCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(classIds.get(0)), stepCaptor.capture());
-		verify(client, times(1)).startTestItem(same(classIds.get(1)), stepCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classIds.get(0)), stepCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classIds.get(1)), stepCaptor.capture());
 
 		StartTestItemRQ suite = suiteCaptor.getValue();
 		String suiteCodeRef = SimpleSuiteClass.class.getCanonicalName();

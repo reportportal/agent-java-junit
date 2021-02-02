@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 EPAM Systems
+ * Copyright 2021 EPAM Systems
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,25 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.features.theory;
+package com.epam.reportportal.junit.features.beforeafter;
 
-import org.junit.Assume;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
-import org.junit.runner.RunWith;
+import org.junit.Before;
+import org.junit.Test;
 
-@RunWith(Theories.class)
-public class TheoryPassedTest {
+public class BeforeTwoTests {
 
-	@Theory
-	public void theories() {
-		Assume.assumeTrue(true);
+	@Before
+	public void beforeEach() {
+		System.out.println("Test: beforeEach");
+	}
+
+	@Test
+	public void firstTest() {
+		System.out.println("Test: firstTest");
+	}
+
+	@Test
+	public void secondTest() {
+		System.out.println("Test: secondTest");
 	}
 }

@@ -14,31 +14,30 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.testcaseid;
+package com.epam.reportportal.junit.theory;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.testcaseid.StandardParametersTestCaseIdTest;
+import com.epam.reportportal.junit.features.theory.TheoryPassTest;
 import com.epam.reportportal.junit.utils.TestUtils;
+import com.epam.reportportal.listeners.ItemStatus;
+import com.epam.reportportal.listeners.ItemType;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
+import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.Executors;
 
 import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.*;
 
-public class TestCaseIdStandardParametersTest {
+public class TheoryPassedTest {
 
 	private final String classId = CommonUtils.namedId("class_");
 	private final String methodId = CommonUtils.namedId("method_");
@@ -49,24 +48,26 @@ public class TestCaseIdStandardParametersTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
-				Executors.newSingleThreadExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client,
+				TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()
+		));
 	}
 
-	private static final List<List<Pair<String, Object>>> PARAMETERS = Collections.singletonList(Arrays.asList(Pair.of("param1", "one"),
-			Pair.of("param2", "1")
-	));
-
 	@Test
-	public void verify_two_parameters_junitparams_implementation() {
-		TestUtils.runClasses(StandardParametersTestCaseIdTest.class);
+	public void verify_simple_theory_test_passed() {
+		TestUtils.runClasses(TheoryPassTest.class);
 
-		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), captor.capture());
+		ArgumentCaptor<StartTestItemRQ> startCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), startCaptor.capture());
 
-		StartTestItemRQ item = captor.getValue();
-		assertThat(item.getTestCaseId(), allOf(notNullValue(),
-				equalTo(StandardParametersTestCaseIdTest.TEST_CASE_ID_VALUE + "[" + PARAMETERS.get(0).get(0).getValue() + "]")
-		));
+		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodId), finishCaptor.capture());
+
+		StartTestItemRQ startRq = startCaptor.getValue();
+		assertThat(startRq.getType(), equalTo(ItemType.STEP.name()));
+
+		FinishTestItemRQ finishRq = finishCaptor.getValue();
+		assertThat(finishRq.getStatus(), equalTo(ItemStatus.PASSED.name()));
 	}
 }

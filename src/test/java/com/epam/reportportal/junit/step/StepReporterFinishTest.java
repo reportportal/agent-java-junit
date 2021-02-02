@@ -27,9 +27,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static com.epam.reportportal.util.test.CommonUtils.namedId;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -51,15 +53,17 @@ public class StepReporterFinishTest {
 		TestUtils.mockLaunch(client, null, null, testClassUuid, testMethodUuid);
 		TestUtils.mockNestedSteps(client, testStepUuidOrder);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client,
+				TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()
+		));
 	}
 
 	@Test
 	public void verify_listener_finishes_unfinished_step() {
 		TestUtils.runClasses(ManualStepReporterSimpleTest.class);
 
-		verify(client, times(1)).
-				finishTestItem(same(stepUuidList.get(0)), any());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(stepUuidList.get(0)), any());
 	}
 
 }

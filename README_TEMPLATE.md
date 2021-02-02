@@ -1,5 +1,9 @@
-﻿# agent-java-junit
-### Report Portal agent for JUnit 4
+﻿# Report Portal agent for JUnit 4
+
+> **DISCLAIMER**: We use Google Analytics for sending anonymous usage information such as agent's and client's names, and their versions 
+> after a successful launch start. This information might help us to improve both ReportPortal backend and client sides. It is used by the
+> ReportPortal team only and is not supposed for sharing with 3rd parties.
+
 ![CI Build](https://github.com/reportportal/agent-java-junit/workflows/CI%20Build/badge.svg?branch=develop)
 [ ![Download](https://api.bintray.com/packages/epam/reportportal/agent-java-junit/images/download.svg) ](https://bintray.com/epam/reportportal/agent-java-junit/_latestVersion)
 [![Join Slack chat!](https://reportportal-slack-auto.herokuapp.com/badge.svg)](https://reportportal-slack-auto.herokuapp.com)
@@ -301,7 +305,7 @@ dependencies {
 
 test {
 //  debug true
-    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }.absolutePath}"
+    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }}"
     // not required, but definitely useful
     testLogging.showStandardStreams = true
 }
@@ -826,7 +830,7 @@ Assuming that you have the default `test` task in your `gradle.build` file, you 
 
 ```gradle
 test {
-    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }.absolutePath}"
+    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }}"
     // your test task
 }
 ```
@@ -853,7 +857,7 @@ dependencies {
 }
 
 test {
-    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }.absolutePath}"
+    jvmArgs "-javaagent:${classpath.find { it.name.contains('junit-foundation') }}"
     testLogging.showStandardStreams = true
 }
 ```

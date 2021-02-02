@@ -25,6 +25,9 @@ import com.epam.reportportal.util.test.CommonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.Executors;
+
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.mockito.Mockito.*;
 
 public class EmptySuiteNoLaunchTest {
@@ -38,14 +41,14 @@ public class EmptySuiteNoLaunchTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, suiteId, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test
 	public void verify_test_hierarchy_on_simple_suite() {
 		TestUtils.runClasses(EmptySuiteClass.class);
 
-		verify(client, times(0)).startLaunch(any());
+		verify(client, after(PROCESSING_TIMEOUT).times(0)).startLaunch(any());
 	}
-
 }

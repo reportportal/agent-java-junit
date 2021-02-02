@@ -30,7 +30,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
 import java.util.List;
+import java.util.concurrent.Executors;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.same;
@@ -47,19 +49,20 @@ public class ExpectedExceptionPassedTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test
 	public void verify_correct_expected_exception_thrown() {
 		TestUtils.runClasses(ExpectedExceptionThrownTest.class);
 
-		verify(client, times(1)).startTestItem(ArgumentMatchers.startsWith("root_"), any());
-		verify(client, times(1)).startTestItem(same(classId), any());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(ArgumentMatchers.startsWith("root_"), any());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), any());
 		ArgumentCaptor<FinishTestItemRQ> finishTestCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(2)).finishTestItem(same(methodId), finishTestCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).finishTestItem(same(methodId), finishTestCaptor.capture());
 		ArgumentCaptor<FinishTestItemRQ> finishSuiteCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).finishTestItem(same(classId), finishSuiteCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(classId), finishSuiteCaptor.capture());
 
 		List<FinishTestItemRQ> items = finishTestCaptor.getAllValues();
 		assertThat(items.get(0).getStatus(), equalTo(ItemStatus.FAILED.name()));

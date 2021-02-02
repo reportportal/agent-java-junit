@@ -29,10 +29,9 @@ targetCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
     mavenLocal()
-    mavenCentral()
-    jcenter()
     maven { url 'https://jitpack.io' }
     maven { url "http://dl.bintray.com/epam/reportportal" }
+    jcenter()
 }
 
 project.ext.githubUserName = project.hasProperty('githubUserName') ? githubUserName : ""
@@ -52,12 +51,12 @@ publishing {
 }
 
 dependencies {
-    api 'com.epam.reportportal:client-java:5.0.15'
+    api 'com.epam.reportportal:client-java:5.0.18'
     api 'com.epam.reportportal:commons-model:5.0.0'
-    api 'com.nordstrom.tools:junit-foundation:12.3.0'
+    api 'com.nordstrom.tools:junit-foundation:12.5.3'
     api 'com.google.code.findbugs:jsr305:3.0.2'
 
-    testImplementation('com.github.reportportal:agent-java-test-utils:ddcf50ee20')
+    testImplementation 'com.github.reportportal:agent-java-test-utils:ddcf50ee20'
     testImplementation 'org.aspectj:aspectjweaver:1.9.2'
     testImplementation 'org.hamcrest:hamcrest-core:2.2'
     testImplementation "org.mockito:mockito-core:${project.mockito_version}"
@@ -85,8 +84,8 @@ test {
     doFirst {
         def junitFoundation = configurations.runtimeClasspath.resolvedConfiguration.resolvedArtifacts.find { it.name == 'junit-foundation' }
         def weaver = configurations.testRuntimeClasspath.find { it.name.contains("aspectjweaver") }
-        jvmArgs += "-javaagent:$weaver"
         jvmArgs += "-javaagent:${junitFoundation.file}"
+        jvmArgs += "-javaagent:$weaver"
     }
 
     testLogging {
@@ -105,6 +104,6 @@ processResources {
     }
 }
 
-//def releaseDependencies = [bintrayUpload, publish]
-//releaseDependencies.addAll(afterReleaseBuild.getDependsOn())
-//afterReleaseBuild.setDependsOn(releaseDependencies)
+def releaseDependencies = [bintrayUpload, publish]
+releaseDependencies.addAll(afterReleaseBuild.getDependsOn())
+afterReleaseBuild.setDependsOn(releaseDependencies)

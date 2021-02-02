@@ -23,21 +23,19 @@ import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.BatchSaveOperatingRS;
 import com.epam.ta.reportportal.ws.model.EntryCreatedAsyncRS;
 import com.epam.ta.reportportal.ws.model.OperationCompletionRS;
-import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import com.epam.ta.reportportal.ws.model.item.ItemCreatedRS;
-import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRS;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import io.reactivex.Maybe;
-import junitparams.converters.Nullable;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;
-import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.epam.reportportal.util.test.CommonUtils.createMaybe;
@@ -49,6 +47,7 @@ import static org.mockito.Mockito.when;
 public class TestUtils {
 
 	public static final String ROOT_SUITE_PREFIX = "root_";
+	public static final long PROCESSING_TIMEOUT = TimeUnit.MINUTES.toMillis(1);
 
 	private TestUtils() {
 	}
@@ -57,42 +56,19 @@ public class TestUtils {
 		return JUnitCore.runClasses(testClasses);
 	}
 
-	public static StartTestItemRQ extractRequest(ArgumentCaptor<StartTestItemRQ> captor, String methodType) {
-		return captor.getAllValues()
-				.stream()
-				.filter(it -> methodType.equalsIgnoreCase(it.getType()))
-				.findAny()
-				.orElseThrow(() -> new AssertionError(String.format("Method type '%s' should be present among requests", methodType)));
-	}
-
-	public static List<StartTestItemRQ> extractRequests(ArgumentCaptor<StartTestItemRQ> captor, String methodType) {
-		return captor.getAllValues().stream().filter(it -> methodType.equalsIgnoreCase(it.getType())).collect(Collectors.toList());
-	}
-
-	public static StartTestItemRQ standardStartStepRequest() {
-		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setStartTime(Calendar.getInstance().getTime());
-		String id = generateUniqueId();
-		rq.setName("Step_" + id);
-		rq.setDescription("Test step description");
-		rq.setUniqueId(id);
-		rq.setType("STEP");
-		return rq;
-	}
-
-	public static void mockLaunch(@Nonnull ReportPortalClient client, @Nullable String launchUuid, @Nullable String suiteUuid,
-			@Nonnull String testClassUuid, @Nonnull String testMethodUuid) {
+	public static void mockLaunch(@Nonnull final ReportPortalClient client, @Nullable final String launchUuid,
+			@Nullable final String suiteUuid, @Nonnull final String testClassUuid, @Nonnull final String testMethodUuid) {
 		mockLaunch(client, launchUuid, suiteUuid, testClassUuid, Collections.singleton(testMethodUuid));
 	}
 
-	public static void mockLaunch(@Nonnull ReportPortalClient client, @Nullable String launchUuid, @Nullable String suiteUuid,
-			@Nonnull String testClassUuid, @Nonnull Collection<String> testMethodUuidList) {
+	public static void mockLaunch(@Nonnull final ReportPortalClient client, @Nullable final String launchUuid,
+			@Nullable final String suiteUuid, @Nonnull final String testClassUuid, @Nonnull final Collection<String> testMethodUuidList) {
 		mockLaunch(client, launchUuid, suiteUuid, Collections.singletonList(Pair.of(testClassUuid, testMethodUuidList)));
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T extends Collection<String>> void mockLaunch(@Nonnull ReportPortalClient client, @Nullable String launchUuid,
-			@Nullable String suiteUuid, @Nonnull Collection<Pair<String, T>> testSteps) {
+	public static <T extends Collection<String>> void mockLaunch(@Nonnull final ReportPortalClient client,
+			@Nullable final String launchUuid, @Nullable final String suiteUuid, @Nonnull final Collection<Pair<String, T>> testSteps) {
 		String launch = ofNullable(launchUuid).orElse(CommonUtils.namedId("launch_"));
 		when(client.startLaunch(any())).thenReturn(createMaybe(new StartLaunchRS(launch, 1L)));
 
@@ -141,15 +117,15 @@ public class TestUtils {
 		when(client.finishLaunch(eq(launch), any())).thenReturn(createMaybe(new OperationCompletionRS()));
 	}
 
-	public static void mockBatchLogging(ReportPortalClient client) {
+	public static void mockBatchLogging(final ReportPortalClient client) {
 		when(client.log(any(MultiPartRequest.class))).thenReturn(createMaybe(new BatchSaveOperatingRS()));
 	}
 
-	public static void mockSingleLogging(ReportPortalClient client) {
+	public static void mockSingleLogging(final ReportPortalClient client) {
 		when(client.log(any(SaveLogRQ.class))).thenReturn(createMaybe(new EntryCreatedAsyncRS()));
 	}
 
-	public static void mockNestedSteps(ReportPortalClient client, Pair<String, String> parentNestedPair) {
+	public static void mockNestedSteps(final ReportPortalClient client, final Pair<String, String> parentNestedPair) {
 		mockNestedSteps(client, Collections.singletonList(parentNestedPair));
 	}
 
@@ -180,13 +156,7 @@ public class TestUtils {
 		result.setProjectName("test-project");
 		result.setEnable(true);
 		result.setCallbackReportingEnabled(true);
-		return result;
-	}
-
-	public static StartLaunchRQ launchRQ(ListenerParameters parameters) {
-		StartLaunchRQ result = new StartLaunchRQ();
-		result.setName(parameters.getLaunchName());
-		result.setStartTime(Calendar.getInstance().getTime());
+		result.setBaseUrl("http://localhost:8080");
 		return result;
 	}
 }

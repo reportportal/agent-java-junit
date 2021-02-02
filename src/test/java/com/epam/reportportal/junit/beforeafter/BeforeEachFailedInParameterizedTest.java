@@ -21,6 +21,7 @@ import com.epam.reportportal.junit.features.beforeafter.BeforeEachFailedForSecon
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
+import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
@@ -31,9 +32,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.sameInstance;
@@ -54,7 +57,8 @@ public class BeforeEachFailedInParameterizedTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test
@@ -62,10 +66,10 @@ public class BeforeEachFailedInParameterizedTest {
 		TestUtils.runClasses(BeforeEachFailedForSecondParameterTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> startCapture = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(TEST_METHOD_NUMBER)).startTestItem(same(classId), startCapture.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(TEST_METHOD_NUMBER)).startTestItem(same(classId), startCapture.capture());
 
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		methodIds.forEach(id -> verify(client, times(1)).finishTestItem(same(id), finishCaptor.capture()));
+		methodIds.forEach(id -> verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(id), finishCaptor.capture()));
 
 		StartTestItemRQ startRq = startCapture.getAllValues().get(3);
 		assertThat(startRq.getType(), equalTo(ItemType.STEP.name()));
@@ -76,6 +80,6 @@ public class BeforeEachFailedInParameterizedTest {
 		assertThat(finishRqs.get(2).getStatus(), equalTo(ItemStatus.FAILED.name()));
 		FinishTestItemRQ finishItem = finishRqs.get(3);
 		assertThat(finishItem.getStatus(), equalTo(ItemStatus.SKIPPED.name()));
-		assertThat(finishItem.getIssue(), sameInstance(ReportPortalListener.NOT_ISSUE));
+		assertThat(finishItem.getIssue(), sameInstance(Launch.NOT_ISSUE));
 	}
 }

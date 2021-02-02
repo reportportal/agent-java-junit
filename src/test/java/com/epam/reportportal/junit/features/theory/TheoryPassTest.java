@@ -14,23 +14,18 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.features.exception;
+package com.epam.reportportal.junit.features.theory;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.Assume;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.runner.RunWith;
 
-public class ExpectedExceptionNotThrownTest {
+@RunWith(Theories.class)
+public class TheoryPassTest {
 
-	public static final String ERROR_MESSAGE = "My error message";
-
-	@SuppressWarnings("deprecation")
-	@Rule
-	public ExpectedException thrown = ExpectedException.none();
-
-	@Test
-	public void singleTest() {
-		thrown.expect(IllegalArgumentException.class);
-		thrown.expectMessage(ERROR_MESSAGE);
+	@Theory
+	public void theories() {
+		Assume.assumeTrue(true);
 	}
 }

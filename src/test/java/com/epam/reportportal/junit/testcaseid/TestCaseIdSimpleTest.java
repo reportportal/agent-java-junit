@@ -27,6 +27,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.concurrent.Executors;
+
+import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.same;
@@ -44,7 +47,8 @@ public class TestCaseIdSimpleTest {
 		client = mock(ReportPortalClient.class);
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
+				Executors.newSingleThreadExecutor()));
 	}
 
 	@Test
@@ -53,7 +57,7 @@ public class TestCaseIdSimpleTest {
 		TestUtils.runClasses(testClass);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(classId), captor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), captor.capture());
 
 		assertThat(captor.getValue().getTestCaseId(), allOf(notNullValue(), equalTo(TestCaseIdFromAnnotationTest.TEST_CASE_ID_VALUE)));
 	}
