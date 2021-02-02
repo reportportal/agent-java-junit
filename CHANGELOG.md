@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.0.0]
 ### Added
 - JUnit Theories support (special thanks to Scott Babcock and [JUnit Foundation](https://github.com/sbabcoc/JUnit-Foundation))
 - Powermock support (special thanks to Scott Babcock and [JUnit Foundation](https://github.com/sbabcoc/JUnit-Foundation))
