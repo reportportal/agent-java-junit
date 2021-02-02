@@ -1,5 +1,9 @@
-﻿# agent-java-junit
-### Report Portal agent for JUnit 4
+﻿# Report Portal agent for JUnit 4
+
+> **DISCLAIMER**: We use Google Analytics for sending anonymous usage information such as agent's and client's names, and their versions 
+> after a successful launch start. This information might help us to improve both ReportPortal backend and client sides. It is used by the
+> ReportPortal team only and is not supposed for sharing with 3rd parties.
+
 ![CI Build](https://github.com/reportportal/agent-java-junit/workflows/CI%20Build/badge.svg?branch=develop)
 [ ![Download](https://api.bintray.com/packages/epam/reportportal/agent-java-junit/images/download.svg) ](https://bintray.com/epam/reportportal/agent-java-junit/_latestVersion)
 [![Join Slack chat!](https://reportportal-slack-auto.herokuapp.com/badge.svg)](https://reportportal-slack-auto.herokuapp.com)
@@ -106,7 +110,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>5.0.0-RC-1</version>
+      <version>5.0.0</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
@@ -211,7 +215,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>5.0.0-RC-1</version>
+      <version>5.0.0</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
@@ -296,7 +300,7 @@ repositories {
 
 dependencies {
     compile 'com.epam.reportportal:logger-java-log4j:5.0.3'
-    compile 'com.epam.reportportal:agent-java-junit:5.0.0-RC-1'
+    compile 'com.epam.reportportal:agent-java-junit:5.0.0'
 }
 
 test {
@@ -432,7 +436,7 @@ We’ll assume that Report Portal is installed and running on <http://localhost:
 <dependency>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>agent-java-junit</artifactId>
-    <version>5.0.0-RC-1</version>
+    <version>5.0.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -708,7 +712,7 @@ in this case - add a `maven dependency plugin` dependency explicitly, like this:
       <dependency>
          <groupId>com.epam.reportportal</groupId>
          <artifactId>agent-java-junit</artifactId>
-         <version>5.0.0-RC-1</version>
+         <version>5.0.0</version>
          <scope>test</scope>
       </dependency>
 
@@ -847,7 +851,7 @@ repositories {
 
 dependencies {
     compile 'com.epam.reportportal:logger-java-log4j:5.0.3'
-    compile 'com.epam.reportportal:agent-java-junit:5.0.0-RC-1'
+    compile 'com.epam.reportportal:agent-java-junit:5.0.0'
     compile 'org.apache.logging.log4j:log4j-api:2.12.1'
     compile 'org.apache.logging.log4j:log4j-core:2.12.1'
 }
