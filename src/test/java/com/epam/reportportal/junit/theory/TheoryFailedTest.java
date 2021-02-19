@@ -21,13 +21,13 @@ import com.epam.reportportal.junit.features.theory.TheoryFailTest;
 import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
-import com.epam.reportportal.restendpoint.http.MultiPartRequest;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
+import okhttp3.MultipartBody;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -76,17 +76,12 @@ public class TheoryFailedTest {
 		FinishTestItemRQ finishRq = finishCaptor.getValue();
 		assertThat(finishRq.getStatus(), equalTo(ItemStatus.FAILED.name()));
 
-		ArgumentCaptor<MultiPartRequest> logRqCaptor = ArgumentCaptor.forClass(MultiPartRequest.class);
+		ArgumentCaptor<List<MultipartBody.Part>> logRqCaptor = ArgumentCaptor.forClass(List.class);
 		verify(client, timeout(PROCESSING_TIMEOUT).atLeastOnce()).log(logRqCaptor.capture());
 
-		List<MultiPartRequest> logs = logRqCaptor.getAllValues();
-		List<SaveLogRQ> expectedErrorList = logs.stream()
-				.flatMap(l -> l.getSerializedRQs().stream())
-				.map(MultiPartRequest.MultiPartSerialized::getRequest)
-				.filter(l -> l instanceof List)
-				.flatMap(l -> ((List<?>) l).stream())
-				.filter(l -> l instanceof SaveLogRQ)
-				.map(l -> (SaveLogRQ) l)
+		List<List<MultipartBody.Part>> logs = logRqCaptor.getAllValues();
+		List<SaveLogRQ> expectedErrorList = TestUtils.toSaveLogRQ(logs)
+				.stream()
 				.filter(l -> l.getMessage() != null && l.getMessage().startsWith(EXPECTED_ERROR))
 				.collect(Collectors.toList());
 		assertThat(expectedErrorList, hasSize(1));
