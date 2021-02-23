@@ -819,7 +819,7 @@ You can put the jar directly in the project tree or use the one, that Maven down
 On MAC OS system the path to maven downloaded junit-foundation.jar would have the following format:
 
 ```shell
-/Users/<user_name>/.m2/repository/com/nordstrom/tools/junit-foundation/9.4.3/junit-foundation-9.4.3.jar
+/Users/<user_name>/.m2/repository/com/nordstrom/tools/junit-foundation/12.5.3/junit-foundation-12.5.3.jar
 ```
 
 When you are done adding local run configuration, simply go to *Run* -> *Run '<test_run_name>'* and that test run results will be sent to Report Portal
