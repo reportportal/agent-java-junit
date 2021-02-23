@@ -440,7 +440,7 @@ We’ll assume that Report Portal is installed and running on <http://localhost:
     <scope>test</scope>
 </dependency>
 ```
-Note that `agent-java-junit` brings in `JUnit 4.12` and the `JUnit Foundation` library as transitive dependencies, so these don't need to be declared explicitly in your project.
+Note that `agent-java-junit` brings in `JUnit` and the `JUnit Foundation` library as transitive dependencies, so these don't need to be declared explicitly in your project.
 
 > Latest version of the agent, could be found [here](https://bintray.com/epam/reportportal/agent-java-junit)
 
