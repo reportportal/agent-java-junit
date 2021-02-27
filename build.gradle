@@ -53,7 +53,7 @@ publishing {
 dependencies {
     api 'com.epam.reportportal:client-java:5.0.18'
     api 'com.epam.reportportal:commons-model:5.0.0'
-    api 'com.nordstrom.tools:junit-foundation:12.5.3'
+    api 'com.nordstrom.tools:junit-foundation:13.0.0'
     api 'com.google.code.findbugs:jsr305:3.0.2'
 
     testImplementation 'com.github.reportportal:agent-java-test-utils:ddcf50ee20'
