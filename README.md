@@ -11,6 +11,7 @@
 [![Build with Love](https://img.shields.io/badge/build%20with-❤%EF%B8%8F%E2%80%8D-lightgrey.svg)](http://reportportal.io?style=flat)
 
 #### Overview: How to Add ReportPortal Logging to Your JUnit Java Project
+Report Portal supports JUnit 4 tests. The integration is built on top of [JUnit Foundation](https://github.com/sbabcoc/JUnit-Foundation) framework by [Scott Babcock](https://github.com/sbabcoc).
 
 1. [Configuration](#configuration): Create/update the **_reportportal.properties_** configuration file
 2. [Logback Framework](#logback-framework): For the Logback framework:  
