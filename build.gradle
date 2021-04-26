@@ -29,9 +29,8 @@ targetCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
     mavenLocal()
+    mavenCentral()
     maven { url 'https://jitpack.io' }
-    maven { url "http://dl.bintray.com/epam/reportportal" }
-    jcenter()
 }
 
 project.ext.githubUserName = project.hasProperty('githubUserName') ? githubUserName : ""
@@ -51,7 +50,7 @@ publishing {
 }
 
 dependencies {
-    api 'com.epam.reportportal:client-java:5.1.0-ALPHA-5'
+    api 'com.epam.reportportal:client-java:5.1.0-BETA-1'
     api 'com.epam.reportportal:commons-model:5.0.0'
     api 'com.nordstrom.tools:junit-foundation:12.5.3'
     api 'com.google.code.findbugs:jsr305:3.0.2'
@@ -62,10 +61,9 @@ dependencies {
     testImplementation "org.mockito:mockito-core:${project.mockito_version}"
     testImplementation 'ch.qos.logback:logback-classic:1.2.3'
     testImplementation 'com.epam.reportportal:logger-java-logback:5.0.3'
-    testImplementation ("org.junit.platform:junit-platform-runner:${project.junit5_launcher_version}") {
+    testImplementation ("org.junit.platform:junit-platform-runner:${project.junit5_runner_version}") {
         exclude module: 'junit'
     }
-    testImplementation "org.junit.platform:junit-platform-launcher:${project.junit5_launcher_version}"
     testImplementation "org.junit.jupiter:junit-jupiter-api:${project.junit5_version}"
     testImplementation "org.junit.jupiter:junit-jupiter-params:${project.junit5_version}"
     testImplementation "org.junit.jupiter:junit-jupiter-engine:${project.junit5_version}"
