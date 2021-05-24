@@ -27,7 +27,7 @@ on:
 env:
   VERSION_FILE: gradle.properties
   VERSION_EXTRACT_PATTERN: '(?<=version=).+'
-  GH_USER_NAME: github.actor
+  REPOSITORY_URL: 'https://maven.pkg.github.com/'
   CHANGE_LOG_FILE: CHANGELOG.md
   CHANGE_LOG_TMP_FILE: CHANGELOG_updated.md
   README_FILE: README.md
@@ -67,9 +67,12 @@ jobs:
         id: release
         run: |
           ./gradlew release -Prelease.useAutomaticVersion=true -Prelease.releaseVersion=${{ env.RELEASE_VERSION }} \
-          -Prelease.newVersion=${{ env.NEXT_VERSION }} -PpublishRepo=https://maven.pkg.github.com/${{ github.repository }} \
-          -PgithubUserName=${{ env.GH_USER_NAME }} -PgithubToken=${{ secrets.GITHUB_TOKEN }} \
-          -PgpgPrivateKey=${{ secrets.GPG_PRIVATE_KEY }} -PgpgPassphrase=${{  secrets.GPG_PASSPHRASE  }}
+          -Prelease.newVersion=${{ env.NEXT_VERSION }} -PpublishRepo=${{ env.REPOSITORY_URL }}${{ github.repository }} \
+          -PgithubUserName=${{ github.actor }} -PgithubToken=${{ secrets.GITHUB_TOKEN }} \
+          -PgpgPassphrase=${{  secrets.GPG_PASSPHRASE  }} -PgpgPrivateKey="$(cat <<'EOF'
+          ${{ secrets.GPG_PRIVATE_KEY }}
+          EOF
+          )"
 
       - name: Update README.md
         id: readmeUpdate
@@ -112,7 +115,7 @@ jobs:
           prerelease: false
 
       - name: Checkout develop branch
-        if: ${{github.ref}} == 'master'
+        if: ${{ github.ref }} == 'master'
         uses: actions/checkout@v2
         with:
           ref: 'develop'
@@ -120,7 +123,7 @@ jobs:
 
       - name: Merge release branch into develop
         id: mergeIntoDevelop
-        if: ${{github.ref}} == 'master'
+        if: ${{ github.ref }} == 'master'
         run: |
           git merge -m 'Merge master branch into develop after a release' origin/master
           git status | (! grep -Fq 'both modified:') || git status | grep -F 'both modified:' \
