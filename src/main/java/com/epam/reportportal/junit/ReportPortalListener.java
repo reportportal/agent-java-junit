@@ -72,7 +72,7 @@ import static java.util.Optional.ofNullable;
  * launch should be unique. (User shouldn't run the same classes twice/or more
  * times in the one launch)
  */
-public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher<FrameworkMethod>, MethodWatcher<FrameworkMethod> {
+public class ReportPortalListener implements ShutdownListener, RunnerWatcher, RunWatcher, MethodWatcher<FrameworkMethod> {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ReportPortalListener.class);
 
@@ -80,7 +80,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	private static final String START_TIME = "START_TIME";
 	private static final String IS_RETRY = "IS_RETRY";
 	private static final String IS_THEORY = "IS_THEORY";
-	private static final Map<Class<? extends Annotation>, ItemType> TYPE_MAP = Collections.unmodifiableMap(new HashMap<Class<? extends Annotation>, ItemType>() {{
+	private static final Map<Class<? extends Annotation>, ItemType> TYPE_MAP = Collections.unmodifiableMap(new HashMap<Class<? extends Annotation>, ItemType>() {
+		private static final long serialVersionUID = 5292344734560662610L;
+	{
 		put(Test.class, ItemType.STEP);
 		put(Before.class, ItemType.BEFORE_METHOD);
 		put(After.class, ItemType.AFTER_METHOD);
@@ -342,7 +344,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 *
 	 * @param testContext {@link AtomicTest} object for test method
 	 */
-	protected void startTest(@Nonnull final AtomicTest<FrameworkMethod> testContext) {
+	protected void startTest(@Nonnull final AtomicTest testContext) {
 		FrameworkMethod method = testContext.getIdentity();
 		if (!ofNullable(method.getAnnotation(Theory.class)).isPresent()) {
 			context.setTestStatus(createItemTreeKey(method, getStepParameters(testContext)), ItemStatus.PASSED);
@@ -355,7 +357,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 *
 	 * @param testContext {@link AtomicTest} object for test method
 	 */
-	protected void finishTest(@Nonnull final AtomicTest<FrameworkMethod> testContext) {
+	protected void finishTest(@Nonnull final AtomicTest testContext) {
 		FrameworkMethod method = testContext.getIdentity();
 		TestItemTree.ItemTreeKey key = ofNullable(method.getAnnotation(Theory.class)).map(T -> createItemTreeKey(method))
 				.orElseGet(() -> createItemTreeKey(method, getStepParameters(testContext)));
@@ -487,7 +489,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		TestItemTree.TestItemLeaf testLeaf = ofNullable(getLeaf(runner)).orElseGet(() -> context.getItemTree()
 				.getTestItems()
 				.get(myParentKey));
-		AtomicTest<FrameworkMethod> testContext = LifecycleHooks.getAtomicTestOf(runner);
+		AtomicTest testContext = LifecycleHooks.getAtomicTestOf(runner);
 		Description description = testContext.getDescription();
 		FrameworkMethod method = testContext.getIdentity();
 		ofNullable(testLeaf).ifPresent(l -> {
@@ -588,7 +590,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param testContext {@link AtomicTest} object for test method
 	 * @param thrown      a <code>Throwable</code> thrown by method
 	 */
-	protected void setTestFailure(@Nonnull final AtomicTest<FrameworkMethod> testContext, @Nullable final Throwable thrown) {
+	protected void setTestFailure(@Nonnull final AtomicTest testContext, @Nullable final Throwable thrown) {
 		FrameworkMethod method = testContext.getIdentity();
 		TestItemTree.ItemTreeKey key = ofNullable(method.getAnnotation(Theory.class)).map(a -> createItemTreeKey(testContext.getIdentity()))
 				.orElseGet(() -> createItemTreeKey(testContext.getIdentity(), getStepParameters(testContext)));
@@ -601,13 +603,13 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 *
 	 * @param testContext {@link AtomicTest} object for test method
 	 */
-	protected void handleTestSkip(@Nonnull final AtomicTest<FrameworkMethod> testContext) {
+	protected void handleTestSkip(@Nonnull final AtomicTest testContext) {
 		List<ParameterResource> parameters = getStepParameters(testContext);
 		TestItemTree.ItemTreeKey key = createItemTreeKey(testContext.getIdentity(), parameters);
 		context.setTestStatus(key, ItemStatus.SKIPPED);
 		Object runner = testContext.getRunner();
 		FrameworkMethod method = testContext.getIdentity();
-		Object target = getTargetForRunner(runner);
+		Object target = getTargetFor(runner, method);
 		ReflectiveCallable callable = LifecycleHooks.encloseCallable(method.getMethod(), target);
 		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, parameters);
 		TestItemTree.TestItemLeaf myLeaf = ofNullable(retrieveLeaf(runner).getChildItems().get(myKey)).orElse(null);
@@ -638,7 +640,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param testContext {@link AtomicTest} object for test method
 	 * @param thrown      a <code>Throwable</code> thrown by method
 	 */
-	protected void setTestSkip(@Nonnull final AtomicTest<FrameworkMethod> testContext, @Nullable final Throwable thrown) {
+	protected void setTestSkip(@Nonnull final AtomicTest testContext, @Nullable final Throwable thrown) {
 		TestItemTree.ItemTreeKey key = createItemTreeKey(testContext.getIdentity(), getStepParameters(testContext));
 		context.setTestStatus(key, ItemStatus.SKIPPED);
 		context.setTestThrowable(key, thrown);
@@ -857,10 +859,10 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @return Test/Step Parameters being sent to Report Portal or 'null' if empty or not exist
 	 */
 	@Nullable
-	protected List<ParameterResource> getStepParameters(@Nonnull final AtomicTest<FrameworkMethod> test) {
+	protected List<ParameterResource> getStepParameters(@Nonnull final AtomicTest test) {
 		Object runner = test.getRunner();
 		FrameworkMethod identity = test.getIdentity();
-		return getStepParameters(identity, runner, LifecycleHooks.encloseCallable(identity.getMethod(), getTargetForRunner(runner)));
+		return getStepParameters(identity, runner, LifecycleHooks.encloseCallable(identity.getMethod(), getTargetFor(runner, identity)));
 	}
 
 	/**
@@ -891,7 +893,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			@Nonnull final ReflectiveCallable callable) {
 		List<ParameterResource> result = new ArrayList<>();
 		if (!(method.isStatic())) {
-			Object target = getTargetForRunner(runner);
+			Object target = getTargetFor(runner, method);
 			if (target instanceof ArtifactParams) {
 				//noinspection Guava
 				com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
@@ -932,11 +934,13 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * <b>NOTE</b>: This shim enables subclasses of this handler to supply custom instances.
 	 *
 	 * @param runner JUnit class runner
+	 * @param method JUnit framework method context
 	 * @return JUnit test class instance for specified runner
 	 */
 	@Nullable
-	protected Object getTargetForRunner(@Nonnull final Object runner) {
-		return LifecycleHooks.getTargetForRunner(runner);
+	protected Object getTargetFor(@Nonnull final Object runner, @Nonnull final FrameworkMethod method) {
+		Description description = LifecycleHooks.describeChild(runner, method);
+		return LifecycleHooks.getTargetOf(description);
 	}
 
 	/**
@@ -1052,7 +1056,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void testStarted(AtomicTest<FrameworkMethod> atomicTest) {
+	public void testStarted(AtomicTest atomicTest) {
 		startTest(atomicTest);
 	}
 
@@ -1060,7 +1064,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void testFinished(AtomicTest<FrameworkMethod> atomicTest) {
+	public void testFinished(AtomicTest atomicTest) {
 		finishTest(atomicTest);
 	}
 
@@ -1068,7 +1072,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void testFailure(AtomicTest<FrameworkMethod> atomicTest, Throwable thrown) {
+	public void testFailure(AtomicTest atomicTest, Throwable thrown) {
 		setTestFailure(atomicTest, thrown);
 	}
 
@@ -1076,7 +1080,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void testAssumptionFailure(AtomicTest<FrameworkMethod> atomicTest, AssumptionViolatedException thrown) {
+	public void testAssumptionFailure(AtomicTest atomicTest, AssumptionViolatedException thrown) {
 		setTestSkip(atomicTest, thrown);
 	}
 
@@ -1084,7 +1088,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void testIgnored(AtomicTest<FrameworkMethod> atomicTest) {
+	public void testIgnored(AtomicTest atomicTest) {
 		handleTestSkip(atomicTest);
 	}
 
