@@ -54,7 +54,6 @@ dependencies {
 }
 
 test {
-    debug true
     outputs.upToDateWhen { return false }
     useJUnitPlatform()
     maxParallelForks(5)
