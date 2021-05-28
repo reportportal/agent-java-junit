@@ -489,17 +489,22 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		TestItemTree.TestItemLeaf testLeaf = ofNullable(getLeaf(runner)).orElseGet(() -> context.getItemTree()
 				.getTestItems()
 				.get(myParentKey));
-		AtomicTest testContext = LifecycleHooks.getAtomicTestOf(runner);
-		Description description = testContext.getDescription();
-		FrameworkMethod method = testContext.getIdentity();
-		ofNullable(testLeaf).ifPresent(l -> {
-			StartTestItemRQ startRq = buildStartStepRq(runner, description, method, callable, skipStartTime);
-			Maybe<String> id = launch.get().startTestItem(l.getItemId(), startRq);
-			ofNullable(throwable).ifPresent(t -> sendReportPortalMsg(id, LogLevel.WARN, throwable));
-			FinishTestItemRQ finishRq = buildFinishStepRq(method, ItemStatus.SKIPPED);
-			finishRq.setIssue(Launch.NOT_ISSUE);
-			launch.get().finishTestItem(id, finishRq);
-		});
+		try {
+			Object target = LifecycleHooks.getFieldValue(callable, "val$target");
+			AtomicTest testContext = LifecycleHooks.getAtomicTestOf(target);
+			Description description = testContext.getDescription();
+			FrameworkMethod method = testContext.getIdentity();
+			ofNullable(testLeaf).ifPresent(l -> {
+				StartTestItemRQ startRq = buildStartStepRq(runner, description, method, callable, skipStartTime);
+				Maybe<String> id = launch.get().startTestItem(l.getItemId(), startRq);
+				ofNullable(throwable).ifPresent(t -> sendReportPortalMsg(id, LogLevel.WARN, throwable));
+				FinishTestItemRQ finishRq = buildFinishStepRq(method, ItemStatus.SKIPPED);
+				finishRq.setIssue(Launch.NOT_ISSUE);
+				launch.get().finishTestItem(id, finishRq);
+			});
+		} catch (IllegalAccessException | NoSuchFieldException | SecurityException e) {
+			// nothing to do here
+		}
 	}
 
 	/**

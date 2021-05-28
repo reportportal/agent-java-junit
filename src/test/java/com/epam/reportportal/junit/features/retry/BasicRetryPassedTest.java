@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class BasicRetryPassedTest {
 	public static final int FAILURE_NUMBER = 1;
-	public final AtomicInteger RETRY_COUNT = new AtomicInteger(0);
+	public static final AtomicInteger RETRY_COUNT = new AtomicInteger(0);
 
 	@Test
 	public void testRetry() {
