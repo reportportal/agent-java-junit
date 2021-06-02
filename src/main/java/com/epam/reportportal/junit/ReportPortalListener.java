@@ -614,19 +614,19 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		context.setTestStatus(key, ItemStatus.SKIPPED);
 		Object runner = testContext.getRunner();
 		FrameworkMethod method = testContext.getIdentity();
-		Object target = getTargetFor(runner, method);
-		ReflectiveCallable callable = LifecycleHooks.encloseCallable(method.getMethod(), target);
 		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, parameters);
 		TestItemTree.TestItemLeaf myLeaf = ofNullable(retrieveLeaf(runner).getChildItems().get(myKey)).orElse(null);
 		if (myLeaf == null) {
 			// a test method wasn't started, most likely an ignored test: start and stop a test item with 'skipped' status
+			ReflectiveCallable callable = LifecycleHooks.encloseCallable(method.getMethod(), null);
+			
 			startTest(testContext);
 			startTestMethod(runner, method, callable);
 			stopTestMethod(runner, method, callable, ItemStatus.SKIPPED, null);
 		} else {
 			// a test method started
 			FinishTestItemRQ rq;
-			if (testContext.getDescription().getAnnotation(RetriedTest.class) != null) {
+			if (RetriedTest.isRetriedTest(testContext.getDescription())) {
 				// a retry, send an item update with retry flag
 				rq = buildFinishStepRq(method, myLeaf.getStatus());
 				rq.setRetry(true);
@@ -635,6 +635,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				rq = buildFinishStepRq(method, ItemStatus.SKIPPED);
 				myLeaf.setStatus(ItemStatus.SKIPPED);
 			}
+			ReflectiveCallable callable = LifecycleHooks.getCallableOf(testContext.getDescription());
 			stopTestMethod(runner, method, callable, rq);
 		}
 	}
