@@ -922,7 +922,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				} catch (NoSuchFieldException e) {
 					LOGGER.warn("Unable to get parameters for parameterized runner", e);
 				}
-			} else {
+			} else if (callable != null) {
 				try {
 					Object[] params = (Object[]) Accessible.on(callable).field("val$params").getValue();
 					result.addAll(ParameterUtils.getParameters(method.getMethod(), Arrays.asList(params)));
