@@ -868,7 +868,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	protected List<ParameterResource> getStepParameters(@Nonnull final AtomicTest test) {
 		Object runner = test.getRunner();
 		FrameworkMethod identity = test.getIdentity();
-		return getStepParameters(identity, runner, LifecycleHooks.encloseCallable(identity.getMethod(), getTargetFor(runner, identity)));
+		return getStepParameters(identity, runner, LifecycleHooks.getCallableOf(test.getDescription()));
 	}
 
 	/**
