@@ -63,7 +63,7 @@ public class ItemTreeUtils {
 	}
 
 	@Nonnull
-	public static <T> TestItemTree.ItemTreeKey createItemTreeKey(@Nonnull AtomicTest<T> test) {
+	public static TestItemTree.ItemTreeKey createItemTreeKey(@Nonnull AtomicTest test) {
 		return TestItemTree.ItemTreeKey.of(test.getDescription().getDisplayName());
 	}
 
