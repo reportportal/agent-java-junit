@@ -10,7 +10,7 @@
 [![stackoverflow](https://img.shields.io/badge/reportportal-stackoverflow-orange.svg?style=flat)](http://stackoverflow.com/questions/tagged/reportportal)
 [![Build with Love](https://img.shields.io/badge/build%20with-❤%EF%B8%8F%E2%80%8D-lightgrey.svg)](http://reportportal.io?style=flat)
 
-#### Overview: How to Add ReportPortal Logging to Your JUnit Java Project
+### Overview: How to Add ReportPortal Logging to Your JUnit Java Project
 Report Portal supports JUnit 4 tests. The integration is built on top of [JUnit Foundation](https://github.com/sbabcoc/JUnit-Foundation) framework by [Scott Babcock](https://github.com/sbabcoc).
 
 1. [Configuration](#configuration): Create/update the **_reportportal.properties_** configuration file
@@ -100,7 +100,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>5.0.0</version>
+      <version>5.1.0-RC-1</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
@@ -179,7 +179,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.compiler.source>1.8</maven.compiler.source>  	
   </properties>
- 
+
   <dependencies>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
@@ -194,7 +194,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>5.0.0</version>
+      <version>5.1.0-RC-1</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
@@ -276,7 +276,7 @@ repositories {
 
 dependencies {
     compile 'com.epam.reportportal:logger-java-log4j:5.0.3'
-    compile 'com.epam.reportportal:agent-java-junit:5.0.0'
+    compile 'com.epam.reportportal:agent-java-junit:5.1.0-RC-1'
 }
 
 test {
@@ -397,7 +397,7 @@ We’ll assume that Report Portal is installed and running on <http://localhost:
 <dependency>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>agent-java-junit</artifactId>
-    <version>5.0.0</version>
+    <version>5.1.0-RC-1</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -662,7 +662,7 @@ in this case - add a `maven dependency plugin` dependency explicitly, like this:
       <dependency>
          <groupId>com.epam.reportportal</groupId>
          <artifactId>agent-java-junit</artifactId>
-         <version>5.0.0</version>
+         <version>5.1.0-RC-1</version>
          <scope>test</scope>
       </dependency>
 
@@ -798,7 +798,7 @@ repositories {
 
 dependencies {
     compile 'com.epam.reportportal:logger-java-log4j:5.0.3'
-    compile 'com.epam.reportportal:agent-java-junit:5.0.0'
+    compile 'com.epam.reportportal:agent-java-junit:5.1.0-RC-1'
     compile 'org.apache.logging.log4j:log4j-api:2.12.1'
     compile 'org.apache.logging.log4j:log4j-core:2.12.1'
 }
