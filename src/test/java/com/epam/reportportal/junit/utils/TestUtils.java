@@ -122,16 +122,13 @@ public class TestUtils {
 		when(client.finishLaunch(eq(launch), any())).thenReturn(createMaybe(new OperationCompletionRS()));
 	}
 
+	@SuppressWarnings("unchecked")
 	public static void mockBatchLogging(final ReportPortalClient client) {
 		when(client.log(any(List.class))).thenReturn(createMaybe(new BatchSaveOperatingRS()));
 	}
 
 	public static void mockSingleLogging(final ReportPortalClient client) {
 		when(client.log(any(SaveLogRQ.class))).thenReturn(createMaybe(new EntryCreatedAsyncRS()));
-	}
-
-	public static void mockNestedSteps(final ReportPortalClient client, final Pair<String, String> parentNestedPair) {
-		mockNestedSteps(client, Collections.singletonList(parentNestedPair));
 	}
 
 	@SuppressWarnings("unchecked")
