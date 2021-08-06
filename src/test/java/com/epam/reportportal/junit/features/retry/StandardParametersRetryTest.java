@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class StandardParametersRetryTest implements ArtifactParams {
 	public static final int FAILURE_NUMBER = 1;
 	public static final String FAILURE_PARAMETER = "one";
-	public final AtomicInteger RETRY_COUNT = new AtomicInteger(0);
+	public static final AtomicInteger RETRY_COUNT = new AtomicInteger(0);
 
 	@Rule
 	public final AtomIdentity identity = new AtomIdentity(this);

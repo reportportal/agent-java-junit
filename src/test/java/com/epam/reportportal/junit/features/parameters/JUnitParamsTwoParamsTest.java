@@ -55,9 +55,8 @@ public class JUnitParamsTwoParamsTest implements ArtifactParams {
 
 	@Override
 	public Optional<Map<String, Object>> getParameters() {
-		Object runner = LifecycleHooks.getRunnerForTarget(this);
-		AtomicTest<?> test = LifecycleHooks.getAtomicTestOf(runner);
-		ReflectiveCallable callable = LifecycleHooks.getCallableOf(runner, test.getIdentity());
+		AtomicTest test = LifecycleHooks.getAtomicTestOf(this);
+		ReflectiveCallable callable = LifecycleHooks.getCallableOf(test.getDescription());
 		try {
 			Object[] params = LifecycleHooks.getFieldValue(callable, "val$params");
 			return Param.mapOf(Param.param("param1", params[0]), Param.param("param2", params[1]));
