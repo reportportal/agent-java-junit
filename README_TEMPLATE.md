@@ -4,13 +4,14 @@
 > after a successful launch start. This information might help us to improve both ReportPortal backend and client sides. It is used by the
 > ReportPortal team only and is not supposed for sharing with 3rd parties.
 
+[![Maven Central](https://img.shields.io/maven-central/v/com.epam.reportportal/agent-java-junit.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.epam.reportportal%22%20AND%20a:%22agent-java-junit%22)
 ![CI Build](https://github.com/reportportal/agent-java-junit/workflows/CI%20Build/badge.svg?branch=develop)
-[ ![Download](https://api.bintray.com/packages/epam/reportportal/agent-java-junit/images/download.svg) ](https://bintray.com/epam/reportportal/agent-java-junit/_latestVersion)
 [![Join Slack chat!](https://reportportal-slack-auto.herokuapp.com/badge.svg)](https://reportportal-slack-auto.herokuapp.com)
 [![stackoverflow](https://img.shields.io/badge/reportportal-stackoverflow-orange.svg?style=flat)](http://stackoverflow.com/questions/tagged/reportportal)
 [![Build with Love](https://img.shields.io/badge/build%20with-❤%EF%B8%8F%E2%80%8D-lightgrey.svg)](http://reportportal.io?style=flat)
 
-#### Overview: How to Add ReportPortal Logging to Your JUnit Java Project
+### Overview: How to Add ReportPortal Logging to Your JUnit Java Project
+Report Portal supports JUnit 4 tests. The integration is built on top of [JUnit Foundation](https://github.com/sbabcoc/JUnit-Foundation) framework by [Scott Babcock](https://github.com/sbabcoc).
 
 1. [Configuration](#configuration): Create/update the **_reportportal.properties_** configuration file
 2. [Logback Framework](#logback-framework): For the Logback framework:  
@@ -89,18 +90,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.compiler.source>1.8</maven.compiler.source>  	
   </properties>
-  
-  <repositories>
-    <repository>
-      <id>bintray</id>
-      <url>http://dl.bintray.com/epam/reportportal</url>
-    </repository>
-    <repository>
-      <id>jitpack.io</id>
-      <url>https://jitpack.io</url>
-    </repository>
-  </repositories>
- 
+
   <dependencies>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -189,18 +179,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.compiler.source>1.8</maven.compiler.source>  	
   </properties>
-  
-  <repositories>
-    <repository>
-      <id>bintray</id>
-      <url>http://dl.bintray.com/epam/reportportal</url>
-    </repository>
-    <repository>
-      <id>jitpack.io</id>
-      <url>https://jitpack.io</url>
-    </repository>
-  </repositories>
- 
+
   <dependencies>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
@@ -293,9 +272,6 @@ description = 'ReportPortal JUnit 4 example'
 repositories {
     mavenLocal()
     mavenCentral()
-    jcenter()
-    maven { url 'https://jitpack.io' }
-    maven { url "http://dl.bintray.com/epam/reportportal" }
 }
 
 dependencies {
@@ -414,22 +390,7 @@ We’ll assume that Report Portal is installed and running on <http://localhost:
 
 #### Step 2 - Configure pom.xml
 
-##### 2.1 Add following repositories:
-
-```xml
-<repositories>
-    <repository>
-        <id>bintray</id>
-        <url>http://dl.bintray.com/epam/reportportal</url>
-    </repository>
-    <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-    </repository>
-</repositories>
-```
-
-##### 2.2 Add following dependencies:
+##### 2.1 Add following dependencies:
 
 *Report Portal agent implementation for JUnit 4*
 ```xml
@@ -440,11 +401,11 @@ We’ll assume that Report Portal is installed and running on <http://localhost:
     <scope>test</scope>
 </dependency>
 ```
-Note that `agent-java-junit` brings in `JUnit 4.12` and the `JUnit Foundation` library as transitive dependencies, so these don't need to be declared explicitly in your project.
+Note that `agent-java-junit` brings in `JUnit` and the `JUnit Foundation` library as transitive dependencies, so these don't need to be declared explicitly in your project.
 
-> Latest version of the agent, could be found [here](https://bintray.com/epam/reportportal/agent-java-junit)
+> Latest version of the agent, could be found [here](https://search.maven.org/search?q=g:%22com.epam.reportportal%22%20AND%20a:%22agent-java-junit%22)
 
-##### 2.3 Add Report Portal dedicated logger wrapper  
+##### 2.2 Add Report Portal dedicated logger wrapper  
 
 If you prefer using **Logback** logging library, add following dependencies:
 
@@ -456,7 +417,7 @@ If you prefer using **Logback** logging library, add following dependencies:
     <version>5.0.3</version>
 </dependency>
 ```
-> Up to date version could be found [here](https://bintray.com/epam/reportportal/logger-java-logback)
+> Up to date version could be found [here](https://search.maven.org/search?q=g:%22com.epam.reportportal%22%20AND%20a:%22logger-java-logback%22)
 
 *The logback itself*
 ```xml
@@ -477,7 +438,7 @@ If you prefer using **Log4j** logging library, add following dependencies:
     <version>5.0.3</version>
 </dependency>
 ```
-> Up to date version could be found [here](https://bintray.com/epam/reportportal/logger-java-log4j)
+> Up to date version could be found [here](https://search.maven.org/search?q=g:%22com.epam.reportportal%22%20AND%20a:%22logger-java-log4j%22)
 
 *The log4j itself*
 ```xml
@@ -697,17 +658,6 @@ in this case - add a `maven dependency plugin` dependency explicitly, like this:
    <artifactId>myProject</artifactId>
    <version>1.0-SNAPSHOT</version>
 
-   <repositories>
-      <repository>
-         <id>bintray</id>
-         <url>http://dl.bintray.com/epam/reportportal</url>
-      </repository>
-      <repository>
-         <id>jitpack.io</id>
-         <url>https://jitpack.io</url>
-      </repository>
-   </repositories>
-
    <dependencies>
       <dependency>
          <groupId>com.epam.reportportal</groupId>
@@ -819,7 +769,7 @@ You can put the jar directly in the project tree or use the one, that Maven down
 On MAC OS system the path to maven downloaded junit-foundation.jar would have the following format:
 
 ```shell
-/Users/<user_name>/.m2/repository/com/nordstrom/tools/junit-foundation/9.4.3/junit-foundation-9.4.3.jar
+/Users/<user_name>/.m2/repository/com/nordstrom/tools/junit-foundation/12.5.3/junit-foundation-12.5.3.jar
 ```
 
 When you are done adding local run configuration, simply go to *Run* -> *Run '<test_run_name>'* and that test run results will be sent to Report Portal
@@ -844,9 +794,6 @@ targetCompatibility = 1.8
 repositories {
     mavenLocal()
     mavenCentral()
-    jcenter()
-    maven { url 'https://jitpack.io' }
-    maven { url "http://dl.bintray.com/epam/reportportal" }
 }
 
 dependencies {
