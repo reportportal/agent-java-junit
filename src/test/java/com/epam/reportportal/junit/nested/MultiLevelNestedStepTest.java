@@ -31,7 +31,6 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Executors;
 
 import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.junit.jupiter.api.Assertions.*;
@@ -52,8 +51,7 @@ public class MultiLevelNestedStepTest {
 		TestUtils.mockLaunch(client, null, classId, methodId, nestedId);
 		TestUtils.mockNestedSteps(client, Collections.singletonList(Pair.of(nestedId, secondLevelNestedId)));
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
-				Executors.newSingleThreadExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
 	}
 
 	@Test

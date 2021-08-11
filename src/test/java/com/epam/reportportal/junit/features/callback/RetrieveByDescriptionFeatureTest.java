@@ -51,8 +51,7 @@ public class RetrieveByDescriptionFeatureTest {
 	public TestRule rule = new TestWatcher() {
 		@Override
 		protected void finished(@Nonnull Description description) {
-			ofNullable(ItemTreeUtils.retrieveLeaf(
-					description,
+			ofNullable(ItemTreeUtils.retrieveLeaf(description,
 					ParallelRunningContext.getCurrent().getItemTree()
 			)).ifPresent(testItemLeaves::add);
 		}
@@ -73,8 +72,7 @@ public class RetrieveByDescriptionFeatureTest {
 		request.setEndTime(Calendar.getInstance().getTime());
 		request.setStatus("PASSED");
 		request.setAttributes(Sets.newHashSet(new ItemAttributesRQ("SLID", "0586c1c90fcd4a499591109692426d54")));
-		ItemTreeReporter.finishItem(
-				ReportPortalListener.getReportPortal().getClient(),
+		ItemTreeReporter.finishItem(ReportPortalListener.getReportPortal().getClient(),
 				request,
 				ParallelRunningContext.getCurrent().getItemTree().getLaunchId(),
 				testItemLeaves.get(0)

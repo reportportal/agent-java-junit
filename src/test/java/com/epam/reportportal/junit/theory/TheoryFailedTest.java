@@ -33,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
@@ -54,13 +53,11 @@ public class TheoryFailedTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client,
-				TestUtils.standardParameters(),
-				Executors.newSingleThreadExecutor()
-		));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	public void verify_simple_theory_test_failed() {
 		TestUtils.runClasses(TheoryFailTest.class);
 

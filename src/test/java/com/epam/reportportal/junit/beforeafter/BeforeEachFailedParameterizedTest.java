@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -52,8 +51,7 @@ public class BeforeEachFailedParameterizedTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
-				Executors.newSingleThreadExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
 	}
 
 	@Test
@@ -78,8 +76,7 @@ public class BeforeEachFailedParameterizedTest {
 
 		IntStream.rangeClosed(0, 1).boxed().forEach(i -> {
 			StartTestItemRQ testStart = startItems.get(1 + (i * 2));
-			assertThat(
-					"@Test has correct code reference",
+			assertThat("@Test has correct code reference",
 					testStart.getCodeRef(),
 					equalTo(BeforeFailedParametrizedTest.class.getCanonicalName() + ".testBeforeEachFailed")
 			);
