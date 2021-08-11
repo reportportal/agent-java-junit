@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- ItemTree retrieve by test Description
 
 ## [5.1.0-RC-1]
 ### Changed
