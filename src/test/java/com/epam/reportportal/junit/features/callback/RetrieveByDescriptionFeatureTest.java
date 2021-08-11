@@ -71,7 +71,7 @@ public class RetrieveByDescriptionFeatureTest {
 		FinishTestItemRQ request = new FinishTestItemRQ();
 		request.setEndTime(Calendar.getInstance().getTime());
 		request.setStatus("PASSED");
-		request.setAttributes(Sets.newHashSet(new ItemAttributesRQ("SLID", "0586c1c90fcd4a499591109692426d54")));
+		request.setAttributes(Sets.newHashSet(new ItemAttributesRQ(SLID, SLID_VALUE)));
 		ItemTreeReporter.finishItem(ReportPortalListener.getReportPortal().getClient(),
 				request,
 				ParallelRunningContext.getCurrent().getItemTree().getLaunchId(),
