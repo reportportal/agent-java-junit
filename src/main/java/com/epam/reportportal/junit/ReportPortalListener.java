@@ -922,7 +922,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				} catch (NoSuchFieldException e) {
 					LOGGER.warn("Unable to get parameters for parameterized runner", e);
 				}
-			} else if (callable != null) {
+			} else {
 				try {
 					Object[] params = (Object[]) Accessible.on(callable).field("val$params").getValue();
 					result.addAll(ParameterUtils.getParameters(method.getMethod(), Arrays.asList(params)));
@@ -1115,7 +1115,6 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	@Override
 	public void afterInvocation(Object runner, FrameworkMethod method, ReflectiveCallable callable, Throwable thrown) {
 		if (isReportable(method)) {
-			launch.get().getStepReporter().finishPreviousStep();
 			ItemStatus status = ofNullable(thrown).map(t -> {
 				boolean isAssumption = t instanceof AssumptionViolatedException;
 				ItemStatus myStatus = ofNullable(method.getAnnotation(Test.class)).filter(a -> a.expected().isInstance(thrown))
