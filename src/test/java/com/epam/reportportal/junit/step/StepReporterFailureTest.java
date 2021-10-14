@@ -31,7 +31,6 @@ import org.junit.runner.Result;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -58,11 +57,7 @@ public class StepReporterFailureTest {
 		TestUtils.mockLaunch(client, null, null, testClassUuid, testMethodUuid);
 		TestUtils.mockNestedSteps(client, testStepUuidOrder);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(
-				client,
-				TestUtils.standardParameters(),
-				Executors.newSingleThreadExecutor()
-		));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
 	}
 
 	/*
@@ -80,12 +75,10 @@ public class StepReporterFailureTest {
 		assertThat(result.getFailureCount(), equalTo(0));
 
 		ArgumentCaptor<FinishTestItemRQ> finishNestedStep = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, timeout(PROCESSING_TIMEOUT)).
-				finishTestItem(same(stepUuidList.get(2)), finishNestedStep.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(stepUuidList.get(2)), finishNestedStep.capture());
 
 		ArgumentCaptor<FinishTestItemRQ> finishTestStep = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, timeout(PROCESSING_TIMEOUT)).
-				finishTestItem(same(testMethodUuid), finishTestStep.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(testMethodUuid), finishTestStep.capture());
 
 		assertThat(finishNestedStep.getValue().getStatus(), equalTo(ItemStatus.FAILED.name()));
 		assertThat(finishTestStep.getValue().getStatus(), equalTo(ItemStatus.FAILED.name()));

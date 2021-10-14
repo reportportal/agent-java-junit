@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -50,8 +49,7 @@ public class CallbackLogTest {
 		TestUtils.mockBatchLogging(client);
 		TestUtils.mockSingleLogging(client);
 		ListenerParameters params = TestUtils.standardParameters();
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, params,
-				Executors.newSingleThreadExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, params, TestUtils.testExecutor()));
 	}
 
 	@Test
@@ -70,8 +68,7 @@ public class CallbackLogTest {
 				.filter(r -> methodIds.get(0).equals(r.getItemUuid()))
 				.collect(Collectors.toList());
 
-		assertThat(
-				logs.stream().filter(l -> CallbackLogFeatureTest.LOG_MESSAGE.equals(l.getMessage())).collect(Collectors.toList()),
+		assertThat(logs.stream().filter(l -> CallbackLogFeatureTest.LOG_MESSAGE.equals(l.getMessage())).collect(Collectors.toList()),
 				hasSize(1)
 		);
 	}

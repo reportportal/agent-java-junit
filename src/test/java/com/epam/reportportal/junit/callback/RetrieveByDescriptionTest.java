@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 EPAM Systems
+ * Copyright 2021 EPAM Systems
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.junit.beforeafter;
+package com.epam.reportportal.junit.callback;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.beforeafter.AfterEachFailedForSecondParameterTest;
+import com.epam.reportportal.junit.features.callback.RetrieveByDescriptionFeatureTest;
 import com.epam.reportportal.junit.utils.TestUtils;
-import com.epam.reportportal.listeners.ItemStatus;
+import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
+import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -35,38 +36,37 @@ import java.util.stream.Stream;
 import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
-public class AfterEachFailedInParameterizedTest {
-	private static final int TEST_METHOD_NUMBER = 4;
-
+public class RetrieveByDescriptionTest {
 	private final String classId = CommonUtils.namedId("class_");
-	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_"))
-			.limit(TEST_METHOD_NUMBER)
-			.collect(Collectors.toList());
-
+	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(2).collect(Collectors.toList());
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+		ListenerParameters params = TestUtils.standardParameters();
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, params, TestUtils.testExecutor()));
 	}
 
 	@Test
-	public void verify_after_each_failure_in_parameterized_test() {
-		TestUtils.runClasses(AfterEachFailedForSecondParameterTest.class);
+	public void verify_retrieve_by_description() {
+		TestUtils.runClasses(RetrieveByDescriptionFeatureTest.class);
 
-		verify(client, timeout(PROCESSING_TIMEOUT).times(TEST_METHOD_NUMBER)).startTestItem(same(classId), any());
-
+		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).startTestItem(same(classId), any());
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		methodIds.forEach(id -> verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(id), finishCaptor.capture()));
+		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).finishTestItem(same(methodIds.get(0)), finishCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(1)), finishCaptor.capture());
 
 		List<FinishTestItemRQ> finishRqs = finishCaptor.getAllValues();
-
-		finishRqs.subList(0, 3).forEach(rq -> assertThat(rq.getStatus(), equalTo(ItemStatus.PASSED.name())));
-		assertThat(finishRqs.get(3).getStatus(), equalTo(ItemStatus.FAILED.name()));
+		assertThat(finishRqs.get(1).getAttributes(), hasSize(1));
+		ItemAttributesRQ attribute = finishRqs.get(1).getAttributes().iterator().next();
+		assertThat(attribute.getKey(), equalTo(RetrieveByDescriptionFeatureTest.SLID));
+		assertThat(attribute.getValue(), equalTo(RetrieveByDescriptionFeatureTest.SLID_VALUE));
 	}
 }

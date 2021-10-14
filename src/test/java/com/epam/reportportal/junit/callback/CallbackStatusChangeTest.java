@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -50,8 +49,7 @@ public class CallbackStatusChangeTest {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
 		ListenerParameters params = TestUtils.standardParameters();
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, params,
-				Executors.newSingleThreadExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, params, TestUtils.testExecutor()));
 	}
 
 	@Test

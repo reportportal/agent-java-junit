@@ -36,7 +36,6 @@ import org.mockito.ArgumentMatchers;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -68,8 +67,7 @@ public class SuiteOfSuitesTest {
 		TestUtils.mockLaunch(client, null, firstSuiteId, secondSuiteId, classIds);
 		TestUtils.mockNestedSteps(client, tests);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
-				Executors.newSingleThreadExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
 	}
 
 	private static String getMethodName(Class<?> clazz) {
@@ -89,7 +87,10 @@ public class SuiteOfSuitesTest {
 		TestUtils.runClasses(SuiteOfSuitesClass.class);
 
 		ArgumentCaptor<StartTestItemRQ> suiteCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(ArgumentMatchers.startsWith(TestUtils.ROOT_SUITE_PREFIX), suiteCaptor.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(
+				ArgumentMatchers.startsWith(TestUtils.ROOT_SUITE_PREFIX),
+				suiteCaptor.capture()
+		);
 		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(firstSuiteId), suiteCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> testCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, timeout(PROCESSING_TIMEOUT).times(2)).startTestItem(same(secondSuiteId), testCaptor.capture());

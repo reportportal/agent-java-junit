@@ -28,14 +28,14 @@ repositories {
 }
 
 dependencies {
-    api 'com.epam.reportportal:client-java:5.1.0-RC-6'
+    api 'com.epam.reportportal:client-java:5.1.0-RC-12'
     api 'com.epam.reportportal:commons-model:5.0.0'
     api 'com.nordstrom.tools:junit-foundation:15.3.0'
     api 'com.google.code.findbugs:jsr305:3.0.2'
 
     implementation 'org.slf4j:slf4j-api:1.7.25'
 
-    testImplementation 'com.github.reportportal:agent-java-test-utils:ddcf50ee20'
+    testImplementation 'com.github.reportportal:agent-java-test-utils:3d4d206'
     testImplementation 'org.aspectj:aspectjweaver:1.9.2'
     testImplementation 'org.hamcrest:hamcrest-core:2.2'
     testImplementation "org.mockito:mockito-core:${project.mockito_version}"

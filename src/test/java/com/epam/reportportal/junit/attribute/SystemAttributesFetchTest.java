@@ -22,23 +22,21 @@ import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
-import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributeResource;
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class SystemAttributesFetchTest {
 
@@ -51,8 +49,7 @@ public class SystemAttributesFetchTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(),
-				Executors.newSingleThreadExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
 	}
 
 	@Test
@@ -69,9 +66,7 @@ public class SystemAttributesFetchTest {
 		assertThat(systemAttributes, hasSize(4));
 		List<String> systemAttributesKeys = systemAttributes.stream().map(ItemAttributeResource::getKey).collect(Collectors.toList());
 		assertThat(systemAttributesKeys, hasItems("agent", "skippedIssue", "jvm", "os"));
-		List<ItemAttributesRQ> agentName = systemAttributes.stream()
-				.filter(a -> "agent".equals(a.getKey()))
-				.collect(Collectors.toList());
+		List<ItemAttributesRQ> agentName = systemAttributes.stream().filter(a -> "agent".equals(a.getKey())).collect(Collectors.toList());
 		assertThat(agentName, hasSize(1));
 		assertThat(agentName.get(0).getValue(), equalTo("test-name|test-version"));
 	}

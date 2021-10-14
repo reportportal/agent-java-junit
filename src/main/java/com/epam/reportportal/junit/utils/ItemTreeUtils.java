@@ -69,9 +69,8 @@ public class ItemTreeUtils {
 
 	@Nonnull
 	public static TestItemTree.ItemTreeKey createItemTreeKey(@Nonnull Description description) {
-		return TestItemTree.ItemTreeKey.of(description.getMethodName(),
-				(description.getTestClass().getName() + "." + description.getMethodName()).hashCode()
-		);
+		String fullName = description.getTestClass().getName() + "." + description.getMethodName();
+		return TestItemTree.ItemTreeKey.of(fullName,fullName.hashCode());
 	}
 
 	@Nullable
