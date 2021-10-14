@@ -82,14 +82,16 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	private static final String IS_THEORY = "IS_THEORY";
 	private static final Map<Class<? extends Annotation>, ItemType> TYPE_MAP = Collections.unmodifiableMap(new HashMap<Class<? extends Annotation>, ItemType>() {
 		private static final long serialVersionUID = 5292344734560662610L;
-	{
-		put(Test.class, ItemType.STEP);
-		put(Before.class, ItemType.BEFORE_METHOD);
-		put(After.class, ItemType.AFTER_METHOD);
-		put(BeforeClass.class, ItemType.BEFORE_CLASS);
-		put(AfterClass.class, ItemType.AFTER_CLASS);
-		put(Theory.class, ItemType.STEP);
-	}});
+
+		{
+			put(Test.class, ItemType.STEP);
+			put(Before.class, ItemType.BEFORE_METHOD);
+			put(After.class, ItemType.AFTER_METHOD);
+			put(BeforeClass.class, ItemType.BEFORE_CLASS);
+			put(AfterClass.class, ItemType.AFTER_CLASS);
+			put(Theory.class, ItemType.STEP);
+		}
+	});
 
 	private static final Predicate<StackTraceElement> EXPECTED_EXCEPTION_ELEMENT = e -> "org.junit.rules.ExpectedException".equals(e.getClassName());
 	private static final Predicate<StackTraceElement[]> IS_EXPECTED_EXCEPTION_RULE = eList -> Arrays.stream(eList)
@@ -619,7 +621,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		if (myLeaf == null) {
 			// a test method wasn't started, most likely an ignored test: start and stop a test item with 'skipped' status
 			ReflectiveCallable callable = LifecycleHooks.encloseCallable(method.getMethod(), null);
-			
+
 			startTest(testContext);
 			startTestMethod(runner, method, callable);
 			stopTestMethod(runner, method, callable, ItemStatus.SKIPPED, null);
@@ -881,7 +883,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Nullable
 	protected List<ParameterResource> getStepParameters(@Nonnull final FrameworkMethod method, @Nonnull final Object runner,
-			@Nonnull final ReflectiveCallable callable) {
+			@Nullable final ReflectiveCallable callable) {
 		List<ParameterResource> parameters = getMethodParameters(method, runner, callable);
 		return parameters.isEmpty() ? null : parameters;
 	}
@@ -896,7 +898,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Nonnull
 	protected List<ParameterResource> getMethodParameters(@Nonnull final FrameworkMethod method, @Nonnull final Object runner,
-			@Nonnull final ReflectiveCallable callable) {
+			@Nullable final ReflectiveCallable callable) {
 		List<ParameterResource> result = new ArrayList<>();
 		if (!(method.isStatic())) {
 			Object target = getTargetFor(runner, method);
@@ -922,7 +924,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				} catch (NoSuchFieldException e) {
 					LOGGER.warn("Unable to get parameters for parameterized runner", e);
 				}
-			} else {
+			} else if (callable != null) {
 				try {
 					Object[] params = (Object[]) Accessible.on(callable).field("val$params").getValue();
 					result.addAll(ParameterUtils.getParameters(method.getMethod(), Arrays.asList(params)));
@@ -1029,8 +1031,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	protected Set<ItemAttributesRQ> getAttributes(@Nonnull final FrameworkMethod frameworkMethod) {
 		Stream<ItemAttributesRQ> categories = ofNullable(frameworkMethod.getAnnotation(Category.class)).map(a -> Arrays.stream(a.value())
 				.map(c -> new ItemAttributesRQ(null, c.getSimpleName()))).orElse(Stream.empty());
-		Stream<ItemAttributesRQ> attributes = ofNullable(frameworkMethod.getMethod()).flatMap(m -> ofNullable(m.getAnnotation(Attributes.class))
-				.map(a -> AttributeParser.retrieveAttributes(a).stream())).orElse(Stream.empty());
+		Stream<ItemAttributesRQ> attributes = ofNullable(frameworkMethod.getMethod()).flatMap(m -> ofNullable(m.getAnnotation(Attributes.class)).map(
+				a -> AttributeParser.retrieveAttributes(a).stream())).orElse(Stream.empty());
 		return Stream.concat(categories, attributes).collect(Collectors.toSet());
 	}
 
