@@ -365,7 +365,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				.orElseGet(() -> createItemTreeKey(method, getStepParameters(testContext)));
 		ItemStatus status = context.getTestStatus(key);
 		Throwable throwable = context.getTestThrowable(key);
-		TestItemTree.TestItemLeaf testLeaf = getLeaf(testContext.getRunner());
+		Object runner = testContext.getRunner();
+		ReflectiveCallable callable = LifecycleHooks.getCallableOf(testContext.getDescription());
+		TestItemTree.TestItemLeaf testLeaf = getLeaf(runner);
 		if (testLeaf != null) {
 			ofNullable(testLeaf.getChildItems().get(key)).ifPresent(l -> {
 				ItemStatus itemStatus = l.getStatus();
@@ -382,16 +384,16 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 						});
 						if (status == ItemStatus.PASSED || (throwable != null
 								&& IS_EXPECTED_EXCEPTION_RULE.test(throwable.getStackTrace()))) {
-							stopTestMethod(l, method, buildFinishStepRq(method, status));
+							stopTestMethod(l, method, buildFinishStepRq(runner, method, callable, status));
 						}
 					}
-				} else if (isTheory && testContext.getRunner().getClass() == Theories.class) {
+				} else if (isTheory && runner.getClass() == Theories.class) {
 					// fail theory test if no theories passed
 					ItemStatus theoryStatus = context.getTestStatus(key);
 					if (ItemStatus.FAILED == theoryStatus) {
 						sendReportPortalMsg(l.getItemId(), LogLevel.ERROR, context.getTestThrowable(key));
 					}
-					stopTestMethod(l, method, buildFinishStepRq(method, theoryStatus == null ? ItemStatus.PASSED : theoryStatus));
+					stopTestMethod(l, method, buildFinishStepRq(runner, method, callable, theoryStatus == null ? ItemStatus.PASSED : theoryStatus));
 				}
 			});
 			testLeaf.setStatus(status);
@@ -500,7 +502,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				StartTestItemRQ startRq = buildStartStepRq(runner, description, method, callable, skipStartTime);
 				Maybe<String> id = launch.get().startTestItem(l.getItemId(), startRq);
 				ofNullable(throwable).ifPresent(t -> sendReportPortalMsg(id, LogLevel.WARN, throwable));
-				FinishTestItemRQ finishRq = buildFinishStepRq(method, ItemStatus.SKIPPED);
+				FinishTestItemRQ finishRq = buildFinishStepRq(runner, method, callable, ItemStatus.SKIPPED);
 				finishRq.setIssue(Launch.NOT_ISSUE);
 				launch.get().finishTestItem(id, finishRq);
 			});
@@ -572,7 +574,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	protected void stopTestMethod(@Nonnull final Object runner, @Nonnull final FrameworkMethod method,
 			@Nonnull final ReflectiveCallable callable, @Nonnull final ItemStatus status, @Nullable final Throwable throwable) {
-		FinishTestItemRQ rq = buildFinishStepRq(method, status);
+		FinishTestItemRQ rq = buildFinishStepRq(runner, method, callable, status);
 		stopTestMethod(runner, method, callable, rq);
 
 		ItemType methodType = detectMethodType(method);
@@ -628,16 +630,16 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		} else {
 			// a test method started
 			FinishTestItemRQ rq;
+			ReflectiveCallable callable = LifecycleHooks.getCallableOf(testContext.getDescription());
 			if (RetriedTest.isRetriedTest(testContext.getDescription())) {
 				// a retry, send an item update with retry flag
-				rq = buildFinishStepRq(method, myLeaf.getStatus());
+				rq = buildFinishStepRq(runner, method, callable, myLeaf.getStatus());
 				rq.setRetry(true);
 				myLeaf.setAttribute(IS_RETRY, true);
 			} else {
-				rq = buildFinishStepRq(method, ItemStatus.SKIPPED);
+				rq = buildFinishStepRq(runner, method, callable, ItemStatus.SKIPPED);
 				myLeaf.setStatus(ItemStatus.SKIPPED);
 			}
-			ReflectiveCallable callable = LifecycleHooks.getCallableOf(testContext.getDescription());
 			stopTestMethod(runner, method, callable, rq);
 		}
 	}
@@ -834,6 +836,20 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		rq.setEndTime(Calendar.getInstance().getTime());
 		rq.setStatus(status.name());
 		return rq;
+	}
+
+	/**
+	 * Extension point to customize test method on it's finish
+	 *
+	 * @param method JUnit framework method context
+	 * @param status method completion status
+	 * @return Request to ReportPortal
+	 */
+	@SuppressWarnings("unused")
+	@Nonnull
+	protected FinishTestItemRQ buildFinishStepRq(@Nonnull final Object runner, @Nullable final FrameworkMethod method,
+			@Nonnull final ReflectiveCallable callable, @Nonnull final ItemStatus status) {
+		return buildFinishStepRq(method, status);
 	}
 
 	/**

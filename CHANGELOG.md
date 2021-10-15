@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `ReportPortalListener.buildFinishStepRq(Object, FrameworkMethod, ReflectiveCallable, ItemStatus)` method
 
 ## [5.1.0-RC-2]
 ### Changed
