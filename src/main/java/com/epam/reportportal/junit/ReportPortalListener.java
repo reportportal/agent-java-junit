@@ -393,7 +393,11 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 					if (ItemStatus.FAILED == theoryStatus) {
 						sendReportPortalMsg(l.getItemId(), LogLevel.ERROR, context.getTestThrowable(key));
 					}
-					stopTestMethod(l, method, buildFinishStepRq(runner, method, callable, theoryStatus == null ? ItemStatus.PASSED : theoryStatus));
+					stopTestMethod(
+							l,
+							method,
+							buildFinishStepRq(runner, method, callable, theoryStatus == null ? ItemStatus.PASSED : theoryStatus)
+					);
 				}
 			});
 			testLeaf.setStatus(status);
@@ -841,8 +845,10 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	/**
 	 * Extension point to customize test method on it's finish
 	 *
-	 * @param method JUnit framework method context
-	 * @param status method completion status
+	 * @param runner   JUnit test runner context
+	 * @param method   JUnit framework method context
+	 * @param callable {@link ReflectiveCallable} object being intercepted
+	 * @param status   method completion status
 	 * @return Request to ReportPortal
 	 */
 	@SuppressWarnings("unused")
