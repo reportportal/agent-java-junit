@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Service location step in documentation
+### Removed
+- Service location file
 
 ## [5.1.0-RC-3]
 ### Added
