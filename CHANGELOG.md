@@ -6,6 +6,7 @@
 ### Changed
 - Version promoted to stable release
 - Client version updated on [5.1.0](https://github.com/reportportal/client-java/releases/tag/5.1.0)
+- JUnit-Foundation updated on [15.3.4](https://github.com/sbabcoc/JUnit-Foundation/releases/tag/junit-foundation-15.3.4)
 
 ## [5.1.0-RC-4]
 ### Added
