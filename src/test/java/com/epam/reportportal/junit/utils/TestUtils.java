@@ -45,7 +45,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.epam.reportportal.util.test.CommonUtils.createMaybe;
 import static com.epam.reportportal.util.test.CommonUtils.generateUniqueId;
 import static java.util.Optional.ofNullable;
 import static org.mockito.ArgumentMatchers.*;
@@ -85,21 +84,21 @@ public class TestUtils {
 	public static <T extends Collection<String>> void mockLaunch(@Nonnull final ReportPortalClient client,
 			@Nullable final String launchUuid, @Nullable final String suiteUuid, @Nonnull final Collection<Pair<String, T>> testSteps) {
 		String launch = ofNullable(launchUuid).orElse(CommonUtils.namedId("launch_"));
-		when(client.startLaunch(any())).thenReturn(createMaybe(new StartLaunchRS(launch, 1L)));
+		when(client.startLaunch(any())).thenReturn(Maybe.just(new StartLaunchRS(launch, 1L)));
 
 		String rootItemId = CommonUtils.namedId(ROOT_SUITE_PREFIX);
-		Maybe<ItemCreatedRS> rootMaybe = createMaybe(new ItemCreatedRS(rootItemId, rootItemId));
+		Maybe<ItemCreatedRS> rootMaybe = Maybe.just(new ItemCreatedRS(rootItemId, rootItemId));
 		when(client.startTestItem(any())).thenReturn(rootMaybe);
 
 		String parentId = ofNullable(suiteUuid).map(s -> {
-			Maybe<ItemCreatedRS> suiteMaybe = createMaybe(new ItemCreatedRS(s, s));
+			Maybe<ItemCreatedRS> suiteMaybe = Maybe.just(new ItemCreatedRS(s, s));
 			when(client.startTestItem(same(rootItemId), any())).thenReturn(suiteMaybe);
 			return s;
 		}).orElse(rootItemId);
 
 		List<Maybe<ItemCreatedRS>> testResponses = testSteps.stream()
 				.map(Pair::getKey)
-				.map(uuid -> createMaybe(new ItemCreatedRS(uuid, uuid)))
+				.map(uuid -> Maybe.just(new ItemCreatedRS(uuid, uuid)))
 				.collect(Collectors.toList());
 
 		Maybe<ItemCreatedRS> first = testResponses.get(0);
@@ -110,35 +109,35 @@ public class TestUtils {
 			String testClassUuid = test.getKey();
 			List<Maybe<ItemCreatedRS>> stepResponses = test.getValue()
 					.stream()
-					.map(uuid -> createMaybe(new ItemCreatedRS(uuid, uuid)))
+					.map(uuid -> Maybe.just(new ItemCreatedRS(uuid, uuid)))
 					.collect(Collectors.toList());
 
 			Maybe<ItemCreatedRS> myFirst = stepResponses.get(0);
 			Maybe<ItemCreatedRS>[] myOther = stepResponses.subList(1, stepResponses.size()).toArray(new Maybe[0]);
 			when(client.startTestItem(same(testClassUuid), any())).thenReturn(myFirst, myOther);
 			new HashSet<>(test.getValue()).forEach(testMethodUuid -> when(client.finishTestItem(same(testMethodUuid), any())).thenReturn(
-					createMaybe(new OperationCompletionRS())));
-			when(client.finishTestItem(same(testClassUuid), any())).thenReturn(createMaybe(new OperationCompletionRS()));
+					Maybe.just(new OperationCompletionRS())));
+			when(client.finishTestItem(same(testClassUuid), any())).thenReturn(Maybe.just(new OperationCompletionRS()));
 		});
 
 		ofNullable(suiteUuid).ifPresent(s -> {
-			Maybe<OperationCompletionRS> suiteFinishMaybe = createMaybe(new OperationCompletionRS());
+			Maybe<OperationCompletionRS> suiteFinishMaybe = Maybe.just(new OperationCompletionRS());
 			when(client.finishTestItem(same(s), any())).thenReturn(suiteFinishMaybe);
 		});
 
-		Maybe<OperationCompletionRS> rootFinishMaybe = createMaybe(new OperationCompletionRS());
+		Maybe<OperationCompletionRS> rootFinishMaybe = Maybe.just(new OperationCompletionRS());
 		when(client.finishTestItem(eq(rootItemId), any())).thenReturn(rootFinishMaybe);
 
-		when(client.finishLaunch(eq(launch), any())).thenReturn(createMaybe(new OperationCompletionRS()));
+		when(client.finishLaunch(eq(launch), any())).thenReturn(Maybe.just(new OperationCompletionRS()));
 	}
 
 	@SuppressWarnings("unchecked")
 	public static void mockBatchLogging(final ReportPortalClient client) {
-		when(client.log(any(List.class))).thenReturn(createMaybe(new BatchSaveOperatingRS()));
+		when(client.log(any(List.class))).thenReturn(Maybe.just(new BatchSaveOperatingRS()));
 	}
 
 	public static void mockSingleLogging(final ReportPortalClient client) {
-		when(client.log(any(SaveLogRQ.class))).thenReturn(createMaybe(new EntryCreatedAsyncRS()));
+		when(client.log(any(SaveLogRQ.class))).thenReturn(Maybe.just(new EntryCreatedAsyncRS()));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -147,7 +146,7 @@ public class TestUtils {
 				.collect(Collectors.groupingBy(Pair::getKey, Collectors.mapping(Pair::getValue, Collectors.toList())));
 		responseOrders.forEach((k, v) -> {
 			List<Maybe<ItemCreatedRS>> responses = v.stream()
-					.map(uuid -> createMaybe(new ItemCreatedRS(uuid, uuid)))
+					.map(uuid -> Maybe.just(new ItemCreatedRS(uuid, uuid)))
 					.collect(Collectors.toList());
 
 			Maybe<ItemCreatedRS> first = responses.get(0);
@@ -157,7 +156,7 @@ public class TestUtils {
 		parentNestedPairs.forEach(p -> when(client.finishTestItem(
 				same(p.getValue()),
 				any()
-		)).thenAnswer((Answer<Maybe<OperationCompletionRS>>) invocation -> createMaybe(new OperationCompletionRS())));
+		)).thenAnswer((Answer<Maybe<OperationCompletionRS>>) invocation -> Maybe.just(new OperationCompletionRS())));
 	}
 
 	public static List<SaveLogRQ> toSaveLogRQ(List<List<MultipartBody.Part>> rqs) {
