@@ -989,7 +989,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	@Nullable
 	protected Object getTargetFor(@Nonnull final Object runner, @Nonnull final FrameworkMethod method) {
 		Description description = LifecycleHooks.describeChild(runner, method);
-		return LifecycleHooks.getTargetOf(description);
+		return ofNullable(description).map(LifecycleHooks::getTargetOf).orElse(null);
 	}
 
 	/**
