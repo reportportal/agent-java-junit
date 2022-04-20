@@ -28,9 +28,9 @@ repositories {
 }
 
 dependencies {
-    api 'com.epam.reportportal:client-java:5.1.7'
+    api 'com.epam.reportportal:client-java:5.1.9'
     api 'com.epam.reportportal:commons-model:5.0.0'
-    api 'com.nordstrom.tools:junit-foundation:15.3.4'
+    api 'com.nordstrom.tools:junit-foundation:16.0.1'
     api 'com.google.code.findbugs:jsr305:3.0.2'
 
     implementation 'org.slf4j:slf4j-api:1.7.36'

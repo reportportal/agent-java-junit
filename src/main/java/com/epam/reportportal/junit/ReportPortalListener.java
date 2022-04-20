@@ -56,6 +56,7 @@ import javax.annotation.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -301,6 +302,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 *
 	 * @param runner JUnit test runner
 	 */
+	@SuppressWarnings("ReactiveStreamsUnusedPublisher")
 	protected void stopRunner(@Nonnull final Object runner) {
 		FinishTestItemRQ rq = buildFinishSuiteRq(LifecycleHooks.getTestClassOf(runner));
 		ofNullable(getLeaf(runner)).ifPresent(l -> {
@@ -508,6 +510,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				ofNullable(throwable).ifPresent(t -> sendReportPortalMsg(id, LogLevel.WARN, throwable));
 				FinishTestItemRQ finishRq = buildFinishStepRq(runner, method, callable, ItemStatus.SKIPPED);
 				finishRq.setIssue(Launch.NOT_ISSUE);
+				//noinspection ReactiveStreamsUnusedPublisher
 				launch.get().finishTestItem(id, finishRq);
 			});
 		} catch (IllegalAccessException | NoSuchFieldException | SecurityException e) {
@@ -538,7 +541,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			 * ensure previous request passed to maintain the order
 			 * FIXME: rework it to be more RX-friendly, make client wait for all Maybe features
 			 */
-			// noinspection BlockingMethodInNonBlockingContext, ResultOfMethodCallIgnored
+			// noinspection ResultOfMethodCallIgnored
 			rs.blockingGet();
 			return launch.get().finishTestItem(itemId, rq);
 		}).orElseGet(() -> launch.get().finishTestItem(itemId, rq));
@@ -623,7 +626,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		Object runner = testContext.getRunner();
 		FrameworkMethod method = testContext.getIdentity();
 		TestItemTree.ItemTreeKey myKey = createItemTreeKey(method, parameters);
-		TestItemTree.TestItemLeaf myLeaf = ofNullable(retrieveLeaf(runner).getChildItems().get(myKey)).orElse(null);
+		TestItemTree.TestItemLeaf myLeaf = retrieveLeaf(runner).getChildItems().get(myKey);
 		if (myLeaf == null) {
 			// a test method wasn't started, most likely an ignored test: start and stop a test item with 'skipped' status
 			ReflectiveCallable callable = LifecycleHooks.encloseCallable(method.getMethod(), null);
@@ -805,7 +808,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				method,
 				rq.getCodeRef(),
 				ofNullable(rq.getParameters()).map(p -> p.stream().map(ParameterResource::getValue).collect(Collectors.toList()))
-						.orElse(null)
+						.orElse(null),
+				getTargetFor(runner, method)
 		)).map(TestCaseIdEntry::getId).orElse(null));
 		rq.setStartTime(startTime);
 		rq.setType(ofNullable(detectMethodType(method)).map(Enum::name).orElse(""));
@@ -867,19 +871,34 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @param params          a list of test arguments
 	 * @param <T>             arguments type
 	 * @return a test case ID
+	 * @deprecated replaced with {@link #getTestCaseId(Object, FrameworkMethod, String, List, Object)}
 	 */
+	@Deprecated
 	@Nullable
 	protected <T> TestCaseIdEntry getTestCaseId(@Nullable final Object runner, @Nonnull final FrameworkMethod frameworkMethod,
 			@Nullable final String codeRef, @Nullable final List<T> params) {
+		return getTestCaseId(runner, frameworkMethod, codeRef, params, null);
+	}
+
+	/**
+	 * Calculates a test case ID based on code reference and parameters
+	 *
+	 * @param runner          JUnit test runner context
+	 * @param frameworkMethod JUnit framework method context
+	 * @param codeRef         a code reference which will be used for the calculation
+	 * @param params          a list of test arguments
+	 * @param testInstance    an instance of a test
+	 * @param <T>             arguments type
+	 * @return a test case ID
+	 */
+	@Nullable
+	protected <T> TestCaseIdEntry getTestCaseId(@Nullable final Object runner, @Nonnull final FrameworkMethod frameworkMethod,
+			@Nullable final String codeRef, @Nullable final List<T> params, @Nullable Object testInstance) {
 		Method method = frameworkMethod.getMethod();
-		if (runner instanceof BlockJUnit4ClassRunnerWithParameters) {
-			return TestCaseIdUtils.getTestCaseId(method.getAnnotation(TestCaseId.class),
-					Arrays.stream(frameworkMethod.getDeclaringClass().getConstructors()).findAny().orElse(null),
-					codeRef,
-					params
-			);
-		}
-		return TestCaseIdUtils.getTestCaseId(method.getAnnotation(TestCaseId.class), method, codeRef, params);
+		Executable executable = runner instanceof BlockJUnit4ClassRunnerWithParameters ?
+				Arrays.stream(frameworkMethod.getDeclaringClass().getConstructors()).findAny().map(c -> (Executable) c).orElse(method) :
+				method;
+		return TestCaseIdUtils.getTestCaseId(method.getAnnotation(TestCaseId.class), executable, codeRef, params, testInstance);
 	}
 
 	/**
