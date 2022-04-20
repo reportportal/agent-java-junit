@@ -5,7 +5,7 @@
 > ReportPortal team only and is not supposed for sharing with 3rd parties.
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.epam.reportportal/agent-java-junit.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.epam.reportportal%22%20AND%20a:%22agent-java-junit%22)
-![CI Build](https://github.com/reportportal/agent-java-junit/workflows/CI%20Build/badge.svg?branch=develop)
+[![CI Build](https://github.com/reportportal/agent-java-junit/actions/workflows/ci.yml/badge.svg)](https://github.com/reportportal/agent-java-junit/actions/workflows/ci.yml)
 [![Join Slack chat!](https://reportportal-slack-auto.herokuapp.com/badge.svg)](https://reportportal-slack-auto.herokuapp.com)
 [![stackoverflow](https://img.shields.io/badge/reportportal-stackoverflow-orange.svg?style=flat)](http://stackoverflow.com/questions/tagged/reportportal)
 [![Build with Love](https://img.shields.io/badge/build%20with-❤%EF%B8%8F%E2%80%8D-lightgrey.svg)](http://reportportal.io?style=flat)
@@ -95,7 +95,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.2.3</version>
+      <version>1.2.10</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
@@ -105,7 +105,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>logger-java-logback</artifactId>
-      <version>5.0.3</version>
+      <version>5.1.1</version>
     </dependency>
   </dependencies>
  
@@ -184,12 +184,12 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
-      <version>2.12.1</version>
+      <version>2.17.1</version>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-api</artifactId>
-      <version>2.12.1</version>
+      <version>2.17.1</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
@@ -199,7 +199,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>logger-java-log4j</artifactId>
-      <version>5.0.3</version>
+      <version>5.1.4</version>
     </dependency>
   </dependencies>
  
@@ -275,7 +275,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.epam.reportportal:logger-java-log4j:5.0.3'
+    compile 'com.epam.reportportal:logger-java-log4j:5.1.4'
     compile 'com.epam.reportportal:agent-java-junit:5.1.0'
 }
 
@@ -416,7 +416,7 @@ If you prefer using **Logback** logging library, add following dependencies:
 <dependency>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>logger-java-logback</artifactId>
-    <version>5.0.3</version>
+    <version>5.1.0</version>
 </dependency>
 ```
 > Up to date version could be found [here](https://search.maven.org/search?q=g:%22com.epam.reportportal%22%20AND%20a:%22logger-java-logback%22)
@@ -437,7 +437,7 @@ If you prefer using **Log4j** logging library, add following dependencies:
 <dependency>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>logger-java-log4j</artifactId>
-    <version>5.0.3</version>
+    <version>5.1.4</version>
 </dependency>
 ```
 > Up to date version could be found [here](https://search.maven.org/search?q=g:%22com.epam.reportportal%22%20AND%20a:%22logger-java-log4j%22)
@@ -447,13 +447,13 @@ If you prefer using **Log4j** logging library, add following dependencies:
 <dependency>
     <groupId>org.apache.logging.log4j</groupId>
     <artifactId>log4j-api</artifactId>
-    <version>2.12.1</version>
+    <version>2.17.1</version>
 </dependency>
 
 <dependency>
      <groupId>org.apache.logging.log4j</groupId>
      <artifactId>log4j-core</artifactId>
-     <version>2.12.1</version>
+     <version>2.17.1</version>
 </dependency>
 ```
 
@@ -685,19 +685,19 @@ in this case - add a `maven dependency plugin` dependency explicitly, like this:
       <dependency>
          <groupId>com.epam.reportportal</groupId>
          <artifactId>logger-java-log4j</artifactId>
-         <version>5.0.3</version>
+         <version>5.1.4</version>
       </dependency>
 
       <dependency>
          <groupId>org.apache.logging.log4j</groupId>
          <artifactId>log4j-api</artifactId>
-         <version>2.12.1</version>
+         <version>2.17.1</version>
       </dependency>
 
       <dependency>
          <groupId>org.apache.logging.log4j</groupId>
          <artifactId>log4j-core</artifactId>
-         <version>2.12.1</version>
+         <version>2.17.1</version>
       </dependency>
    </dependencies>
 
@@ -813,10 +813,10 @@ repositories {
 }
 
 dependencies {
-    compile 'com.epam.reportportal:logger-java-log4j:5.0.3'
+    compile 'com.epam.reportportal:logger-java-log4j:5.1.4'
     compile 'com.epam.reportportal:agent-java-junit:5.1.0'
-    compile 'org.apache.logging.log4j:log4j-api:2.12.1'
-    compile 'org.apache.logging.log4j:log4j-core:2.12.1'
+    compile 'org.apache.logging.log4j:log4j-api:2.17.1'
+    compile 'org.apache.logging.log4j:log4j-core:2.17.1'
 }
 
 test {

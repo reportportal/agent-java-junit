@@ -1,6 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Test Case ID templating, by @HardNorth
+### Changed
+- Client version updated on [5.1.9](https://github.com/reportportal/client-java/releases/tag/5.1.9), by @HardNorth
+- JUnit-Foundation updated on [15.3.5](https://github.com/sbabcoc/JUnit-Foundation/releases/tag/junit-foundation-15.3.5), by @HardNorth
+- Slf4j version updated on 1.7.36, by @HardNorth
 
 ## [5.1.0]
 ### Added
