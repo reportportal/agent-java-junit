@@ -28,7 +28,7 @@ repositories {
 }
 
 dependencies {
-    api 'com.epam.reportportal:client-java:5.1.14'
+    api 'com.epam.reportportal:client-java:5.1.15'
     api 'com.epam.reportportal:commons-model:5.0.0'
     api 'com.nordstrom.tools:junit-foundation:17.0.2'
     api 'com.google.code.findbugs:jsr305:3.0.2'
