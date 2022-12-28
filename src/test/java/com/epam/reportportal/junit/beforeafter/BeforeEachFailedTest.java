@@ -43,7 +43,9 @@ import static org.mockito.Mockito.*;
 public class BeforeEachFailedTest {
 
 	private final String classId = CommonUtils.namedId("class_");
-	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(2).collect(Collectors.toList());
+	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_"))
+			.limit(2)
+			.collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
@@ -51,7 +53,11 @@ public class BeforeEachFailedTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(
+				client,
+				TestUtils.standardParameters(),
+				TestUtils.testExecutor()
+		));
 	}
 
 	@Test
@@ -81,7 +87,8 @@ public class BeforeEachFailedTest {
 
 		FinishTestItemRQ testFinish = finishItems.get(1);
 		assertThat("@Test reported as skipped", testFinish.getStatus(), equalTo("SKIPPED"));
-		assertThat("@Test issue muted", testFinish.getIssue(), sameInstance(Launch.NOT_ISSUE));
+		assertThat("@Test has 'Issue' field", testFinish.getIssue(), notNullValue());
+		assertThat("@Test issue muted", testFinish.getIssue().getIssueType(), equalTo(Launch.NOT_ISSUE.getIssueType()));
 	}
 
 }
