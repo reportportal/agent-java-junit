@@ -77,7 +77,8 @@ public class AssumptionViolatedInBeforeTest {
 		assertThat(finishItems.get(0).getIssue(), nullValue());
 		assertThat(finishItems.get(0).getStatus(), equalTo(ItemStatus.SKIPPED.name()));
 
-		assertThat(finishItems.get(1).getIssue(), sameInstance(Launch.NOT_ISSUE));
 		assertThat(finishItems.get(1).getStatus(), equalTo(ItemStatus.SKIPPED.name()));
+		assertThat(finishItems.get(1).getIssue(), notNullValue());
+		assertThat(finishItems.get(1).getIssue().getIssueType(), equalTo(Launch.NOT_ISSUE.getIssueType()));
 	}
 }

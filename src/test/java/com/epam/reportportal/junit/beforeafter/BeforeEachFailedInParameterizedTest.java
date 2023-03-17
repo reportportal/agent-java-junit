@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.sameInstance;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
@@ -56,18 +56,28 @@ public class BeforeEachFailedInParameterizedTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(
+				client,
+				TestUtils.standardParameters(),
+				TestUtils.testExecutor()
+		));
 	}
 
 	@Test
-	public void verify_after_each_failure_in_parameterized_test() {
+	public void verify_before_each_failure_in_parameterized_test() {
 		TestUtils.runClasses(BeforeEachFailedForSecondParameterTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> startCapture = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, timeout(PROCESSING_TIMEOUT).times(TEST_METHOD_NUMBER)).startTestItem(same(classId), startCapture.capture());
+		verify(client, timeout(PROCESSING_TIMEOUT).times(TEST_METHOD_NUMBER)).startTestItem(
+				same(classId),
+				startCapture.capture()
+		);
 
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		methodIds.forEach(id -> verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(id), finishCaptor.capture()));
+		methodIds.forEach(id -> verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(
+				same(id),
+				finishCaptor.capture()
+		));
 
 		StartTestItemRQ startRq = startCapture.getAllValues().get(3);
 		assertThat(startRq.getType(), equalTo(ItemType.STEP.name()));
@@ -77,7 +87,7 @@ public class BeforeEachFailedInParameterizedTest {
 		finishRqs.subList(0, 2).forEach(rq -> assertThat(rq.getStatus(), equalTo(ItemStatus.PASSED.name())));
 		assertThat(finishRqs.get(2).getStatus(), equalTo(ItemStatus.FAILED.name()));
 		FinishTestItemRQ finishItem = finishRqs.get(3);
-		assertThat(finishItem.getStatus(), equalTo(ItemStatus.SKIPPED.name()));
-		assertThat(finishItem.getIssue(), sameInstance(Launch.NOT_ISSUE));
+		assertThat("@Test has 'Issue' field", finishItem.getIssue(), notNullValue());
+		assertThat("@Test issue muted", finishItem.getIssue().getIssueType(), equalTo(Launch.NOT_ISSUE.getIssueType()));
 	}
 }

@@ -362,7 +362,7 @@ When sending reports for tests in parameterized classes like this, the JUnit age
 
 ### Images and Files
 
-http://reportportal.io/docs/Logging-Integration%3Elog-message-format
+[Log message format documentation](https://github.com/reportportal/documentation/blob/master/src/md/src/LogDataInReportPortal/LoggingIntegration.md#log-message-format)
 
 In addition to text log messages, ReportPortal has the ability to record images and file contents. The link above documents the formats supported by the report portal test listener for representing these artifacts.
 
