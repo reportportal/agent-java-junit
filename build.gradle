@@ -28,12 +28,16 @@ repositories {
 }
 
 dependencies {
-    api 'com.epam.reportportal:client-java:5.1.15'
+    api 'com.epam.reportportal:client-java:5.1.16'
     api 'com.epam.reportportal:commons-model:5.0.0'
-    api 'com.nordstrom.tools:junit-foundation:17.0.2'
+    api ('com.nordstrom.tools:junit-foundation:17.0.2') {
+        exclude module: 'commons-text'
+    }
     api 'com.google.code.findbugs:jsr305:3.0.2'
 
     implementation 'org.slf4j:slf4j-api:1.7.36'
+    implementation 'org.apache.commons:commons-text:1.10.0'
+
 
     testImplementation 'com.github.reportportal:agent-java-test-utils:236a68c'
     testImplementation 'org.aspectj:aspectjweaver:1.9.2'
