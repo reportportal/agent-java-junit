@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Client version updated on [5.1.22](https://github.com/reportportal/client-java/releases/tag/5.1.22), by @HardNorth
+- JUnit-Foundation updated on [17.0.3](https://github.com/sbabcoc/JUnit-Foundation/releases/tag/junit-foundation-17.0.3), by @HardNorth
 
 ## [5.1.2]
 ### Changed
