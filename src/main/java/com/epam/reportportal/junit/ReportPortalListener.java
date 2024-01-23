@@ -958,9 +958,10 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				try {
 					Optional<Constructor<?>> constructor = Arrays.stream(method.getDeclaringClass().getConstructors()).findFirst();
 					if (constructor.isPresent()) {
-						result.addAll(ParameterUtils.getParameters(constructor.get(),
-								Arrays.asList((Object[]) Accessible.on(runner).field("parameters").getValue())
-						));
+						Object[] params = (Object[]) Accessible.on(runner).field("parameters").getValue();
+						if(params != null) {
+							result.addAll(ParameterUtils.getParameters(constructor.get(), Arrays.asList(params)));
+						}
 					}
 				} catch (NoSuchFieldException e) {
 					LOGGER.warn("Unable to get parameters for parameterized runner", e);
@@ -968,7 +969,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			} else if (callable != null) {
 				try {
 					Object[] params = (Object[]) Accessible.on(callable).field("val$params").getValue();
-					result.addAll(ParameterUtils.getParameters(method.getMethod(), Arrays.asList(params)));
+					if(params != null) {
+						result.addAll(ParameterUtils.getParameters(method.getMethod(), Arrays.asList(params)));
+					}
 				} catch (NoSuchFieldException e) {
 					LOGGER.warn("Unable to get parameters for parameterized runner", e);
 				}
