@@ -6,6 +6,7 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.epam.reportportal/agent-java-junit.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/com.epam.reportportal/agent-java-junit)
 [![CI Build](https://github.com/reportportal/agent-java-junit/actions/workflows/ci.yml/badge.svg)](https://github.com/reportportal/agent-java-junit/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/github/reportportal/agent-java-junit/graph/badge.svg?token=1vmfBqayVL)](https://codecov.io/github/reportportal/agent-java-junit)
 [![Join Slack chat!](https://img.shields.io/badge/slack-join-brightgreen.svg)](https://slack.epmrpp.reportportal.io/)
 [![stackoverflow](https://img.shields.io/badge/reportportal-stackoverflow-orange.svg?style=flat)](http://stackoverflow.com/questions/tagged/reportportal)
 [![Build with Love](https://img.shields.io/badge/build%20with-❤%EF%B8%8F%E2%80%8D-lightgrey.svg)](http://reportportal.io?style=flat)
