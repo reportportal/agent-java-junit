@@ -82,6 +82,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	private static final String START_TIME = "START_TIME";
 	private static final String IS_RETRY = "IS_RETRY";
 	private static final String IS_THEORY = "IS_THEORY";
+	public static final String DESCRIPTION_TEST_ERROR_FORMAT = "%s\nError: \n%s: %s";
+	public static final String DESCRIPTION_SUIT_ERROR_FORMAT = "Error: \n%s: %s";
+	private static List<Throwable> failedTestsMessages = Collections.synchronizedList(new ArrayList<>());
 	private static final Map<Class<? extends Annotation>, ItemType> TYPE_MAP = Collections.unmodifiableMap(new HashMap<Class<? extends Annotation>, ItemType>() {
 		private static final long serialVersionUID = 5292344734560662610L;
 
@@ -310,6 +313,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			ItemStatus status = l.getStatus();
 			for (Map.Entry<TestItemTree.ItemTreeKey, TestItemTree.TestItemLeaf> entry : l.getChildItems().entrySet()) {
 				TestItemTree.TestItemLeaf value = entry.getValue();
+				ofNullable(context.getTestThrowable(entry.getKey())).ifPresent(failedTestsMessages::add);
 				if (value.getType() != ItemType.SUITE) {
 					continue;
 				}
@@ -320,7 +324,14 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			l.setStatus(status);
 			if (l.getParentId() == null) {
 				rq.setStatus(ofNullable(status).map(Enum::name).orElse(null));
+				if (!failedTestsMessages.isEmpty()) {
+					Throwable suitFailedMessage = failedTestsMessages.get(failedTestsMessages.size() - 1);
+					rq.setDescription(String.format(DESCRIPTION_SUIT_ERROR_FORMAT,
+							suitFailedMessage.getClass().getSimpleName(),
+							ofNullable(suitFailedMessage.getMessage()).isPresent() ? suitFailedMessage.getMessage() : ""));
+				}
 				launch.get().finishTestItem(l.getItemId(), rq);
+				failedTestsMessages.clear();
 			}
 		});
 		runners.removeFirstOccurrence(runner);
@@ -582,6 +593,12 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	protected void stopTestMethod(@Nonnull final Object runner, @Nonnull final FrameworkMethod method,
 			@Nonnull final ReflectiveCallable callable, @Nonnull final ItemStatus status, @Nullable final Throwable throwable) {
 		FinishTestItemRQ rq = buildFinishStepRq(runner, method, callable, status);
+		if (status != ItemStatus.PASSED && throwable != null) {
+			rq.setDescription(String.format(DESCRIPTION_TEST_ERROR_FORMAT,
+					createStepDescription(this.context.getTestMethodDescription(method), method),
+					throwable.getClass().getSimpleName(),
+					ofNullable(throwable.getMessage()).isPresent() ? throwable.getMessage() : ""));
+		}
 		stopTestMethod(runner, method, callable, rq);
 
 		ItemType methodType = detectMethodType(method);
