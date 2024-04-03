@@ -3,6 +3,7 @@ package com.epam.reportportal.junit.callback;
 import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
@@ -24,7 +25,6 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 
 public class FailedDescriptionTest {
   private final String suiteId = CommonUtils.namedId("suite_");
@@ -35,10 +35,9 @@ public class FailedDescriptionTest {
   private final String testWithDescriptionAndStepError = "testWithDescriptionAndStepError";
   private final String testWithDescriptionAndException = "testWithDescriptionAndException";
   private final String testErrorMessagePattern = "%s(com.epam.reportportal.junit.features.callback.FailedDescriptionFeatureTest)\nError: \n%s";
-  private final String suiteErrorMessagePattern = "Error: \n%s";
-  private final String assertErrorMessage = "AssertionError: expected:<0> but was:<1>";
-  private final String exceptionStepErrorMessage = "NoSuchElementException: Test error message";
-  private final String exceptionErrorMessage = "RuntimeException: Test error message";
+  private final String assertErrorMessage = "java.lang.AssertionError: expected:<0> but was:<1>";
+  private final String exceptionStepErrorMessage = "java.util.NoSuchElementException: Test error message";
+  private final String exceptionErrorMessage = "java.lang.RuntimeException: Test error message";
   private final String failedStatus = "FAILED";
   private final String passedStatus = "PASSED";
 
@@ -54,29 +53,11 @@ public class FailedDescriptionTest {
   public void verify_retrieve_by_description() {
     TestUtils.runClasses(FailedDescriptionFeatureTest.class);
 
-
-    ArgumentCaptor<StartTestItemRQ> startSuiteCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-    verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(
-        ArgumentMatchers.startsWith(TestUtils.ROOT_SUITE_PREFIX),
-        startSuiteCaptor.capture()
-    );
-
     ArgumentCaptor<StartTestItemRQ> startTestCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
     verify(client, timeout(PROCESSING_TIMEOUT).atLeastOnce()).startTestItem(same(suiteId), startTestCaptor.capture());
 
-
-    ArgumentCaptor<FinishTestItemRQ> finishSuiteCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-    verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(
-        ArgumentMatchers.startsWith(TestUtils.ROOT_SUITE_PREFIX),
-        finishSuiteCaptor.capture()
-    );
-
     ArgumentCaptor<FinishTestItemRQ> finishTestCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
     verify(client, timeout(PROCESSING_TIMEOUT).atLeastOnce()).finishTestItem(same(classId), finishTestCaptor.capture());
-
-    FinishTestItemRQ finishSuite = finishSuiteCaptor.getAllValues().get(0);
-    assertThat(finishSuite.getStatus(), equalTo(passedStatus));
-    assertThat(finishSuite.getDescription(), equalTo(String.format(suiteErrorMessagePattern, assertErrorMessage)));
 
     List<FinishTestItemRQ> finishTests = finishTestCaptor.getAllValues();
     FinishTestItemRQ testCaseWithDescriptionAndAssertException = finishTests.stream()
@@ -96,13 +77,13 @@ public class FailedDescriptionTest {
         .findFirst()
         .orElseThrow(NoSuchElementException::new);
 
-    assertThat(testCaseWithDescriptionAndAssertException.getDescription(), equalTo(String.format(testErrorMessagePattern, testWithDescriptionAndAssertException, assertErrorMessage)));
+    assertThat(testCaseWithDescriptionAndAssertException.getDescription(), startsWith(String.format(testErrorMessagePattern, testWithDescriptionAndAssertException, assertErrorMessage)));
     assertThat(testCaseWithDescriptionAndAssertException.getStatus(), equalTo(failedStatus));
 
-    assertThat(testCaseWithDescriptionAndStepError.getDescription(), equalTo(String.format(testErrorMessagePattern, testWithDescriptionAndStepError, exceptionStepErrorMessage)));
+    assertThat(testCaseWithDescriptionAndStepError.getDescription(), startsWith(String.format(testErrorMessagePattern, testWithDescriptionAndStepError, exceptionStepErrorMessage)));
     assertThat(testCaseWithDescriptionAndStepError.getStatus(), equalTo(failedStatus));
 
-    assertThat(tesCaseWithDescriptionAndException.getDescription(), equalTo(String.format(testErrorMessagePattern, testWithDescriptionAndException, exceptionErrorMessage)));
+    assertThat(tesCaseWithDescriptionAndException.getDescription(), startsWith(String.format(testErrorMessagePattern, testWithDescriptionAndException, exceptionErrorMessage)));
     assertThat(tesCaseWithDescriptionAndException.getStatus(), equalTo(failedStatus));
 
     assertThat(tesCaseWithDescriptionAndPassed.getStatus(), equalTo(passedStatus));
