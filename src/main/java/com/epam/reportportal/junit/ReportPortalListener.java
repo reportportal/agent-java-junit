@@ -82,6 +82,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	private static final String START_TIME = "START_TIME";
 	private static final String IS_RETRY = "IS_RETRY";
 	private static final String IS_THEORY = "IS_THEORY";
+	public static final String DESCRIPTION_TEST_ERROR_FORMAT = "%s\nError: \n%s";
+	private Throwable testThrowable;
 	private static final Map<Class<? extends Annotation>, ItemType> TYPE_MAP = Collections.unmodifiableMap(new HashMap<Class<? extends Annotation>, ItemType>() {
 		private static final long serialVersionUID = 5292344734560662610L;
 
@@ -581,6 +583,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	protected void stopTestMethod(@Nonnull final Object runner, @Nonnull final FrameworkMethod method,
 			@Nonnull final ReflectiveCallable callable, @Nonnull final ItemStatus status, @Nullable final Throwable throwable) {
+		testThrowable = throwable;
 		FinishTestItemRQ rq = buildFinishStepRq(runner, method, callable, status);
 		stopTestMethod(runner, method, callable, rq);
 
@@ -843,6 +846,11 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 		FinishTestItemRQ rq = new FinishTestItemRQ();
 		rq.setEndTime(Calendar.getInstance().getTime());
 		rq.setStatus(status.name());
+		if (status != ItemStatus.PASSED && testThrowable != null && method != null) {
+			rq.setDescription(String.format(DESCRIPTION_TEST_ERROR_FORMAT,
+					createStepDescription(this.context.getTestMethodDescription(method), method),
+					ExceptionUtils.getStackTrace(testThrowable)));
+		}
 		return rq;
 	}
 
