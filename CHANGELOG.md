@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.2.3]
 ### Added
 - Putting last error logs of tests to Items' description, by @utdacc
 ### Changed
