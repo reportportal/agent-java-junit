@@ -953,7 +953,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			Object target = getTargetFor(runner, method);
 			if (target instanceof ArtifactParams) {
 				//noinspection Guava
-				com.google.common.base.Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
+				Optional<Map<String, Object>> params = ((ArtifactParams) target).getParameters();
 				if (params.isPresent()) {
 					for (Map.Entry<String, Object> param : params.get().entrySet()) {
 						ParameterResource parameter = new ParameterResource();

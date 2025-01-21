@@ -16,7 +16,6 @@
 
 package com.epam.reportportal.junit.features.parameters;
 
-import com.google.common.base.Optional;
 import com.nordstrom.automation.junit.ArtifactParams;
 import com.nordstrom.automation.junit.AtomIdentity;
 import com.nordstrom.automation.junit.AtomicTest;
@@ -30,6 +29,7 @@ import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 
 import java.util.Map;
+import java.util.Optional;
 
 @RunWith(JUnitParamsRunner.class)
 public class JUnitParamsNullValueTest implements ArtifactParams {
@@ -66,7 +66,7 @@ public class JUnitParamsNullValueTest implements ArtifactParams {
 			String param = (String) params[0];
 			return Param.mapOf(Param.param("param", param));
 		} catch (IllegalAccessException | NoSuchFieldException e) {
-			return Optional.absent();
+			return Optional.empty();
 		}
 	}
 }
