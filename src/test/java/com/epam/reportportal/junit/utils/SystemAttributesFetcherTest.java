@@ -17,11 +17,11 @@
 package com.epam.reportportal.junit.utils;
 
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
-import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -34,7 +34,7 @@ import static org.junit.Assert.*;
  */
 public class SystemAttributesFetcherTest {
 
-	private static List<String> expectedKeys = Lists.newArrayList("jvm", "os", "agent", "skippedIssue");
+	private static final List<String> expectedKeys = Arrays.asList("jvm", "os", "agent", "skippedIssue");
 
 	@Test
 	public void systemAttributesFetchingTest() {

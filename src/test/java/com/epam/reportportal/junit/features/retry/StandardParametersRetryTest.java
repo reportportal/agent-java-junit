@@ -16,7 +16,6 @@
 
 package com.epam.reportportal.junit.features.retry;
 
-import com.google.common.base.Optional;
 import com.nordstrom.automation.junit.ArtifactParams;
 import com.nordstrom.automation.junit.AtomIdentity;
 import org.junit.Rule;
@@ -28,6 +27,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(Parameterized.class)

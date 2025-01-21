@@ -17,7 +17,6 @@
 package com.epam.reportportal.junit.features.ignore;
 
 import com.epam.reportportal.annotations.ParameterKey;
-import com.google.common.base.Optional;
 import com.nordstrom.automation.junit.ArtifactParams;
 import com.nordstrom.automation.junit.AtomIdentity;
 import org.junit.Ignore;
@@ -30,6 +29,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 @RunWith(Parameterized.class)
 public class ParameterizedIgnoredTest implements ArtifactParams {
