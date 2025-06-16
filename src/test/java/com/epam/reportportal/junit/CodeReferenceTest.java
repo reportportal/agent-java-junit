@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
@@ -52,6 +53,11 @@ public class CodeReferenceTest {
 	@Test
 	public void verify_static_test_code_reference_generation() {
 		TestUtils.runClasses(CodeRefTest.class);
+		String methodName = Arrays.stream(CodeRefTest.class.getDeclaredMethods())
+				.filter(m -> m.getAnnotation(org.junit.Test.class) != null)
+				.findAny()
+				.orElseThrow(() -> new IllegalArgumentException("No test method in test class"))
+				.getName();
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(ArgumentMatchers.startsWith("root_"), captor.capture());
@@ -65,9 +71,7 @@ public class CodeReferenceTest {
 
 		assertThat(classRq.getCodeRef(), allOf(notNullValue(), equalTo(CodeRefTest.class.getCanonicalName())));
 		assertThat(classRq.getType(), allOf(notNullValue(), equalTo(ItemType.TEST.name())));
-		assertThat(testRq.getCodeRef(), allOf(notNullValue(),
-				equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
-		));
+		assertThat(testRq.getCodeRef(), allOf(notNullValue(), equalTo(CodeRefTest.class.getCanonicalName() + "." + methodName)));
 	}
 
 }
