@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 public class MultipleAttributeTest {
 	private static final String KEY_1 = "key1";
@@ -36,11 +37,12 @@ public class MultipleAttributeTest {
 	private static final String VALUE_3 = "v";
 	private static final String VALUE_4 = VALUE_3;
 
-	public static final Collection<Pair<String, String>> ATTRIBUTES = Arrays.asList(Pair.of(KEY_1, VALUE_1),
+	public static final Collection<Pair<String, String>> ATTRIBUTES = Collections.unmodifiableList(Arrays.asList(
+			Pair.of(KEY_1, VALUE_1),
 			Pair.of(KEY_2, VALUE_2),
 			Pair.of(KEY_3, VALUE_3),
 			Pair.of(KEY_4, VALUE_4)
-	);
+	));
 
 	@Test
 	@Attributes(attributes = { @Attribute(key = KEY_1, value = VALUE_1), @Attribute(key = KEY_2, value = VALUE_2) }, multiKeyAttributes = {
