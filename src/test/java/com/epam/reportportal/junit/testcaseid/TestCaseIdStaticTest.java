@@ -27,6 +27,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.Arrays;
+
 import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -51,12 +53,17 @@ public class TestCaseIdStaticTest {
 	@Test
 	public void verify_static_test_case_id_generation() {
 		TestUtils.runClasses(CodeRefTest.class);
+		String methodName = Arrays.stream(CodeRefTest.class.getDeclaredMethods())
+				.filter(m -> m.getAnnotation(org.junit.Test.class) != null)
+				.findAny()
+				.orElseThrow(() -> new IllegalArgumentException("No test method in test class"))
+				.getName();
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), captor.capture());
 
 		assertThat(captor.getValue().getTestCaseId(), allOf(notNullValue(),
-				equalTo(CodeRefTest.class.getCanonicalName() + "." + CodeRefTest.class.getDeclaredMethods()[0].getName())
+				equalTo(CodeRefTest.class.getCanonicalName() + "." + methodName)
 		));
 	}
 }
