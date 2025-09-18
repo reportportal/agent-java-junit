@@ -101,7 +101,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>5.3.0</version>
+      <version>5.3.1</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
@@ -195,7 +195,7 @@ In your project, create or update a file named logback.xml in the src/main/resou
     <dependency>
       <groupId>com.epam.reportportal</groupId>
       <artifactId>agent-java-junit</artifactId>
-      <version>5.3.0</version>
+      <version>5.3.1</version>
     </dependency>
     <dependency>
       <groupId>com.epam.reportportal</groupId>
@@ -277,7 +277,7 @@ repositories {
 
 dependencies {
     compile 'com.epam.reportportal:logger-java-log4j:5.2.2'
-    compile 'com.epam.reportportal:agent-java-junit:5.3.0'
+    compile 'com.epam.reportportal:agent-java-junit:5.3.1'
 }
 
 test {
@@ -400,7 +400,7 @@ We’ll assume that Report Portal is installed and running on <http://localhost:
 <dependency>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>agent-java-junit</artifactId>
-    <version>5.3.0</version>
+    <version>5.3.1</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -679,7 +679,7 @@ in this case - add a `maven dependency plugin` dependency explicitly, like this:
       <dependency>
          <groupId>com.epam.reportportal</groupId>
          <artifactId>agent-java-junit</artifactId>
-         <version>5.3.0</version>
+         <version>5.3.1</version>
          <scope>test</scope>
       </dependency>
 
@@ -815,7 +815,7 @@ repositories {
 
 dependencies {
     compile 'com.epam.reportportal:logger-java-log4j:5.2.2'
-    compile 'com.epam.reportportal:agent-java-junit:5.3.0'
+    compile 'com.epam.reportportal:agent-java-junit:5.3.1'
     compile 'org.apache.logging.log4j:log4j-api:2.17.2'
     compile 'org.apache.logging.log4j:log4j-core:2.17.2'
 }
