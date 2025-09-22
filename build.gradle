@@ -39,7 +39,7 @@ repositories {
 }
 
 dependencies {
-    api 'com.epam.reportportal:client-java:5.3.16'
+    api 'com.epam.reportportal:client-java:5.3.17'
     api 'com.nordstrom.tools:junit-foundation:17.2.4'
 
     implementation 'org.slf4j:slf4j-api:2.0.7'
