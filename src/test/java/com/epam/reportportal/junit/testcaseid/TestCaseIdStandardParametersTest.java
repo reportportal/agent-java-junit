@@ -51,7 +51,8 @@ public class TestCaseIdStandardParametersTest {
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
 	}
 
-	private static final List<List<Pair<String, Object>>> PARAMETERS = Collections.singletonList(Arrays.asList(Pair.of("param1", "one"),
+	private static final List<List<Pair<String, Object>>> PARAMETERS = Collections.singletonList(Arrays.asList(
+			Pair.of("param1", "one"),
 			Pair.of("param2", "1")
 	));
 
@@ -63,8 +64,11 @@ public class TestCaseIdStandardParametersTest {
 		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), captor.capture());
 
 		StartTestItemRQ item = captor.getValue();
-		assertThat(item.getTestCaseId(), allOf(notNullValue(),
-				equalTo(StandardParametersTestCaseIdTest.TEST_CASE_ID_VALUE + "[" + PARAMETERS.get(0).get(0).getValue() + "]")
-		));
+		assertThat(
+				item.getTestCaseId(), allOf(
+						notNullValue(),
+						equalTo(StandardParametersTestCaseIdTest.TEST_CASE_ID_VALUE + "[" + PARAMETERS.get(0).get(0).getValue() + "]")
+				)
+		);
 	}
 }

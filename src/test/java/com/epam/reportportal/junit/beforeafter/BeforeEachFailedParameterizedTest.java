@@ -44,9 +44,7 @@ import static org.mockito.Mockito.*;
 public class BeforeEachFailedParameterizedTest {
 
 	private final String classId = CommonUtils.namedId("class_");
-	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_"))
-			.limit(4)
-			.collect(Collectors.toList());
+	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(4).collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
@@ -54,11 +52,7 @@ public class BeforeEachFailedParameterizedTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(
-				client,
-				TestUtils.standardParameters(),
-				TestUtils.testExecutor()
-		));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
 	}
 
 	@Test
@@ -74,11 +68,7 @@ public class BeforeEachFailedParameterizedTest {
 		verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(methodIds.get(3)), finishCaptor.capture());
 
 		List<StartTestItemRQ> startItems = startCaptor.getAllValues();
-		assertThat(
-				"There are 6 item created: parent suite, suite, 2 @BeforeEach, @Test 1 and @Test 2",
-				startItems,
-				hasSize(4)
-		);
+		assertThat("There are 6 item created: parent suite, suite, 2 @BeforeEach, @Test 1 and @Test 2", startItems, hasSize(4));
 
 		List<FinishTestItemRQ> finishItems = finishCaptor.getAllValues();
 		FinishTestItemRQ beforeEachFinish = finishItems.get(0);
@@ -87,7 +77,8 @@ public class BeforeEachFailedParameterizedTest {
 
 		IntStream.rangeClosed(0, 1).boxed().forEach(i -> {
 			StartTestItemRQ testStart = startItems.get(1 + (i * 2));
-			assertThat("@Test has correct code reference",
+			assertThat(
+					"@Test has correct code reference",
 					testStart.getCodeRef(),
 					equalTo(BeforeFailedParametrizedTest.class.getCanonicalName() + ".testBeforeEachFailed")
 			);
@@ -97,11 +88,7 @@ public class BeforeEachFailedParameterizedTest {
 			FinishTestItemRQ testFinish = finishItems.get(1 + (i * 2));
 			assertThat("@Test reported as skipped", testFinish.getStatus(), equalTo(ItemStatus.SKIPPED.name()));
 			assertThat("@Test has 'Issue' field", testFinish.getIssue(), notNullValue());
-			assertThat(
-					"@Test issue muted",
-					testFinish.getIssue().getIssueType(),
-					equalTo(Launch.NOT_ISSUE.getIssueType())
-			);
+			assertThat("@Test issue muted", testFinish.getIssue().getIssueType(), equalTo(Launch.NOT_ISSUE.getIssueType()));
 		});
 	}
 

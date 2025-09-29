@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Calendar;
+import java.time.Instant;
 
 public class CallbackFeatureTest {
 
@@ -44,7 +44,8 @@ public class CallbackFeatureTest {
 	@After
 	public void afterMethod() {
 		TestItemTree tree = ParallelRunningContext.getCurrent().getItemTree();
-		TestItemTree.TestItemLeaf testItemLeaf = ItemTreeUtils.retrieveLeaf(getClass().getCanonicalName() + ".someTest",
+		TestItemTree.TestItemLeaf testItemLeaf = ItemTreeUtils.retrieveLeaf(
+				getClass().getCanonicalName() + ".someTest",
 				ParallelRunningContext.getCurrent().getItemTree()
 		);
 		if (testItemLeaf != null) {
@@ -57,7 +58,7 @@ public class CallbackFeatureTest {
 	private void finishWithStatus(String status, TestItemTree tree, TestItemTree.TestItemLeaf testItemLeaf) {
 		FinishTestItemRQ finishTestItemRQ = new FinishTestItemRQ();
 		finishTestItemRQ.setStatus(status);
-		finishTestItemRQ.setEndTime(Calendar.getInstance().getTime());
+		finishTestItemRQ.setEndTime(Instant.now());
 		ItemTreeReporter.finishItem(ReportPortalListener.getReportPortal().getClient(), finishTestItemRQ, tree.getLaunchId(), testItemLeaf)
 				.cache()
 				.blockingGet();

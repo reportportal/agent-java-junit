@@ -73,7 +73,8 @@ public class BeforeEachTwoTests {
 		List<StartTestItemRQ> beforeStarts = Arrays.asList(startItems.get(0), startItems.get(2));
 
 		beforeStarts.forEach(e -> {
-			assertThat("@Before has correct code reference",
+			assertThat(
+					"@Before has correct code reference",
 					e.getCodeRef(),
 					equalTo(BeforeTwoTests.class.getCanonicalName() + ".beforeEach")
 			);

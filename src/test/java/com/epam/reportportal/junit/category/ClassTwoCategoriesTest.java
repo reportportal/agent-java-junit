@@ -67,10 +67,12 @@ public class ClassTwoCategoriesTest {
 		StartTestItemRQ item = items.get(0);
 		assertThat(item.getAttributes(), allOf(notNullValue(), hasSize(2)));
 		Set<ItemAttributesRQ> attributes = item.getAttributes();
-		assertThat(attributes.stream().filter(a -> Smoke.class.getSimpleName().equals(a.getValue())).collect(Collectors.toList()),
+		assertThat(
+				attributes.stream().filter(a -> Smoke.class.getSimpleName().equals(a.getValue())).collect(Collectors.toList()),
 				hasSize(1)
 		);
-		assertThat(attributes.stream().filter(a -> Stable.class.getSimpleName().equals(a.getValue())).collect(Collectors.toList()),
+		assertThat(
+				attributes.stream().filter(a -> Stable.class.getSimpleName().equals(a.getValue())).collect(Collectors.toList()),
 				hasSize(1)
 		);
 	}

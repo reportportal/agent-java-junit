@@ -62,8 +62,9 @@ public class TestCaseIdStaticTest {
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), captor.capture());
 
-		assertThat(captor.getValue().getTestCaseId(), allOf(notNullValue(),
-				equalTo(CodeRefTest.class.getCanonicalName() + "." + methodName)
-		));
+		assertThat(
+				captor.getValue().getTestCaseId(),
+				allOf(notNullValue(), equalTo(CodeRefTest.class.getCanonicalName() + "." + methodName))
+		);
 	}
 }

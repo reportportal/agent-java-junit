@@ -43,9 +43,7 @@ import static org.mockito.Mockito.*;
 public class BeforeEachFailedTest {
 
 	private final String classId = CommonUtils.namedId("class_");
-	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_"))
-			.limit(2)
-			.collect(Collectors.toList());
+	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(2).collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 
@@ -53,11 +51,7 @@ public class BeforeEachFailedTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(
-				client,
-				TestUtils.standardParameters(),
-				TestUtils.testExecutor()
-		));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
 	}
 
 	@Test
@@ -78,7 +72,8 @@ public class BeforeEachFailedTest {
 		assertThat("@BeforeEach failed", beforeEachFinish.getStatus(), equalTo("FAILED"));
 
 		StartTestItemRQ testStart = startItems.get(1);
-		assertThat("@Test has correct code reference",
+		assertThat(
+				"@Test has correct code reference",
 				testStart.getCodeRef(),
 				equalTo(BeforeFailedTest.class.getCanonicalName() + ".testBeforeEachFailed")
 		);

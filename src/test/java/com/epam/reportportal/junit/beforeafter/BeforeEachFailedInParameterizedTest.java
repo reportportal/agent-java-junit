@@ -56,11 +56,7 @@ public class BeforeEachFailedInParameterizedTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(
-				client,
-				TestUtils.standardParameters(),
-				TestUtils.testExecutor()
-		));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
 	}
 
 	@Test
@@ -68,16 +64,10 @@ public class BeforeEachFailedInParameterizedTest {
 		TestUtils.runClasses(BeforeEachFailedForSecondParameterTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> startCapture = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, timeout(PROCESSING_TIMEOUT).times(TEST_METHOD_NUMBER)).startTestItem(
-				same(classId),
-				startCapture.capture()
-		);
+		verify(client, timeout(PROCESSING_TIMEOUT).times(TEST_METHOD_NUMBER)).startTestItem(same(classId), startCapture.capture());
 
 		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		methodIds.forEach(id -> verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(
-				same(id),
-				finishCaptor.capture()
-		));
+		methodIds.forEach(id -> verify(client, timeout(PROCESSING_TIMEOUT)).finishTestItem(same(id), finishCaptor.capture()));
 
 		StartTestItemRQ startRq = startCapture.getAllValues().get(3);
 		assertThat(startRq.getType(), equalTo(ItemType.STEP.name()));

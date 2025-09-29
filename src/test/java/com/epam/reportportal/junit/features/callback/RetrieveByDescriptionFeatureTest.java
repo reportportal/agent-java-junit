@@ -23,6 +23,7 @@ import com.epam.reportportal.service.tree.ItemTreeReporter;
 import com.epam.reportportal.service.tree.TestItemTree;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
+import jakarta.annotation.Nonnull;
 import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,9 +33,8 @@ import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 
@@ -70,7 +70,7 @@ public class RetrieveByDescriptionFeatureTest {
 
 	private static void addSaucelabsAttribute() {
 		FinishTestItemRQ request = new FinishTestItemRQ();
-		request.setEndTime(Calendar.getInstance().getTime());
+		request.setEndTime(Instant.now());
 		request.setStatus("PASSED");
 		request.setAttributes(Collections.singleton(new ItemAttributesRQ(SLID, SLID_VALUE)));
 		ItemTreeReporter.finishItem(

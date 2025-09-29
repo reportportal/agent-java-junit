@@ -51,9 +51,13 @@ public class TwoStandardParametersNoInterfaceTest {
 		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
 	}
 
-	private static final List<List<Pair<String, Object>>> PARAMETERS = Arrays.asList(Arrays.asList(Pair.of("param1", "one"),
-			Pair.of("param2", "1")
-	), Arrays.asList(Pair.of("param1", "two"), Pair.of("param2", "2")));
+	private static final List<List<Pair<String, Object>>> PARAMETERS = Arrays.asList(
+			Arrays.asList(
+					Pair.of("param1", "one"),
+					Pair.of("param2", "1")
+			),
+			Arrays.asList(Pair.of("param1", "two"), Pair.of("param2", "2"))
+	);
 
 	@Test
 	public void verify_one_simple_parameter_standard_implementation() {

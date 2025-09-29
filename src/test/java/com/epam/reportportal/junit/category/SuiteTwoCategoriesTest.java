@@ -70,10 +70,12 @@ public class SuiteTwoCategoriesTest {
 		StartTestItemRQ suite = suiteCaptor.getValue();
 		assertThat(suite.getAttributes(), allOf(notNullValue(), hasSize(2)));
 		Set<ItemAttributesRQ> attributes = suite.getAttributes();
-		assertThat(attributes.stream().filter(a -> Smoke.class.getSimpleName().equals(a.getValue())).collect(Collectors.toList()),
+		assertThat(
+				attributes.stream().filter(a -> Smoke.class.getSimpleName().equals(a.getValue())).collect(Collectors.toList()),
 				hasSize(1)
 		);
-		assertThat(attributes.stream().filter(a -> Stable.class.getSimpleName().equals(a.getValue())).collect(Collectors.toList()),
+		assertThat(
+				attributes.stream().filter(a -> Stable.class.getSimpleName().equals(a.getValue())).collect(Collectors.toList()),
 				hasSize(1)
 		);
 

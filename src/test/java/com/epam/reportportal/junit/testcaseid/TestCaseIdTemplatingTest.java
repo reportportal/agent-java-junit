@@ -17,10 +17,8 @@
 package com.epam.reportportal.junit.testcaseid;
 
 import com.epam.reportportal.junit.ReportPortalListener;
-import com.epam.reportportal.junit.features.testcaseid.TestCaseIdFromAnnotationTest;
 import com.epam.reportportal.junit.features.testcaseid.TestCaseIdTemplateTest;
 import com.epam.reportportal.junit.utils.TestUtils;
-import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
@@ -31,7 +29,7 @@ import org.mockito.ArgumentCaptor;
 
 import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 

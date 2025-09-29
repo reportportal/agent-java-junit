@@ -68,7 +68,8 @@ public class CallbackLogTest {
 				.filter(r -> methodIds.get(0).equals(r.getItemUuid()))
 				.collect(Collectors.toList());
 
-		assertThat(logs.stream().filter(l -> CallbackLogFeatureTest.LOG_MESSAGE.equals(l.getMessage())).collect(Collectors.toList()),
+		assertThat(
+				logs.stream().filter(l -> CallbackLogFeatureTest.LOG_MESSAGE.equals(l.getMessage())).collect(Collectors.toList()),
 				hasSize(1)
 		);
 	}

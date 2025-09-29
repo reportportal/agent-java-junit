@@ -35,6 +35,8 @@ import com.epam.ta.reportportal.ws.model.launch.StartLaunchRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import com.nordstrom.automation.junit.*;
 import io.reactivex.Maybe;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.*;
@@ -51,13 +53,12 @@ import org.junit.runners.parameterized.BlockJUnit4ClassRunnerWithParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Function;
@@ -146,7 +147,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	protected void stopLaunch() {
 		if (launch.isInitialized()) {
 			FinishExecutionRQ finishExecutionRQ = new FinishExecutionRQ();
-			finishExecutionRQ.setEndTime(Calendar.getInstance().getTime());
+			finishExecutionRQ.setEndTime(Instant.now());
 			launch.get().finish(finishExecutionRQ);
 			launch.reset();
 		}
@@ -170,24 +171,29 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 
 	@Nonnull
 	private TestItemTree.TestItemLeaf retrieveLeaf(@Nonnull final Map<TestItemTree.ItemTreeKey, TestItemTree.TestItemLeaf> children,
-			@Nonnull final Object runner, @Nonnull final Date previousDate, @Nonnull final ItemType itemType,
+			@Nonnull final Object runner, @Nonnull final Instant previousDate, @Nonnull final ItemType itemType,
 			@Nullable final Maybe<String> parentId) {
-		return children.computeIfAbsent(TestItemTree.ItemTreeKey.of(getRunnerName(runner)), (k) -> {
-			Launch myLaunch = launch.get();
-			Date currentDate = Calendar.getInstance().getTime();
-			Date itemDate;
-			if (previousDate.compareTo(currentDate) <= 0) {
-				itemDate = currentDate;
-			} else {
-				itemDate = previousDate;
-			}
-			StartTestItemRQ rq = itemType == ItemType.TEST ? buildStartTestItemRq(runner, itemDate) : buildStartSuiteRq(runner, itemDate);
-			TestItemTree.TestItemLeaf l = ofNullable(parentId).map(p -> TestItemTree.createTestItemLeaf(p, myLaunch.startTestItem(p, rq)))
-					.orElseGet(() -> TestItemTree.createTestItemLeaf(myLaunch.startTestItem(rq)));
-			l.setType(ItemType.SUITE);
-			l.setAttribute(START_TIME, rq.getStartTime());
-			return l;
-		});
+		return children.computeIfAbsent(
+				TestItemTree.ItemTreeKey.of(getRunnerName(runner)), (k) -> {
+					Launch myLaunch = launch.get();
+					Instant currentDate = Instant.now();
+					Instant itemDate;
+					if (previousDate.compareTo(currentDate) <= 0) {
+						itemDate = currentDate;
+					} else {
+						itemDate = previousDate;
+					}
+					StartTestItemRQ rq =
+							itemType == ItemType.TEST ? buildStartTestItemRq(runner, itemDate) : buildStartSuiteRq(runner, itemDate);
+					TestItemTree.TestItemLeaf l = ofNullable(parentId).map(p -> TestItemTree.createTestItemLeaf(
+							p,
+							myLaunch.startTestItem(p, rq)
+					)).orElseGet(() -> TestItemTree.createTestItemLeaf(myLaunch.startTestItem(rq)));
+					l.setType(ItemType.SUITE);
+					l.setAttribute(START_TIME, rq.getStartTime());
+					return l;
+				}
+		);
 	}
 
 	/**
@@ -205,10 +211,11 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			Object runner = runnerChain.get(i);
 			ItemType type = i + 1 < chainSize ? ItemType.SUITE : ItemType.TEST;
 			if (i <= 0) {
-				leafChain.add(retrieveLeaf(context.getItemTree().getTestItems(), runner, Calendar.getInstance().getTime(), type, null));
+				leafChain.add(retrieveLeaf(context.getItemTree().getTestItems(), runner, Instant.now(), type, null));
 			} else {
 				TestItemTree.TestItemLeaf parentLeaf = leafChain.get(i - 1);
-				leafChain.add(retrieveLeaf(parentLeaf.getChildItems(), runner,
+				leafChain.add(retrieveLeaf(
+						parentLeaf.getChildItems(), runner,
 						// should not be null, since 'retrieveLeaf' always set this attribute
 						Objects.requireNonNull(parentLeaf.getAttribute(START_TIME)), type, parentLeaf.getItemId()
 				));
@@ -335,9 +342,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @return a safe child item timestamp
 	 */
 	@Nonnull
-	protected Date getDateForChild(@Nullable final TestItemTree.TestItemLeaf parentLeaf) {
-		Date currentDate = Calendar.getInstance().getTime();
-		return ofNullable(parentLeaf).map(l -> l.<Date>getAttribute(START_TIME)).map(d -> {
+	protected Instant getDateForChild(@Nullable final TestItemTree.TestItemLeaf parentLeaf) {
+		Instant currentDate = Instant.now();
+		return ofNullable(parentLeaf).map(l -> l.<Instant>getAttribute(START_TIME)).map(d -> {
 			if (currentDate.compareTo(d) >= 0) {
 				return currentDate;
 			} else {
@@ -398,7 +405,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 					if (ItemStatus.FAILED == theoryStatus) {
 						sendReportPortalMsg(l.getItemId(), LogLevel.ERROR, context.getTestThrowable(key));
 					}
-					stopTestMethod(l,
+					stopTestMethod(
+							l,
 							method,
 							buildFinishStepRq(runner, method, callable, theoryStatus == null ? ItemStatus.PASSED : theoryStatus)
 					);
@@ -452,7 +460,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	protected void startTestMethod(@Nonnull final Object runner, @Nonnull final FrameworkMethod method,
 			@Nonnull final ReflectiveCallable callable) {
 		TestItemTree.TestItemLeaf testLeaf = retrieveLeaf(runner);
-		StartTestItemRQ rq = buildStartStepRq(runner,
+		StartTestItemRQ rq = buildStartStepRq(
+				runner,
 				context.getTestMethodDescription(method),
 				method,
 				callable,
@@ -494,9 +503,9 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@SuppressWarnings("unused")
 	protected void reportSkippedStep(@Nonnull final Object runner, @Nonnull final FrameworkMethod failedMethod,
-			@Nonnull final ReflectiveCallable callable, @Nonnull final Date eventTime, @Nullable final Throwable throwable) {
-		Date currentTime = Calendar.getInstance().getTime();
-		Date skipStartTime = currentTime.after(eventTime) ? new Date(currentTime.getTime() - 1) : currentTime;
+			@Nonnull final ReflectiveCallable callable, @Nonnull final Instant eventTime, @Nullable final Throwable throwable) {
+		Instant currentTime = Instant.now();
+		Instant skipStartTime = currentTime.isAfter(eventTime) ? currentTime.minusMillis(1) : currentTime;
 		TestItemTree.ItemTreeKey myParentKey = createItemTreeKey(getRunnerName(runner));
 		TestItemTree.TestItemLeaf testLeaf = ofNullable(getLeaf(runner)).orElseGet(() -> context.getItemTree()
 				.getTestItems()
@@ -531,7 +540,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@SuppressWarnings("unused")
 	protected void reportSkippedClassTests(@Nonnull final Object runner, @Nonnull final FrameworkMethod failedMethod,
-			@Nonnull final ReflectiveCallable callable, @Nonnull final Date eventTime, @Nullable final Throwable throwable) {
+			@Nonnull final ReflectiveCallable callable, @Nonnull final Instant eventTime, @Nullable final Throwable throwable) {
 	}
 
 	private void stopTestMethod(@Nonnull final TestItemTree.TestItemLeaf myLeaf, @Nonnull final FrameworkMethod method,
@@ -592,14 +601,14 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 				(ItemType.BEFORE_METHOD == methodType && ItemStatus.FAILED == status) || (ItemType.BEFORE_METHOD == methodType
 						&& ItemStatus.SKIPPED == status && throwable instanceof AssumptionViolatedException);
 		if (reportSkippedMethod) {
-			reportSkippedStep(runner, method, callable, rq.getEndTime(), throwable);
+			reportSkippedStep(runner, method, callable, (Instant) rq.getEndTime(), throwable);
 		}
 
 		boolean reportSkippedClass =
 				(ItemType.BEFORE_CLASS == methodType && ItemStatus.FAILED == status) || (ItemType.BEFORE_CLASS == methodType
 						&& ItemStatus.SKIPPED == status && throwable instanceof AssumptionViolatedException);
 		if (reportSkippedClass) {
-			reportSkippedClassTests(runner, method, callable, rq.getEndTime(), throwable);
+			reportSkippedClassTests(runner, method, callable, (Instant) rq.getEndTime(), throwable);
 		}
 	}
 
@@ -679,14 +688,12 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			SaveLogRQ rq = new SaveLogRQ();
 			rq.setItemUuid(itemUuid);
 			rq.setLevel(level.name());
-			rq.setLogTime(Calendar.getInstance().getTime());
+			rq.setLogTime(Instant.now());
 			if (thrown != null) {
 				rq.setMessage(ExceptionUtils.getStackTrace(thrown));
 			} else {
 				rq.setMessage("Test has failed without exception");
 			}
-			rq.setLogTime(Calendar.getInstance().getTime());
-
 			return rq;
 		};
 	}
@@ -734,7 +741,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	protected StartLaunchRQ buildStartLaunchRq(@Nonnull final ListenerParameters parameters) {
 		StartLaunchRQ rq = new StartLaunchRQ();
 		rq.setName(parameters.getLaunchName());
-		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setStartTime(Instant.now());
 		Set<ItemAttributesRQ> attributes = new HashSet<>();
 		attributes.addAll(parameters.getAttributes());
 		attributes.addAll(SystemAttributesFetcher.collectSystemAttributes(parameters.getSkippedAnIssue()));
@@ -760,7 +767,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @return Request to ReportPortal
 	 */
 	@Nonnull
-	protected StartTestItemRQ buildStartSuiteRq(@Nonnull final Object runner, @Nullable final Date startTime) {
+	protected StartTestItemRQ buildStartSuiteRq(@Nonnull final Object runner, @Nullable final Instant startTime) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(getRunnerName(runner));
 		rq.setCodeRef(getCodeRef(runner));
@@ -778,7 +785,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 * @return Request to ReportPortal
 	 */
 	@Nonnull
-	protected StartTestItemRQ buildStartTestItemRq(@Nonnull final Object runner, @Nullable final Date startTime) {
+	protected StartTestItemRQ buildStartTestItemRq(@Nonnull final Object runner, @Nullable final Instant startTime) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(getRunnerName(runner));
 		rq.setCodeRef(getCodeRef(runner));
@@ -800,14 +807,15 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Nonnull
 	protected StartTestItemRQ buildStartStepRq(@Nonnull final Object runner, @Nullable final Description description,
-			@Nonnull final FrameworkMethod method, @Nonnull final ReflectiveCallable callable, @Nullable final Date startTime) {
+			@Nonnull final FrameworkMethod method, @Nonnull final ReflectiveCallable callable, @Nullable final Instant startTime) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(method.getName());
 		rq.setCodeRef(getCodeRef(method));
 		rq.setAttributes(getAttributes(method));
 		rq.setDescription(createStepDescription(description, method));
 		rq.setParameters(getStepParameters(method, runner, callable));
-		rq.setTestCaseId(ofNullable(getTestCaseId(runner,
+		rq.setTestCaseId(ofNullable(getTestCaseId(
+				runner,
 				method,
 				rq.getCodeRef(),
 				ofNullable(rq.getParameters()).map(p -> p.stream().map(ParameterResource::getValue).collect(Collectors.toList()))
@@ -829,7 +837,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	@Nonnull
 	protected FinishTestItemRQ buildFinishSuiteRq(@Nullable final TestClass testClass) {
 		FinishTestItemRQ rq = new FinishTestItemRQ();
-		rq.setEndTime(Calendar.getInstance().getTime());
+		rq.setEndTime(Instant.now());
 		return rq;
 	}
 
@@ -844,12 +852,14 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	@Nonnull
 	protected FinishTestItemRQ buildFinishStepRq(@Nullable final FrameworkMethod method, @Nonnull final ItemStatus status) {
 		FinishTestItemRQ rq = new FinishTestItemRQ();
-		rq.setEndTime(Calendar.getInstance().getTime());
+		rq.setEndTime(Instant.now());
 		rq.setStatus(status.name());
 		if (status != ItemStatus.PASSED && testThrowable != null && method != null) {
-			rq.setDescription(String.format(DESCRIPTION_TEST_ERROR_FORMAT,
+			rq.setDescription(String.format(
+					DESCRIPTION_TEST_ERROR_FORMAT,
 					createStepDescription(this.context.getTestMethodDescription(method), method),
-					ExceptionUtils.getStackTrace(testThrowable)));
+					ExceptionUtils.getStackTrace(testThrowable)
+			));
 		}
 		return rq;
 	}
@@ -967,7 +977,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 					Optional<Constructor<?>> constructor = Arrays.stream(method.getDeclaringClass().getConstructors()).findFirst();
 					if (constructor.isPresent()) {
 						Object[] params = (Object[]) Accessible.on(runner).field("parameters").getValue();
-						if(params != null) {
+						if (params != null) {
 							result.addAll(ParameterUtils.getParameters(constructor.get(), Arrays.asList(params)));
 						}
 					}
@@ -977,7 +987,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			} else if (callable != null) {
 				try {
 					Object[] params = (Object[]) Accessible.on(callable).field("val$params").getValue();
-					if(params != null) {
+					if (params != null) {
 						result.addAll(ParameterUtils.getParameters(method.getMethod(), Arrays.asList(params)));
 					}
 				} catch (NoSuchFieldException e) {
