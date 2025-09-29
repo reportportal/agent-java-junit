@@ -25,6 +25,7 @@ import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -40,12 +41,18 @@ public class NestedStepFailedTest {
 	private final String nestedId = CommonUtils.namedId("nested_");
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
+	private final java.util.concurrent.ExecutorService executor = CommonUtils.testExecutor();
 
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, classId, methodId, nestedId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), executor));
+	}
+
+	@AfterEach
+	public void tearDown() {
+		CommonUtils.shutdownExecutorService(executor);
 	}
 
 	@Test

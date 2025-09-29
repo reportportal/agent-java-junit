@@ -25,10 +25,12 @@ import com.epam.ta.reportportal.ws.model.ParameterResource;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -43,17 +45,27 @@ public class TwoStandardParametersNoInterfaceTest {
 	private final String methodId = CommonUtils.namedId("method_");
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
+	private final ExecutorService executor = CommonUtils.testExecutor();
 
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), executor));
 	}
 
-	private static final List<List<Pair<String, Object>>> PARAMETERS = Arrays.asList(Arrays.asList(Pair.of("param1", "one"),
-			Pair.of("param2", "1")
-	), Arrays.asList(Pair.of("param1", "two"), Pair.of("param2", "2")));
+	@AfterEach
+	public void tearDown() {
+		CommonUtils.shutdownExecutorService(executor);
+	}
+
+	private static final List<List<Pair<String, Object>>> PARAMETERS = Arrays.asList(
+			Arrays.asList(
+					Pair.of("param1", "one"),
+					Pair.of("param2", "1")
+			),
+			Arrays.asList(Pair.of("param1", "two"), Pair.of("param2", "2"))
+	);
 
 	@Test
 	public void verify_one_simple_parameter_standard_implementation() {

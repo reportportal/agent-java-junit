@@ -19,11 +19,11 @@ package com.epam.reportportal.junit.utils;
 import com.epam.reportportal.service.tree.TestItemTree;
 import com.epam.ta.reportportal.ws.model.ParameterResource;
 import com.nordstrom.automation.junit.AtomicTest;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -70,7 +70,7 @@ public class ItemTreeUtils {
 	@Nonnull
 	public static TestItemTree.ItemTreeKey createItemTreeKey(@Nonnull Description description) {
 		String fullName = description.getTestClass().getName() + "." + description.getMethodName();
-		return TestItemTree.ItemTreeKey.of(fullName,fullName.hashCode());
+		return TestItemTree.ItemTreeKey.of(fullName, fullName.hashCode());
 	}
 
 	@Nullable

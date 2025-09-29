@@ -29,6 +29,8 @@ import com.epam.ta.reportportal.ws.model.launch.StartLaunchRS;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.reactivex.Maybe;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import okhttp3.MultipartBody;
 import okio.Buffer;
 import org.apache.commons.lang3.tuple.Pair;
@@ -36,12 +38,8 @@ import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;
 import org.mockito.stubbing.Answer;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -56,14 +54,6 @@ public class TestUtils {
 	public static final long PROCESSING_TIMEOUT = TimeUnit.MINUTES.toMillis(1);
 
 	private TestUtils() {
-	}
-
-	public static ExecutorService testExecutor() {
-		return Executors.newSingleThreadExecutor(r -> {
-			Thread t = new Thread(r);
-			t.setDaemon(true);
-			return t;
-		});
 	}
 
 	public static Result runClasses(final Class<?>... testClasses) {
@@ -176,8 +166,10 @@ public class TestUtils {
 				})
 				.map(b -> {
 					try {
-						return HttpRequestUtils.MAPPER.readValue(b, new TypeReference<List<SaveLogRQ>>() {
-						});
+						return HttpRequestUtils.MAPPER.readValue(
+								b, new TypeReference<>() {
+								}
+						);
 					} catch (IOException e) {
 						return Collections.<SaveLogRQ>emptyList();
 					}

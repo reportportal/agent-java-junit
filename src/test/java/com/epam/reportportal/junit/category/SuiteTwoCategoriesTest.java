@@ -27,11 +27,13 @@ import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
@@ -45,13 +47,19 @@ public class SuiteTwoCategoriesTest {
 	private final String methodId = CommonUtils.namedId("method_");
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
+    private final ExecutorService executor = CommonUtils.testExecutor();
 
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, suiteId, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+        ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), executor));
 	}
+
+    @AfterEach
+    public void tearDown() {
+        CommonUtils.shutdownExecutorService(executor);
+    }
 
 	@Test
 	public void verify_suite_categories_go_to_value_only_attributes() {
@@ -70,10 +78,12 @@ public class SuiteTwoCategoriesTest {
 		StartTestItemRQ suite = suiteCaptor.getValue();
 		assertThat(suite.getAttributes(), allOf(notNullValue(), hasSize(2)));
 		Set<ItemAttributesRQ> attributes = suite.getAttributes();
-		assertThat(attributes.stream().filter(a -> Smoke.class.getSimpleName().equals(a.getValue())).collect(Collectors.toList()),
+		assertThat(
+				attributes.stream().filter(a -> Smoke.class.getSimpleName().equals(a.getValue())).collect(Collectors.toList()),
 				hasSize(1)
 		);
-		assertThat(attributes.stream().filter(a -> Stable.class.getSimpleName().equals(a.getValue())).collect(Collectors.toList()),
+		assertThat(
+				attributes.stream().filter(a -> Stable.class.getSimpleName().equals(a.getValue())).collect(Collectors.toList()),
 				hasSize(1)
 		);
 

@@ -21,14 +21,18 @@ import com.epam.reportportal.junit.utils.TestUtils;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
+import com.epam.ta.reportportal.ws.model.ApiInfo;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
+import io.reactivex.Maybe;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
-import java.util.Date;
+import java.time.Instant;
+import java.util.concurrent.ExecutorService;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -56,14 +60,25 @@ public class ItemTimeOrderTest {
 			.collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
+    private final ExecutorService executor = CommonUtils.testExecutor();
 
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, firstSuiteId, secondSuiteId, classIds);
 		TestUtils.mockNestedSteps(client, tests);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+		ApiInfo info = new ApiInfo();
+		ApiInfo.Build build = new ApiInfo.Build();
+		info.setBuild(build);
+		build.setVersion("5.13.2");
+		when(client.getApiInfo()).thenReturn(Maybe.just(info));
+        ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), executor));
 	}
+
+    @AfterEach
+    public void tearDown() {
+        CommonUtils.shutdownExecutorService(executor);
+    }
 
 	@Test
 	public void verify_test_hierarchy_on_suite_of_suites() {
@@ -82,17 +97,20 @@ public class ItemTimeOrderTest {
 		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classIds.get(0)), stepCaptor.capture());
 		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classIds.get(1)), stepCaptor.capture());
 
-		Date previousDate = null;
+		Instant previousDate = null;
 		List<StartTestItemRQ> testItems = testCaptor.getAllValues();
 		List<StartTestItemRQ> suites = Stream.concat(suiteCaptor.getAllValues().stream(), testItems.stream()).collect(Collectors.toList());
 		for (StartTestItemRQ item : suites) {
-			Date parentDate = ofNullable(previousDate).orElseGet(() -> suites.get(0).getStartTime());
-			Date itemDate = item.getStartTime();
-			assertThat(item.getStartTime(), greaterThanOrEqualTo(parentDate));
+			Instant parentDate = ofNullable(previousDate).orElseGet(() -> (Instant) suites.get(0).getStartTime());
+			Instant itemDate = (Instant) item.getStartTime();
+			assertThat((Instant) item.getStartTime(), greaterThanOrEqualTo(parentDate));
 			previousDate = itemDate;
 		}
 		List<StartTestItemRQ> steps = stepCaptor.getAllValues();
 		IntStream.range(0, TEST_NUMBER)
-				.forEach(i -> assertThat(steps.get(i).getStartTime(), greaterThanOrEqualTo(testItems.get(i).getStartTime())));
+				.forEach(i -> assertThat(
+						(Instant) steps.get(i).getStartTime(),
+						greaterThanOrEqualTo((Instant) testItems.get(i).getStartTime())
+				));
 	}
 }

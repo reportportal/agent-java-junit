@@ -27,10 +27,12 @@ import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -47,13 +49,19 @@ public class BeforeEachTwoTests {
 	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(4).collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
+    private final ExecutorService executor = CommonUtils.testExecutor();
 
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+        ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), executor));
 	}
+
+    @AfterEach
+    public void tearDown() {
+        CommonUtils.shutdownExecutorService(executor);
+    }
 
 	@Test
 	public void agent_should_report_two_before_each_methods_in_one_test_correctly() {
@@ -73,7 +81,8 @@ public class BeforeEachTwoTests {
 		List<StartTestItemRQ> beforeStarts = Arrays.asList(startItems.get(0), startItems.get(2));
 
 		beforeStarts.forEach(e -> {
-			assertThat("@Before has correct code reference",
+			assertThat(
+					"@Before has correct code reference",
 					e.getCodeRef(),
 					equalTo(BeforeTwoTests.class.getCanonicalName() + ".beforeEach")
 			);

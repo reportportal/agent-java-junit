@@ -25,10 +25,12 @@ import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
 import java.util.Collections;
 import java.util.List;
 
@@ -43,15 +45,22 @@ public class TestCaseIdJunitParamsTest {
 	private final String methodId = CommonUtils.namedId("method_");
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
+    private final ExecutorService executor = CommonUtils.testExecutor();
 
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+        ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), executor));
 	}
 
-	private static final List<List<Pair<String, Object>>> PARAMETERS = Collections.singletonList(Arrays.asList(Pair.of("param1", "one"),
+    @AfterEach
+    public void tearDown() {
+        CommonUtils.shutdownExecutorService(executor);
+    }
+
+	private static final List<List<Pair<String, Object>>> PARAMETERS = Collections.singletonList(Arrays.asList(
+			Pair.of("param1", "one"),
 			Pair.of("param2", "1")
 	));
 
@@ -63,8 +72,11 @@ public class TestCaseIdJunitParamsTest {
 		verify(client, timeout(PROCESSING_TIMEOUT)).startTestItem(same(classId), captor.capture());
 
 		StartTestItemRQ item = captor.getValue();
-		assertThat(item.getTestCaseId(), allOf(notNullValue(),
-				equalTo(JUnitParamsTestCaseIdTest.TEST_CASE_ID_VALUE + "[" + PARAMETERS.get(0).get(0).getValue() + "]")
-		));
+		assertThat(
+				item.getTestCaseId(), allOf(
+						notNullValue(),
+						equalTo(JUnitParamsTestCaseIdTest.TEST_CASE_ID_VALUE + "[" + PARAMETERS.get(0).get(0).getValue() + "]")
+				)
+		);
 	}
 }

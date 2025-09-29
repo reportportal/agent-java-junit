@@ -27,8 +27,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Calendar;
-import java.util.Date;
+import java.time.Instant;
 
 public class CallbackLogFeatureTest {
 
@@ -36,7 +35,7 @@ public class CallbackLogFeatureTest {
 
 	public static final String ERROR_LOG_LEVEL = "Error";
 	public static final String LOG_MESSAGE = "Error log message";
-	public static final Date LOG_TIME = Calendar.getInstance().getTime();
+	public static final Instant LOG_TIME = Instant.now();
 
 	@Test
 	public void someTest() {
