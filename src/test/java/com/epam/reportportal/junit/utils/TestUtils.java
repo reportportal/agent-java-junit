@@ -26,7 +26,6 @@ import com.epam.ta.reportportal.ws.model.item.ItemCreatedRS;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRS;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.nordstrom.automation.junit.JUnitWatcher;
 import io.reactivex.Maybe;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -60,7 +59,7 @@ public class TestUtils {
 		Result results = JUnitCore.runClasses(testClasses);
 		FinishExecutionRQ finish = new FinishExecutionRQ();
 		finish.setEndTime(Instant.now());
-		ofNullable(Launch.currentLaunch()).ifPresent(l->l.finish(finish));
+		ofNullable(Launch.currentLaunch()).ifPresent(l -> l.finish(finish));
 		return results;
 	}
 
