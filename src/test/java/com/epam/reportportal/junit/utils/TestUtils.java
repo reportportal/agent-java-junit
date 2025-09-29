@@ -17,13 +17,11 @@
 package com.epam.reportportal.junit.utils;
 
 import com.epam.reportportal.listeners.ListenerParameters;
+import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.reportportal.utils.http.HttpRequestUtils;
-import com.epam.ta.reportportal.ws.model.BatchSaveOperatingRS;
-import com.epam.ta.reportportal.ws.model.Constants;
-import com.epam.ta.reportportal.ws.model.EntryCreatedAsyncRS;
-import com.epam.ta.reportportal.ws.model.OperationCompletionRS;
+import com.epam.ta.reportportal.ws.model.*;
 import com.epam.ta.reportportal.ws.model.item.ItemCreatedRS;
 import com.epam.ta.reportportal.ws.model.launch.StartLaunchRS;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
@@ -39,6 +37,7 @@ import org.junit.runner.Result;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -57,7 +56,11 @@ public class TestUtils {
 	}
 
 	public static Result runClasses(final Class<?>... testClasses) {
-		return JUnitCore.runClasses(testClasses);
+		Result results = JUnitCore.runClasses(testClasses);
+		FinishExecutionRQ finish = new FinishExecutionRQ();
+		finish.setEndTime(Instant.now());
+		ofNullable(Launch.currentLaunch()).ifPresent(l -> l.finish(finish));
+		return results;
 	}
 
 	public static void mockLaunch(@Nonnull final ReportPortalClient client, @Nullable final String launchUuid,
