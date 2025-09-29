@@ -26,11 +26,13 @@ import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import io.reactivex.Maybe;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
 import java.time.Instant;
+import java.util.concurrent.ExecutorService;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -58,6 +60,7 @@ public class ItemTimeOrderTest {
 			.collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
+    private final ExecutorService executor = CommonUtils.testExecutor();
 
 	@BeforeEach
 	public void setupMock() {
@@ -69,8 +72,13 @@ public class ItemTimeOrderTest {
 		info.setBuild(build);
 		build.setVersion("5.13.2");
 		when(client.getApiInfo()).thenReturn(Maybe.just(info));
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+        ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), executor));
 	}
+
+    @AfterEach
+    public void tearDown() {
+        CommonUtils.shutdownExecutorService(executor);
+    }
 
 	@Test
 	public void verify_test_hierarchy_on_suite_of_suites() {

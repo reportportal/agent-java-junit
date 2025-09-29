@@ -26,10 +26,12 @@ import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.Collections;
+import java.util.concurrent.ExecutorService;
 import java.util.List;
 
 import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
@@ -45,14 +47,20 @@ public class MultiLevelNestedStepTest {
 	private final String secondLevelNestedId = CommonUtils.namedId("nested2_");
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
+    private final ExecutorService executor = CommonUtils.testExecutor();
 
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, classId, methodId, nestedId);
 		TestUtils.mockNestedSteps(client, Collections.singletonList(Pair.of(nestedId, secondLevelNestedId)));
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+        ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), executor));
 	}
+
+    @AfterEach
+    public void tearDown() {
+        CommonUtils.shutdownExecutorService(executor);
+    }
 
 	@Test
 	public void test_multi_layered_nested_steps() throws NoSuchMethodException {

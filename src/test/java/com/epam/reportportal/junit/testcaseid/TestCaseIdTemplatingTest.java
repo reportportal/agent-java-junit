@@ -24,6 +24,7 @@ import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -39,13 +40,19 @@ public class TestCaseIdTemplatingTest {
 	private final String methodId = CommonUtils.namedId("method_");
 
 	private ReportPortalClient client;
+	private final java.util.concurrent.ExecutorService executor = CommonUtils.testExecutor();
 
 	@BeforeEach
 	public void setupMock() {
 		client = mock(ReportPortalClient.class);
 		TestUtils.mockLaunch(client, null, null, classId, methodId);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), executor));
+	}
+
+	@AfterEach
+	public void tearDown() {
+		CommonUtils.shutdownExecutorService(executor);
 	}
 
 	@Test

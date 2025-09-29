@@ -26,10 +26,12 @@ import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
 import java.util.Collections;
 
 import static com.epam.reportportal.junit.utils.TestUtils.PROCESSING_TIMEOUT;
@@ -45,13 +47,19 @@ public class BeforeEachNestedStepTest {
 	private final String methodId = CommonUtils.namedId("method_");
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
+	private final ExecutorService executor = CommonUtils.testExecutor();
 
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, Arrays.asList(beforeId, methodId));
 		TestUtils.mockNestedSteps(client, Collections.singletonList(Pair.of(beforeId, nestedId)));
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), executor));
+	}
+
+	@AfterEach
+	public void tearDown() {
+		CommonUtils.shutdownExecutorService(executor);
 	}
 
 	@Test

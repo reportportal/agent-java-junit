@@ -26,10 +26,12 @@ import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,12 +46,18 @@ public class BasicRetryTest {
 	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(2).collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
+	private final ExecutorService executor = CommonUtils.testExecutor();
 
 	@BeforeEach
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, null, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), TestUtils.testExecutor()));
+		ReportPortalListener.setReportPortal(ReportPortal.create(client, TestUtils.standardParameters(), executor));
+	}
+
+	@AfterEach
+	public void tearDown() {
+		CommonUtils.shutdownExecutorService(executor);
 	}
 
 	@Test

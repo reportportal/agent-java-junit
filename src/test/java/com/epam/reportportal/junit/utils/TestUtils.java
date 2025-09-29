@@ -40,8 +40,6 @@ import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -56,14 +54,6 @@ public class TestUtils {
 	public static final long PROCESSING_TIMEOUT = TimeUnit.MINUTES.toMillis(1);
 
 	private TestUtils() {
-	}
-
-	public static ExecutorService testExecutor() {
-		return Executors.newSingleThreadExecutor(r -> {
-			Thread t = new Thread(r);
-			t.setDaemon(true);
-			return t;
-		});
 	}
 
 	public static Result runClasses(final Class<?>... testClasses) {
@@ -177,7 +167,7 @@ public class TestUtils {
 				.map(b -> {
 					try {
 						return HttpRequestUtils.MAPPER.readValue(
-								b, new TypeReference<List<SaveLogRQ>>() {
+								b, new TypeReference<>() {
 								}
 						);
 					} catch (IOException e) {

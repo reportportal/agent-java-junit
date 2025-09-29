@@ -10,10 +10,12 @@ import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -29,7 +31,8 @@ public class FailedDescriptionTest {
 	private final String suiteId = CommonUtils.namedId("suite_");
 	private final String classId = CommonUtils.namedId("class_");
 	private final List<String> methodIds = Stream.generate(() -> CommonUtils.namedId("method_")).limit(2).collect(Collectors.toList());
-	private final ReportPortalClient client = mock(ReportPortalClient.class);
+    private final ReportPortalClient client = mock(ReportPortalClient.class);
+    private final ExecutorService executor = CommonUtils.testExecutor();
 	private final String testWithDescriptionAndAssertException = "testWithDescriptionAndAssertException";
 	private final String testWithDescriptionAndStepError = "testWithDescriptionAndStepError";
 	private final String testWithDescriptionAndException = "testWithDescriptionAndException";
@@ -44,9 +47,14 @@ public class FailedDescriptionTest {
 	public void setupMock() {
 		TestUtils.mockLaunch(client, null, suiteId, classId, methodIds);
 		TestUtils.mockBatchLogging(client);
-		ListenerParameters params = TestUtils.standardParameters();
-		ReportPortalListener.setReportPortal(ReportPortal.create(client, params, TestUtils.testExecutor()));
+        ListenerParameters params = TestUtils.standardParameters();
+        ReportPortalListener.setReportPortal(ReportPortal.create(client, params, executor));
 	}
+
+    @AfterEach
+    public void tearDown() {
+        CommonUtils.shutdownExecutorService(executor);
+    }
 
 	@Test
 	public void verify_retrieve_by_description() {
