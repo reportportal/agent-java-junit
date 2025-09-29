@@ -85,7 +85,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	private static final String IS_THEORY = "IS_THEORY";
 	public static final String DESCRIPTION_TEST_ERROR_FORMAT = "%s\nError: \n%s";
 	private Throwable testThrowable;
-	private static final Map<Class<? extends Annotation>, ItemType> TYPE_MAP = Collections.unmodifiableMap(new HashMap<Class<? extends Annotation>, ItemType>() {
+	private static final Map<Class<? extends Annotation>, ItemType> TYPE_MAP = Collections.unmodifiableMap(new HashMap<>() {
 		private static final long serialVersionUID = 5292344734560662610L;
 
 		{
@@ -360,7 +360,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	protected void startTest(@Nonnull final AtomicTest testContext) {
 		FrameworkMethod method = testContext.getIdentity();
-		if (!ofNullable(method.getAnnotation(Theory.class)).isPresent()) {
+		if (ofNullable(method.getAnnotation(Theory.class)).isEmpty()) {
 			context.setTestStatus(createItemTreeKey(method, getStepParameters(testContext)), ItemStatus.PASSED);
 		}
 		context.setTestMethodDescription(method, testContext.getDescription());
@@ -574,7 +574,7 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 			@Nonnull final ReflectiveCallable callable, @Nonnull final FinishTestItemRQ rq) {
 		ofNullable(getLeaf(runner, method, callable)).ifPresent(l -> {
 			ItemStatus status = ItemStatus.valueOf(rq.getStatus());
-			if (!ofNullable(method.getAnnotation(Theory.class)).isPresent()) {
+			if (ofNullable(method.getAnnotation(Theory.class)).isEmpty()) {
 				l.setStatus(status);
 				stopTestMethod(l, method, rq);
 			}
@@ -1085,11 +1085,11 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Nonnull
 	protected Set<ItemAttributesRQ> getAttributes(@Nonnull final TestClass testClass) {
-		Stream<ItemAttributesRQ> categories = ofNullable(testClass.getAnnotation(Category.class)).map(a -> Arrays.stream(a.value())
-				.map(c -> new ItemAttributesRQ(null, c.getSimpleName()))).orElse(Stream.empty());
+		Stream<ItemAttributesRQ> categories = ofNullable(testClass.getAnnotation(Category.class)).stream()
+				.flatMap(a -> Arrays.stream(a.value()).map(c -> new ItemAttributesRQ(null, c.getSimpleName())));
 		Stream<ItemAttributesRQ> attributes = ofNullable(testClass.getJavaClass()).map(this::getAttributes)
-				.map(Set::stream)
-				.orElse(Stream.empty());
+				.stream()
+				.flatMap(Collection::stream);
 		return Stream.concat(categories, attributes).collect(Collectors.toSet());
 	}
 
@@ -1101,8 +1101,8 @@ public class ReportPortalListener implements ShutdownListener, RunnerWatcher, Ru
 	 */
 	@Nonnull
 	protected Set<ItemAttributesRQ> getAttributes(@Nonnull final FrameworkMethod frameworkMethod) {
-		Stream<ItemAttributesRQ> categories = ofNullable(frameworkMethod.getAnnotation(Category.class)).map(a -> Arrays.stream(a.value())
-				.map(c -> new ItemAttributesRQ(null, c.getSimpleName()))).orElse(Stream.empty());
+		Stream<ItemAttributesRQ> categories = ofNullable(frameworkMethod.getAnnotation(Category.class)).stream()
+				.flatMap(a -> Arrays.stream(a.value()).map(c -> new ItemAttributesRQ(null, c.getSimpleName())));
 		Stream<ItemAttributesRQ> attributes = ofNullable(frameworkMethod.getMethod()).map(this::getAttributes)
 				.orElse(Collections.emptySet())
 				.stream();
